@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fieldwork — Surface compatibility fixture</title><link rel="stylesheet" href="fixture.css"></head>
+<body>
+  <header class="masthead"><a class="wordmark" href="#home">FIELDWORK<span> / An independent journal</span></a><nav><a href="#stories" aria-current="page">Stories</a><a href="#notes">Notes</a><button id="menu-button" aria-expanded="false">Menu</button></nav></header>
+  <main>
+    <div class="eyebrow">ISSUE 004 · THE EVERYDAY</div><h1>Finding something<br>in the ordinary.</h1><p class="lead">A small field guide to familiar places, overlooked details, and making the internet feel like home.</p>
+    <div class="grid" id="stories">
+      <article id="article"><img id="photo" src="landscape.svg" alt="Illustration of a quiet landscape"><div class="article-copy"><span class="kicker">OBSERVATIONS · 8 MIN READ</span><h2>The shape of a slower day</h2><p>Some things deserve a second look. A familiar path, the light in the kitchen, a page you visit every day.</p><a href="#read">Keep reading <span aria-hidden="true">↗</span></a><button id="icon-button">Save story</button></div></article>
+      <aside><span class="kicker">A NOTE FROM US</span><h2>Stay curious.</h2><p>Good ideas often start with paying attention.</p><label for="email">Email address</label><input id="email" type="email" placeholder="you@example.com"><button id="subscribe">Subscribe</button><p id="form-feedback" hidden></p><hr><h3>Your reading list</h3><button id="selected" aria-pressed="true">Saved stories</button><button id="disabled" disabled>Coming soon</button></aside>
+    </div>
+    <section class="checks"><h2>Compatibility bench</h2><p>These controls exercise behavior as well as appearance.</p>
+      <div class="controls"><button id="add">Add a story</button><button id="navigate">Navigate without reload</button><button id="inline-update">Change inline colors</button><button id="sheet-update">Change stylesheet</button><button id="adopted-update">Change adopted stylesheet</button><button id="new-shadow">Attach shadow root later</button><button id="open-dialog">Open dialog</button></div>
+      <div id="dynamic"></div>
+      <p id="inline" style="background:#fff3d4;color:#784400">Inline style: should remain readable when updated.</p>
+      <div class="context-grid">
+        <div id="retained-card"><h3>Retained site surface</h3><span id="retained-text">This dark text belongs to a white surface the renderer does not understand.</span></div>
+        <figure id="media-overlay"><img src="landscape.svg" alt="Illustrated mountains behind an overlay"><figcaption id="overlay-heading">Original light text over media</figcaption></figure>
+        <div id="gradient-panel"><p id="gradient-text">Original text over an authored gradient</p></div>
+      </div>
+      <div class="fixture-panel"><h3>Unmarked component</h3><div class="fixture-action" tabindex="0">A custom action without a semantic role</div><p class="fixture-error">Error: this operation failed.</p><p class="fixture-success">Success: your changes were saved.</p></div>
+      <p><label>Invalid field <input id="invalid" aria-invalid="true" value="Not a valid value"></label></p>
+      <div id="contrast-bench">
+        <div style="background:#fff;color:#eee;padding:12px"><small id="low-contrast">Small text on a retained white surface</small></div>
+        <div style="background:#111;color:#222;padding:12px"><strong id="dark-contrast">Text on a retained dark surface</strong></div>
+        <div style="background:#fff;padding:12px"><div style="background:rgba(0,0,0,.5)"><span id="alpha-contrast" style="background:rgba(255,255,255,.25);color:#888">Text over two translucent layers</span></div></div>
+        <button id="nested-selected" aria-pressed="true"><strong style="color:red"><span>Nested selected label</span></strong></button>
+        <button id="nested-hover"><span>Nested hover label</span></button>
+        <div id="pseudo-backing"><span id="pseudo-text">Text over a generated backdrop</span></div>
+        <span id="fill-text" style="-webkit-text-fill-color:#aaa;color:#111">Separate glyph fill</span>
+        <p id="effect-text" style="filter:blur(.1px);color:#555">Uncertain effect stays unresolved</p>
+        <div style="background:#fff"><span id="wide-color" style="background:color(display-p3 1 .5 0);color:#222">Unsupported color space stays unresolved</span></div>
+      </div>
+      <div id="shadow-host"></div><div id="later-shadow-host"></div>
+      <p class="semantic-error">A color-only error (known recognition challenge)</p>
+      <p class="semantic-success">A color-only success (known recognition challenge)</p>
+      <img id="logo" src="logo.svg" alt="Fieldwork logo" width="80" height="35"><svg id="inline-logo" width="80" height="35" role="img" aria-label="Inline logo"><rect width="80" height="35" fill="#e34e36"/><text x="8" y="23" fill="white">LOGO</text></svg>
+      <svg id="black-logo" width="96" height="35" role="img" aria-label="Black logo"><text x="2" y="24" fill="#050505" font-family="Arial" font-weight="700">DARK MARK</text></svg>
+      <p><span class="original-icon" aria-hidden="true"></span> An existing pseudo-element icon.</p>
+      <div contenteditable="true" id="editor">Editable content keeps its own appearance.</div>
+      <h3>Embedded document</h3><iframe id="frame" title="Compatibility frame" src="/frame.html"></iframe>
+    </section>
+  </main>
+  <dialog id="dialog"><h2>A working dialog</h2><p>Focus, close, and interaction must still work.</p><button id="close-dialog">Close</button></dialog>
+  <footer>FIELDWORK · A local testing fixture. No data leaves this page.</footer>
+  <script src="fixture.js"></script>
+</body></html>
