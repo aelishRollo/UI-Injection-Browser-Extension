@@ -158,6 +158,51 @@ try {
     }
   });
 
+  await check('reading hierarchy separates sections, fact panels, data and fields', async () => {
+    await set({ enabled: false });
+    await page.goto(`${fixture.url}/roles.html`);
+    await waitStatus({ state: 'disabled' });
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#input,#painted-title').evaluateAll(elements => elements.map(el => {
+      const s = getComputedStyle(el);
+      return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
+    }));
+    const baseline = await snapshot();
+    for (const theme of ['browser-archeology', 'liquid-dream']) {
+      await set({ enabled: true, renderer: 'contextual', theme });
+      await waitStatus({ state: 'active', renderer: 'contextual', theme });
+      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
+        assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
+      }
+      assert.equal(await page.locator('#chapter').evaluate(el => getComputedStyle(el).boxShadow), 'none');
+      assert.equal(await page.locator('#chapter').evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
+      assert.equal(await page.locator('#painted-title').getAttribute('data-surface-purpose-v1'), null);
+      assert.equal(await page.locator('#protected [data-surface-purpose-v1]').count(), 0);
+      if (theme === 'liquid-dream') {
+        for (const selector of ['header', '#heading-group', '#facts']) {
+          assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
+        }
+        // All light rainbow stops must support theme ink, including links.
+        for (const stop of ['#ffc6e2','#ffe5a3','#fff2a6','#a3ecda','#b8d9ff','#dfc5ff']) {
+          for (const ink of ['#201928', '#274bb5']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
+        }
+      } else {
+        assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+      }
+      await page.locator('#dynamic').evaluate(el => { el.innerHTML = '<section id="late-section"><h2>Added chapter</h2><p>A new article section should join the existing document without becoming another framed panel.</p><button id="late-action">New action</button></section>'; });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('#late-section').getAttribute('data-surface-purpose-v1'), 'section');
+      assert.equal(await page.locator('#late-action').getAttribute('data-surface-context-v1'), 'control');
+      await page.locator('#dynamic').evaluate(el => el.replaceChildren());
+      await page.screenshot({ path: join(out, `hierarchy-${theme}.png`) });
+      await set({ enabled: false });
+      await waitStatus({ state: 'disabled' });
+      assert.deepEqual(await snapshot(), baseline);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1]').count(), 0);
+    }
+    await page.goto(fixture.url);
+    await waitStatus({ state: 'disabled' });
+  });
+
   await check('dynamic DOM, SPA navigation, keyboard focus and working controls', async () => {
     await set({ enabled: true, renderer: 'adaptive', theme: 'terminal-vision' });
     await waitStatus({ state: 'active', renderer: 'adaptive' });

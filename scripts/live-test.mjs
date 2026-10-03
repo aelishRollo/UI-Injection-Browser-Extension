@@ -63,6 +63,10 @@ try {
             await page.waitForTimeout(700);
             result.status = await getStatus(tabId);
             result.document = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth, darkreaderStyles: document.querySelectorAll('style.darkreader').length, elements: document.querySelectorAll('*').length, bodyColor: getComputedStyle(document.body).color, bodyBackground: getComputedStyle(document.body).backgroundColor }));
+            if (renderer === 'contextual') result.purposeSamples = await page.locator('[data-surface-purpose-v1]').evaluateAll(elements => elements.slice(0, 60).map(element => ({
+              tag: element.tagName.toLowerCase(), purpose: element.getAttribute('data-surface-purpose-v1'),
+              evidence: element.getAttribute('data-surface-evidence-v1'), label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 80)
+            })));
             await page.screenshot({ path: join(out, `${site.id}-${renderer}-${theme}.png`), timeout: 30000 });
             result.applied = true;
             console.log(`${site.id}: ${renderer}/${theme} captured`);

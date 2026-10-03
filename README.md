@@ -16,6 +16,10 @@ The built extension is in `dist/`.
 
 The prototype starts enabled with Terminal Vision and renderer A. Installing it grants HTTP(S) access so it can theme unfamiliar websites automatically. Settings and exceptions stay in `chrome.storage.local`. There is no analytics, remote theme code, or automatic reporting. Exporting a test note explicitly downloads a local JSON file; it does not send it anywhere. Renderer B may fetch public stylesheets through the extension worker without credentials to overcome cross-origin CSS restrictions.
 
+## Shared learning
+
+Read [the shared learning log](docs/LEARNINGS.md) before theme work and update it after each experiment. [AGENTS.md](AGENTS.md) makes this part of every project chat's workflow. It distinguishes owner feedback, hypotheses, measured evidence, and open questions; representative evidence is committed under `docs/`.
+
 ## Develop and test
 
 The project uses only `main` and `development`. Make changes on `development`, validate them, then commit and push without requesting confirmation. Merge `development` into protected `main` through a pull request only when the owner explicitly requests it. Keep both branches after merging and synchronize `development` with `main`. See [AGENTS.md](AGENTS.md) for the standing workflow instructions.
@@ -42,7 +46,7 @@ After rebuilding, reload the unpacked extension and refresh previously themed ta
 - Three internal, versioned theme definitions and expressive CSS adaptations.
 - **A:** semantic CSS only; no DOM polling, observers, or per-element writes.
 - **B:** pinned Dark Reader 4.9.133 website API under the same expressive CSS.
-- **C:** contextual regions with foreground/background contrast resolution. It composites solid/translucent sRGB surfaces, keeps readable authored pairs, and adjusts failing text using theme ink. It preserves authored foregrounds over unresolved media/effects, gives protected brand marks their original backing color, and limits animation to one prominent region. Select C in Experiment controls to try it.
+- **C:** contextual regions with experimental purpose recognition for Browser Archeology and Liquid Dream (reading documents, sections, panels, tables, navigation, headings, and fields). Its foreground/background resolver composites solid/translucent sRGB surfaces, keeps readable authored pairs, and adjusts failing text using theme ink. It preserves authored foregrounds over unresolved media/effects, gives protected brand marks their original backing color, and limits animation to one prominent region. Select C in Experiment controls to try it.
 - Lazy loading of the adaptation library only when B is selected.
 - Theme selection, global pause, exact-host disable, and restoration without a page reload.
 - Serialized settings changes and per-document application/cleanup.
@@ -71,4 +75,4 @@ The theme layer changes typography, colors, borders, shadows, and decoration. It
 - Some authenticated stylesheets cannot be fetched by the credential-free bridge. Fetch failures appear in diagnostics. No fallback silently changes renderer B into A.
 - Full theme animation/rendering cost and overall page performance still require measurement on representative hardware and real websites. The reported application duration includes worker/import scheduling, not just engine CPU.
 
-See [asset provenance](docs/ASSETS.md), [theme adaptations](docs/THEME-PORTS.md), the [A/B experiment protocol](docs/EXPERIMENT.md), and the [contextual renderer experiment](docs/EXPERIMENT-02.md).
+See [asset provenance](docs/ASSETS.md), [theme adaptations](docs/THEME-PORTS.md), the [A/B experiment protocol](docs/EXPERIMENT.md), and the [contextual renderer experiment](docs/EXPERIMENT-02.md), and [purpose recognition](docs/EXPERIMENT-03.md).

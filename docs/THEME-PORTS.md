@@ -25,3 +25,7 @@ These substitutions are hypotheses about retaining identity on foreign websites.
 `src/corrections.js` currently contains host matching plus selector-to-role mappings and protected regions. Corrections are off by default so the baseline can be measured. The YouTube mapping uses the same video-overlay role across themes; the fixture mapping verifies reusability with all three themes.
 
 There is no public correction schema, user CSS editor, appearance-override format, or layout representation yet. A future editor can target the renderer's role or appearance boundary without requiring that we freeze today's internal data structures.
+
+## Purpose-based iteration (October 3)
+
+[Experiment 03](EXPERIMENT-03.md) assigns different treatments to documents, panels, navigation, headings, data tables and fields. Browser Archeology uses one document frame and distinct inset fields; Liquid Dream places a six-color rainbow on visible navigation/title accents and contextual panels, leaving prose quieter. C additionally groups chapter headings with small utility links and recognizes prose children of boxless landmarks. This is an experimental interpretation of theme intent; see [the learning log](LEARNINGS.md) before further changes.

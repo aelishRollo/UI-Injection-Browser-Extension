@@ -22,6 +22,32 @@ function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, 
   return [];
 }
 
+// Assign decoration by visual purpose instead of repeating a card on every region.
+function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title, sectionHeading, navigation, field }) {
+  if (theme.id === 'terminal-vision') return [];
+  const rainbow = 'linear-gradient(90deg,#ffc6e2 0%,#ffe5a3 24%,#fff2a6 40%,#a3ecda 60%,#b8d9ff 80%,#dfc5ff 100%)';
+  const reset = { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0' };
+  if (theme.id === 'browser-archeology') return [
+    rule(reading, { ...reset, 'background-color': '#ffffff', border: '1px solid #808080', 'box-shadow': '2px 2px 0 rgba(0,0,0,.2)' }),
+    rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
+    rule(panel, { 'background-color': '#ffffff', 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 0 3px #000080,0 0 0 1px #808080,2px 2px 0 rgba(0,0,0,.2)', 'background-image': 'none' }),
+    rule(data, { ...reset, 'background-color': '#ffffff', border: '1px solid #808080' }),
+    rule(title, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '4px solid #000080', 'text-shadow': 'none' }),
+    rule(sectionHeading, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '1px solid #808080', 'text-shadow': 'none' }),
+    rule(navigation, { 'background-color': '#d4d0c8', 'box-shadow': 'inset 0 1px #fff,inset 0 -1px #808080', 'font-family': 'Arial,Helvetica,sans-serif' }),
+    rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' })
+  ];
+  return [
+    rule(reading, { 'background-color': '#fff9f1', 'background-image': 'linear-gradient(135deg,#fff2f8,#fff9e6 38%,#effbf7 68%,#f4efff)', 'background-size': '100% 100%', border: '1px solid #b5a0bd', 'border-radius': '18px', 'box-shadow': '0 12px 32px rgba(78,64,104,.12)' }),
+    rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
+    rule(panel, { 'background-color': '#fff9f1', 'background-image': `repeating-radial-gradient(ellipse at 90% 10%,rgba(255,255,255,.18) 0 3px,transparent 4px 22px),${rainbow}`, 'background-size': '180% 180%,100% 100%', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
+    rule(data, { ...reset, 'background-color': '#fff9f1', border: '1px solid #9b859e' }),
+    rule(`${title},${sectionHeading}`, { 'background-color': '#fff9f1', 'background-image': rainbow, 'border-bottom': '2px solid #b59ac9', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
+    rule(navigation, { 'background-color': '#fff9f1', 'background-image': rainbow, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.3)' }),
+    rule(field, { 'background-color': '#fff9f1', 'background-image': 'none', 'box-shadow': 'inset 0 1px 3px rgba(78,64,104,.18)' })
+  ];
+}
+
 // USER-origin CSS is injected by the service worker, so the adapter cannot transform
 // our output. A/B do not annotate the DOM; C uses temporary namespaced attributes.
 function buildContextualStyles(theme, corrections) {
@@ -69,6 +95,11 @@ function buildContextualStyles(theme, corrections) {
     page: context('page'), heading: `${text('heading')}${highOrMedium}`, surface: context('content'),
     control: context('control'), link: `${tone('theme')}${text('link')}`, chrome: context('chrome'),
     animated: `${context('content')}[data-surface-prominent-v1]`
+  }));
+  const purpose = value => `[data-surface-purpose-v1="${value}"]`;
+  css.push(...buildPurposeMotifs(theme, rule, {
+    reading: purpose('reading'), section: purpose('section'), panel: purpose('panel'), data: purpose('data'),
+    title: purpose('title'), sectionHeading: purpose('section-heading'), navigation: purpose('navigation'), field: purpose('field')
   }));
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
   css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
@@ -128,6 +159,14 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     page: 'body', heading, surface, control: `:is(${button},${field})`, link,
     chrome: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation'),
     animated: surface
+  }));
+  css.push(...buildPurposeMotifs(theme, rule, {
+    reading: select(['main', '[role="main"]'], 'reading'),
+    // A/B never decorated sections, so retain their authored paint.
+    section: ':not(*)', panel: surface,
+    data: select(['table'], 'data'), title: select(['h1', '[role="heading"][aria-level="1"]'], 'title'),
+    sectionHeading: select(['main h2', 'article h2', '[role="main"] [role="heading"][aria-level="2"]'], 'section-heading'),
+    navigation: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation'), field
   }));
   css.push(`@media (prefers-reduced-motion:reduce){${surface}{animation:none !important;}}`);
   // States come last so decorative treatments cannot erase essential distinctions.

@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Reading hierarchy fixture</title>
+<style>
+body{margin:24px;background:#fff;color:#202122;font:16px/1.5 Arial}main{max-width:1000px}header,nav{background:#fff}section{margin-top:24px}h2{display:inline}table{border:1px solid #aaa;background:#eee}#facts{float:right;width:250px}th,td{padding:8px}#input{background:#eee}#painted{background:linear-gradient(#333,#111);color:white}#protected{background:#123;color:white}
+</style>
+<header><nav><a href="#chapter">Chapter</a> <label>Search <input id="input"></label><button id="selected" aria-pressed="true"><span>Selected</span></button></nav></header>
+<main style="display:contents"><div id="reading"><h1>Understanding an ordinary document</h1>
+<table id="facts"><tr><th colspan="2">Reference facts</th></tr><tr><th>Category</th><td>Reading</td></tr><tr><th>Purpose</th><td>Supporting information</td></tr></table>
+<p>This is a long reading surface with a clear title, ordinary prose, an auxiliary table and several article sections. It should feel like a single document.</p>
+<section id="chapter"><div id="heading-group"><h2>One chapter</h2> <a href="#chapter">edit</a></div><p>The chapter belongs to the document. It must not acquire an independent window frame simply because it uses a section element.</p></section>
+<section id="second"><h2>Another chapter</h2><p>Text continues within the same reading surface while the facts beside it retain a separate panel treatment. Native semantics provide useful evidence.</p></section>
+<table id="data"><tr><th>Measure</th><th>Value</th></tr><tr><td>Rows</td><td>2</td></tr></table>
+<div id="painted"><h2 id="painted-title">Authored image backdrop</h2><p>Keep this authored background and its light foreground together.</p></div>
+<div contenteditable="true" id="protected"><h2>Editable document</h2><p>Protected content remains authored.</p></div>
+<div id="dynamic"></div></div></main></html>

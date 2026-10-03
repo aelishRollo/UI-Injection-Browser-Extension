@@ -8,6 +8,7 @@ const ATTR_TONE = 'data-surface-tone-v1';
 const ATTR_CONFIDENCE = 'data-surface-confidence-v1';
 const ATTR_PROMINENT = 'data-surface-prominent-v1';
 const ATTR_ICON = 'data-surface-ui-icon-v1';
+const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
@@ -157,6 +158,70 @@ function markSurfaces(root) {
   }
 }
 
+// Theme-independent purpose, separate from paint ownership and text contrast.
+// Keep the original Terminal experiment stable while evaluating this role model.
+function markPurposes(root) {
+  const reading = `[${ATTR_PURPOSE}="reading"]`;
+  const safe = element => isVisible(element) && !isProtected(element) &&
+    !element.closest(`[${ATTR_CONTEXT}="brand"]`) &&
+    getComputedStyle(element).backgroundImage === 'none';
+  const assign = (element, purpose, context, evidence) => {
+    if (!safe(element)) return;
+    setAttribute(element, ATTR_PURPOSE, purpose);
+    setAttribute(element, 'data-surface-evidence-v1', evidence);
+    if (context) {
+      setAttribute(element, ATTR_CONTEXT, context);
+      setAttribute(element, ATTR_CONFIDENCE, 'high');
+    }
+  };
+  const landmarks = collect(root, 'main,[role="main"],article');
+  // display:contents supplies semantics but has no box to paint. Inspect only
+  // its direct prose children, never turn its navigation rails into documents.
+  const candidates = landmarks.flatMap(element => getComputedStyle(element).display === 'contents'
+    ? [...element.children].filter(child => child.matches('div,section,article') && child.querySelector('h1,h2,[role="heading"]'))
+    : [element]);
+  for (const element of candidates) {
+    const paragraphs = element.querySelectorAll('p').length;
+    const controls = element.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+    if (paragraphs >= 3 && controls <= Math.max(6, paragraphs * 2) &&
+        (element.innerText || '').length >= 300 && !element.parentElement?.closest(reading)) {
+      assign(element, 'reading', 'content', landmarks.includes(element) ? 'prose-landmark' : 'boxless-landmark-prose');
+    }
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="content"],section`)) {
+    if (!element.hasAttribute(ATTR_CONTEXT) && (!element.closest(reading) || !element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]'))) continue;
+    if (element.matches(reading)) continue;
+    const inReading = element.parentElement?.closest(reading);
+    const panel = element.matches('aside,dialog,fieldset,[role="dialog"],[role="menu"],[role="listbox"]');
+    assign(element, inReading && !panel ? 'section' : 'panel', 'content', panel ? 'semantic-panel' : 'content-hierarchy');
+  }
+  // A floated, bordered key/value table is an auxiliary fact panel. Ordinary
+  // data tables keep their own role; neither relies on a Wikipedia class name.
+  for (const element of collect(root, 'table')) {
+    if (!element.closest(reading)) continue;
+    const style = getComputedStyle(element);
+    const panel = style.cssFloat !== 'none' && parseFloat(style.borderTopWidth) > 0 &&
+      element.querySelector('th') && element.querySelector('td');
+    assign(element, panel ? 'panel' : 'data', 'content', panel ? 'floated-bordered-facts' : 'semantic-table');
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="chrome"]`)) assign(element, 'navigation', null, 'semantic-navigation');
+  for (const element of collect(root, 'h1,h2,[role="heading"][aria-level="1"],[role="heading"][aria-level="2"]')) {
+    const backing = backingFor(element);
+    if (backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE)) continue;
+    const title = element.matches('h1,[aria-level="1"]');
+    if (!title && !element.closest(reading)) continue;
+    const parent = element.parentElement;
+    const group = !title && parent?.matches('div,header') &&
+      !parent.querySelector('p,table,img,input,button,h1,h3,h4,h5,h6') &&
+      parent.querySelectorAll('h2,[role="heading"]').length === 1 &&
+      parent.textContent.trim().length <= element.textContent.trim().length + 80;
+    assign(group ? parent : element, title ? 'title' : 'section-heading', null, group ? 'heading-with-utilities' : 'heading-level');
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="control"]`)) {
+    assign(element, element.matches('textarea,select,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="range"],[type="color"])') ? 'field' : 'action', null, 'native-control');
+  }
+}
+
 function markPage() {
   const bodyStyle = getComputedStyle(document.body);
   const htmlStyle = getComputedStyle(document.documentElement);
@@ -180,7 +245,8 @@ function markControls(root, media) {
     if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
-    if (forcedOverlay || backing?.image || overlapsMedia(element, media)) {
+    const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE);
+    if (forcedOverlay || authoredImage || overlapsMedia(element, media)) {
       setAttribute(element, ATTR_CONTEXT, 'overlay');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setProperty(element, ORIGINAL_COLOR, getComputedStyle(element).color);
@@ -223,7 +289,9 @@ function backgroundForText(element) {
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
-    const ownsTheme = ['page', 'content', 'chrome', 'control'].includes(context);
+    const purpose = current.getAttribute(ATTR_PURPOSE);
+    const headingPaint = activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose);
+    const ownsTheme = headingPaint || ['page', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
       const paint = getComputedStyle(current, pseudo);
       if (!['none', 'normal'].includes(paint.content) && paint.display !== 'none' &&
@@ -231,10 +299,10 @@ function backgroundForText(element) {
     }
     let color;
     if (ownsTheme) {
-      color = context === 'page' ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#c0c0c0' : palette.surface;
+      color = context === 'page' ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
-        color = selected ? palette.accent : (palette.control || palette.surface);
+        color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);
       }
     } else {
       if (style.backgroundImage !== 'none') return { reason: 'image' };
@@ -317,7 +385,8 @@ function markText(root, media) {
 function markProminent() {
   if (document.querySelector(`[${ATTR_PROMINENT}]`)) return;
   if (activeTheme === 'terminal-vision' || activeTheme === 'liquid-dream') {
-    const candidates = [...document.querySelectorAll(`[${ATTR_CONTEXT}="content"]`)].filter(isVisible);
+    const panels = activeTheme === 'liquid-dream' ? [...document.querySelectorAll(`[${ATTR_PURPOSE}="panel"]`)].filter(isVisible) : [];
+    const candidates = panels.length ? panels : [...document.querySelectorAll(`[${ATTR_CONTEXT}="content"]`)].filter(isVisible);
     candidates.sort((a, b) => {
       const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect();
       return br.width * br.height - ar.width * ar.height;
@@ -332,6 +401,7 @@ function scan(root = document) {
   markBrands(root);
   markSurfaces(root);
   markControls(root, media);
+  if (activeTheme !== 'terminal-vision') markPurposes(root);
   markText(root, media);
   markProminent();
 }
@@ -374,10 +444,11 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v2', enabled: running,
+    adapter: 'contextual-v3', enabled: running,
     regions: { page: count('page'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
+    purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     uncertainty: { ...uncertainty }, decorationBudget: document.querySelectorAll(`[${ATTR_PROMINENT}]`).length
   };
