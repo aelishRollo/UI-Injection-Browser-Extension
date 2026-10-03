@@ -18,6 +18,8 @@ The prototype starts enabled with Terminal Vision and renderer A. Installing it 
 
 ## Develop and test
 
+The project uses only `main` and `development`. Make changes on `development`, validate them, then commit and push without requesting confirmation. Merge `development` into protected `main` through a pull request only when the owner explicitly requests it. Keep both branches after merging and synchronize `development` with `main`. See [AGENTS.md](AGENTS.md) for the standing workflow instructions.
+
 Requires Node 20+ and a Chromium test browser.
 
 ```sh
