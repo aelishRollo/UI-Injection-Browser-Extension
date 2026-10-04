@@ -169,6 +169,7 @@ try {
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
     const baseline = await snapshot();
+    const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await set({ enabled: true, renderer: 'contextual', theme });
@@ -192,7 +193,7 @@ try {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
-      for (const role of ['menu', 'language', 'search', 'more']) {
+      for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
         assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
         assert.equal(await page.locator(`#${role}-icon`).evaluate(el => getComputedStyle(el).maskImage), 'none');
       }
@@ -203,6 +204,12 @@ try {
       if (theme === 'browser-archeology') {
         assert.equal(titlePair.background, 'rgb(0, 0, 128)');
         assert.ok(contrastRatio(parseColor(titlePair.color),parseColor(titlePair.background)) >= 4.5);
+        assert.equal(await page.locator('#reading').getAttribute('data-surface-window-v1'), 'titled');
+        assert.equal(await page.locator('#facts').getAttribute('data-surface-window-v1'), 'titled');
+        assert.equal(await page.locator('h1').getAttribute('data-surface-window-title-v1'), 'reading');
+        assert.equal(await page.locator('#facts th').first().getAttribute('data-surface-window-title-v1'), 'panel');
+        assert.match(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
+        assert.equal(await page.locator('button').count(), baselineButtons, 'window decoration must not create fake controls');
       }
       if (theme === 'terminal-vision') {
         assert.equal(await page.locator('#utility-rail').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
@@ -226,7 +233,7 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1]').count(), 0);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
       assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
       assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);

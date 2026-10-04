@@ -45,7 +45,7 @@ After rebuilding, reload the unpacked extension and refresh previously themed ta
 
 ## What is implemented
 
-- Three internal, versioned theme definitions and expressive CSS adaptations.
+- Three internal, versioned theme definitions and expressive CSS adaptations. Browser Archeology gives recognized documents and panels beveled window frames, icon-bearing title bars, and decorative window furniture without adding fake interactive controls.
 - **A:** semantic CSS only; no DOM polling, observers, or per-element writes.
 - **B:** pinned Dark Reader 4.9.133 website API under the same expressive CSS.
 - **C:** contextual regions with experimental purpose recognition for all three themes (reading documents, sections, panels, tables, navigation, headings, and fields). Its foreground/background resolver composites solid/translucent sRGB surfaces, keeps readable authored pairs, and adjusts failing text using theme ink. It preserves authored foregrounds over unresolved media/effects, gives protected brand marks their original backing color, and limits animation to one prominent region. Select C in Experiment controls to try it.

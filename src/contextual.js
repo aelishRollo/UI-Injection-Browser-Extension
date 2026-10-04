@@ -10,6 +10,8 @@ const ATTR_PROMINENT = 'data-surface-prominent-v1';
 const ATTR_ICON = 'data-surface-ui-icon-v1';
 const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
+const ATTR_WINDOW = 'data-surface-window-v1';
+const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -263,6 +265,31 @@ function markUtilityPanels(root) {
   }
 }
 
+// Reuse actual document/panel headings as window chrome. The owner frame and
+// title decoration add no DOM, actions or accessibility semantics.
+function markWindows(root) {
+  for (const owner of collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="navigation"][data-surface-evidence-v1^="neutral-"]`)) {
+    if (!isVisible(owner) || isProtected(owner)) continue;
+    let title = owner.querySelector(`[${ATTR_PURPOSE}="title"]`);
+    if (!title && owner.matches('table')) {
+      title = owner.querySelector(':scope > caption,:scope > thead > tr:first-child > th:only-child,:scope > tbody > tr:first-child > th:only-child,:scope > tr:first-child > th:only-child');
+    }
+    if (!title) title = owner.querySelector('legend,h1,h2,h3,[role="heading"]');
+    if (title) {
+      const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
+      const closestOwner = title.closest(ownerPurpose === 'navigation'
+        ? `[${ATTR_PURPOSE}="navigation"]`
+        : `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"]`);
+      if (closestOwner !== owner) title = null;
+    }
+    // Reading regions already have a high-confidence title bar. Require a real
+    // title for smaller panels so plain cards do not all become fake windows.
+    if (!title && owner.getAttribute(ATTR_PURPOSE) === 'panel') continue;
+    setAttribute(owner, ATTR_WINDOW, title ? 'titled' : 'frame');
+    if (title) setAttribute(title, ATTR_WINDOW_TITLE, owner.getAttribute(ATTR_PURPOSE));
+  }
+}
+
 function markGlyphs(root) {
   // Restrict replacement to empty, already-painted HTML icon slots. Labels and
   // ARIA supply meaning; no class-name, URL-name, logo or SVG-pixel guessing.
@@ -281,6 +308,10 @@ function markGlyphs(root) {
     else if (/^(search|find)(\s|$)/i.test(name)) role = 'search';
     else if (/^(\d+ )?languages?$/i.test(name)) role = 'language';
     else if (/^(tools|more|more options)$/i.test(name)) role = 'more';
+    else if (/^(home|homepage)$/i.test(name)) role = 'home';
+    else if (/^(history|view history)$/i.test(name)) role = 'history';
+    else if (/^(settings|preferences|appearance)$/i.test(name)) role = 'settings';
+    else if (/^(download|save|save file)$/i.test(name)) role = 'download';
     // An icon next to exactly one search input is another strong signal.
     if (!role && element.parentElement.querySelectorAll('input').length === 1 &&
         element.parentElement.querySelector('input[type="search"]')) role = 'search';
@@ -294,6 +325,7 @@ function markGlyphs(root) {
   if (activeTheme === 'terminal-vision') return;
   for (const heading of collect(root, 'h1,h2')) {
     if (!isVisible(heading) || isProtected(heading) || heading.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    if (activeTheme === 'browser-archeology' && heading.hasAttribute(ATTR_WINDOW_TITLE)) continue;
     const purpose = heading.closest(`[${ATTR_PURPOSE}="title"],[${ATTR_PURPOSE}="section-heading"]`);
     const before = getComputedStyle(heading, '::before');
     if (!purpose || !['none', 'normal'].includes(before.content) || before.backgroundImage !== 'none' || before.maskImage !== 'none') continue;
@@ -389,7 +421,8 @@ function backgroundForText(element) {
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
     const purpose = current.getAttribute(ATTR_PURPOSE);
     const headingPaint = (activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) || (activeTheme === 'browser-archeology' && purpose === 'title');
-    const ownsTheme = headingPaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
+    const windowTitlePaint = activeTheme === 'browser-archeology' && current.hasAttribute(ATTR_WINDOW_TITLE);
+    const ownsTheme = headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
       if (pseudo === '::before' && current.hasAttribute('data-surface-heading-glyph-v1')) continue;
       const paint = getComputedStyle(current, pseudo);
@@ -399,7 +432,7 @@ function backgroundForText(element) {
     }
     let color;
     if (ownsTheme) {
-      color = headingPaint && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
+      color = (headingPaint || windowTitlePaint) && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
         color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);
@@ -470,7 +503,7 @@ function markText(root, media) {
       setAttribute(element, ATTR_CONFIDENCE, 'medium');
       continue;
     }
-    const titleInk = activeTheme === 'browser-archeology' && element.closest(`[${ATTR_PURPOSE}="title"]`);
+    const titleInk = activeTheme === 'browser-archeology' && element.closest(`[${ATTR_PURPOSE}="title"],[${ATTR_WINDOW_TITLE}]`);
     const preferred = titleInk ? palette.accentText : role === 'link' ? palette.link : palette.text;
     const background = role === 'code' && backing.themed ? parseColor(palette.raised) : backing.color;
     const foreground = readableColor(preferred, background, minimum);
@@ -505,6 +538,7 @@ function scan(root = document) {
   markPurposes(root);
   markShells(root);
   markUtilityPanels(root);
+  markWindows(root);
   markGlyphs(root);
   markText(root, media);
   markProminent();
@@ -548,12 +582,12 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v4', enabled: running,
+    adapter: 'contextual-v5', enabled: running,
     regions: { page: count('page'), shells: count('shell'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
     purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
-    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length },
+    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     uncertainty: { ...uncertainty }, decorationBudget: document.querySelectorAll(`[${ATTR_PROMINENT}]`).length
   };

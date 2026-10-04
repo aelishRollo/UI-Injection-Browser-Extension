@@ -1,4 +1,4 @@
-import { buildIconStyles } from './icons.js';
+import { buildIconStyles, iconImage, windowControlsImage } from './icons.js';
 
 // Shared motifs keep all three renderers visually consistent without changing site layout.
 function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome, animated }) {
@@ -34,11 +34,12 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
   const rainbow = 'linear-gradient(90deg,#ffc6e2 0%,#ffe5a3 24%,#fff2a6 40%,#a3ecda 60%,#b8d9ff 80%,#dfc5ff 100%)';
   const reset = { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0' };
   if (theme.id === 'browser-archeology') return [
-    rule(reading, { ...reset, 'background-color': '#ffffff', border: '1px solid #808080', 'box-shadow': '2px 2px 0 rgba(0,0,0,.2)' }),
+    rule(reading, { ...reset, 'background-color': '#ffffff', border: '3px solid #c0c0c0', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.28)' }),
     rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
-    rule(panel, { 'background-color': '#ffffff', 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 0 3px #000080,0 0 0 1px #808080,2px 2px 0 rgba(0,0,0,.2)', 'background-image': 'none' }),
+    rule(panel, { 'background-color': '#ffffff', border: '3px solid #c0c0c0', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,2px 2px 0 rgba(0,0,0,.25)', 'background-image': 'none' }),
     rule(data, { ...reset, 'background-color': '#ffffff', border: '1px solid #808080' }),
-    rule(title, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '4px solid #000080', 'text-shadow': 'none' }),
+    rule(title, { color: theme.colors.accentText, 'font-family': 'Arial,Helvetica,sans-serif', 'font-size': 'clamp(20px,2.4vw,32px)', 'line-height': '1.15', 'min-height': '22px', 'padding-block': '3px', 'padding-inline': '26px 62px', 'border-bottom': '0', 'text-shadow': 'none', 'background-color': '#000080', 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '4px center,calc(100% - 3px) center,0 0', 'background-size': '18px 18px,54px 18px,100% 100%', 'background-repeat': 'no-repeat' }),
+    rule(`${title} :where(span,strong,em,small)`, { color: theme.colors.accentText }),
     rule(sectionHeading, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '1px solid #808080', 'text-shadow': 'none' }),
     rule(navigation, { 'background-color': '#d4d0c8', 'box-shadow': 'inset 0 1px #fff,inset 0 -1px #808080', 'font-family': 'Arial,Helvetica,sans-serif' }),
     rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' })
@@ -109,7 +110,15 @@ function buildContextualStyles(theme, corrections) {
   }));
   css.push(...buildIconStyles(theme, rule));
   css.push(rule(context('shell'), { 'background-color': c.background }));
-  if (theme.id === 'browser-archeology') css.push(rule(purpose('title'), { 'background-color': c.accent, color: c.accentText, 'box-shadow': 'inset 1px 1px #fff,inset -1px -1px #404040' }));
+  if (theme.id === 'browser-archeology') {
+    const windowOwner = '[data-surface-window-v1]';
+    const windowTitle = '[data-surface-window-title-v1]';
+    css.push(rule(windowOwner, { 'border-width': '3px', 'border-style': 'solid', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.28)' }));
+    css.push(rule(windowTitle, { 'min-height': '20px', 'margin-block': '0', 'padding-inline': '24px 60px', color: c.accentText, 'font-family': 'Arial,Helvetica,sans-serif', 'font-weight': '700', 'text-shadow': 'none', 'background-color': c.accent, 'background-image': `${iconImage(theme.id, 'panel')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '3px center,calc(100% - 2px) center,0 0', 'background-size': '17px 17px,54px 18px,100% 100%', 'background-repeat': 'no-repeat', 'border-color': '#000080' }));
+    css.push(rule(`${windowTitle}[data-surface-window-title-v1="reading"]`, { 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)` }));
+    css.push(rule(`${windowTitle},${windowTitle} *`, { color: c.accentText }));
+    css.push(rule(purpose('title'), { color: c.accentText, 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' }));
+  }
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
   css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
   return `/* Surface v1 | ${theme.id} | contextual */\n${css.join('\n')}`;

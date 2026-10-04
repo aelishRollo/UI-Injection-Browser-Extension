@@ -4,6 +4,8 @@ Read this before theme/renderer changes; update it as experiments land. This rep
 
 ## Current understanding — October 4, 2026
 
+Latest owner observation: **Browser Archeology still was not recognizable enough and needed icons plus stronger cues that elements are actual windows.** Experiment 05 responds with coordinated beveled frames, compact title bars, document/panel icons and decorative window furniture. A/B receive the title-bar treatment; C additionally binds existing document and panel titles to recognized window owners. See [the iteration record](EXPERIMENT-05.md). This is an implemented hypothesis awaiting owner review, not evidence that the recognizability problem is solved.
+
 Latest owner review of Experiment 03: **C is currently best on Wikipedia for Browser Archeology and Liquid Dream**, but both still lack the intended character. Browser Archeology feels accidentally old rather than like a deliberate desktop recreation; icons are a missing part of that identity. The owner also reports that only B produces dark mode for Terminal Vision on Wikipedia. These preferences describe the reviewed build, not automatic approval of the next iteration.
 
 Experiment 04 tests a themed icon vocabulary, stronger Browser Archeology title bars, shared purpose recognition for Terminal Vision, and conservative page-shell/utility-panel recognition. See [the iteration record](EXPERIMENT-04.md). Keep B available as the broad color-adaptation comparison; do not equate successful injection with dark-mode coverage.
@@ -85,3 +87,12 @@ Next experiment: test document-vs-application classification and heading-group b
 - A generated separator or in-flow arrow is not necessarily a backdrop behind text. The first dark capture left the title black because the resolver treated a one-pixel separator as uncertain backdrop paint. Bound the pseudo-element check by normal flow and overlap, retaining the conservative fallback for true overlays.
 - Painted link/settings rails are different from arbitrary white cards. Recognition now requires a narrow neutral panel with predominantly links or grouped radios and labels. Inspect false positives on additional sites before broadening that rule.
 - Enabling a document owner changes dynamic insertion: a new article beneath it must inherit section treatment. A regression test caught the previous scan skipping that article; classification now covers both articles and sections.
+
+## Experiment 05 lessons
+
+- A theme reads as a desktop window only when icon, title bar, frame bevel and window furniture agree. Adding isolated pixel icons did not establish the metaphor by itself.
+- Reuse real headings and captions as labels. C requires an existing title before promoting an auxiliary panel to a window; it does not manufacture window names.
+- Semantic wrappers can overlap: a document title may sit inside a `<header>` already classified as navigation. Window ownership should follow the nearest document/panel owner rather than treating that wrapper as a competing window.
+- Decorative controls must stay decoration. The title-bar control cluster is one background image and adds no DOM or interaction; tests compare control counts before and after theming.
+- A newly painted title bar owns its text pairing. The first A/B capture exposed black heading text on navy, so title ink and common inline wrappers now explicitly use the white accent ink.
+- On the targeted desktop Wikipedia capture, A made the article title visibly window-like while C separated the article, Contents rail and facts table into framed windows without horizontal overflow. This is one desktop viewport; narrow title wrapping and false window ownership remain open.
