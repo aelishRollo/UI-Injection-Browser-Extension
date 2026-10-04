@@ -81,6 +81,10 @@ try {
         // The exact accent must survive the adaptation engine's later updates.
         const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
+        if (renderer === 'simple' && theme === 'browser-archeology') {
+          assert.match(await page.locator('main aside h2').evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
+          assert.equal(await page.locator('main aside h3').evaluate(el => getComputedStyle(el).backgroundImage), 'none', 'only the first panel heading becomes its title bar');
+        }
         await page.screenshot({ path: join(out, `${renderer}-${theme}.png`) });
         results.push({ name: 'apply timing (includes worker/import wait)', renderer, theme, milliseconds: active.applyMs });
         await set({ enabled: false });
@@ -164,7 +168,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#input,#painted-title').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#input,#painted-title,#untitled-panel').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -184,15 +188,19 @@ try {
     }
     await set({ enabled: true, renderer: 'simple', theme: 'browser-archeology' });
     await waitStatus({ state: 'active', renderer: 'simple', theme: 'browser-archeology' });
+    assert.equal(await page.locator('#untitled-panel').evaluate(el => getComputedStyle(el).paddingTop), '25px');
+    assert.match(await page.locator('#untitled-panel').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
+    assert.equal(await page.locator('#utility-navigation').evaluate(el => getComputedStyle(el).paddingTop), '25px');
     await page.setViewportSize({ width: 320, height: 640 });
-    assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 1, 'narrow title bars omit decorative window furniture');
+    assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 2, 'narrow title bars retain scaled inactive window furniture');
+    assert.equal(await page.locator('#untitled-panel').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 1, 'narrow untitled windows retain scaled inactive furniture');
     await page.setViewportSize({ width: 1280, height: 960 });
     await set({ enabled: false });
     await waitStatus({ state: 'disabled' });
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await set({ enabled: true, renderer: 'contextual', theme });
       await waitStatus({ state: 'active', renderer: 'contextual', theme });
-      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
+      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
       }
       assert.equal(await page.locator('#chapter').evaluate(el => getComputedStyle(el).boxShadow), 'none');
@@ -224,12 +232,16 @@ try {
         assert.ok(contrastRatio(parseColor(titlePair.color),parseColor(titlePair.background)) >= 4.5);
         assert.equal(await page.locator('#reading').getAttribute('data-surface-window-v1'), 'titled');
         assert.equal(await page.locator('#facts').getAttribute('data-surface-window-v1'), 'titled');
+        assert.equal(await page.locator('#untitled-panel').getAttribute('data-surface-window-v1'), 'frame');
+        assert.equal(await page.locator('#utility-rail').getAttribute('data-surface-window-v1'), 'frame');
+        assert.equal(await page.locator('#utility-navigation').getAttribute('data-surface-window-v1'), null, 'nested navigation must not create a second window');
         assert.equal(await page.locator('h1').getAttribute('data-surface-window-title-v1'), 'reading');
         assert.equal(await page.locator('#facts th').first().getAttribute('data-surface-window-title-v1'), 'panel');
         assert.match(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
+        assert.equal(await page.locator('#untitled-panel').evaluate(el => getComputedStyle(el).paddingTop), '25px');
         assert.equal(await page.locator('button').count(), baselineButtons, 'window decoration must not create fake controls');
         await page.setViewportSize({ width: 320, height: 640 });
-        assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 1, 'narrow contextual title bars omit decorative window furniture');
+        assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 2, 'narrow contextual title bars retain scaled inactive window furniture');
         await page.setViewportSize({ width: 1280, height: 960 });
       }
       if (theme === 'terminal-vision') {

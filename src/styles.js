@@ -48,7 +48,8 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
     rule(`${title} :where(span,strong,em,small)`, { color: theme.colors.accentText }),
     rule(sectionHeading, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '1px solid #808080', 'text-shadow': 'none' }),
     rule(navigation, { 'background-color': '#d4d0c8', 'box-shadow': 'inset 0 1px #fff,inset 0 -1px #808080', 'font-family': 'Arial,Helvetica,sans-serif' }),
-    rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' })
+    rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' }),
+    rule(`${field}:focus-visible`, { outline: '2px dotted #000000', 'outline-offset': '-4px' })
   ];
   return [
     rule(reading, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #b5a0bd', 'border-radius': '18px', 'box-shadow': '0 12px 32px rgba(78,64,104,.12)' }),
@@ -124,7 +125,13 @@ function buildContextualStyles(theme, corrections) {
     css.push(rule(`${windowTitle}[data-surface-window-title-v1="reading"]`, { 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)` }));
     css.push(rule(`${windowTitle},${windowTitle} *`, { color: c.accentText }));
     css.push(rule(purpose('title'), { color: c.accentText, 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' }));
-    css.push(`@media (max-width:520px){${windowTitle}{padding-inline-end:8px !important;background-image:${iconImage(theme.id, 'panel')},linear-gradient(90deg,#000080,#1084d0) !important;background-position:3px center,0 0 !important;background-size:17px 17px,100% 100% !important;}${windowTitle}[data-surface-window-title-v1="reading"]{background-image:${iconImage(theme.id, 'document')},linear-gradient(90deg,#000080,#1084d0) !important;}}`);
+    css.push(rule(`${windowOwner}[data-surface-window-v1="frame"]`, { 'padding-top': '25px', 'background-color': '#ffffff', 'background-image': `${windowControlsImage()},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '54px 18px,calc(100% - 8px) 18px', 'background-repeat': 'no-repeat' }));
+    css.push(rule(`${tone('theme')}${text('link')}:visited`, { color: '#551a8b', 'text-decoration-color': '#551a8b' }));
+    css.push(rule(`${tone('theme')}${text('link')}:hover,${tone('theme')}${text('link')}:focus-visible`, { color: '#ff0000', 'background-color': 'transparent', 'text-decoration-color': '#ff0000', 'box-shadow': 'none' }));
+    css.push(rule(`${context('control')}:where(:disabled,[aria-disabled="true"])`, { color: '#808080', '--surface-control-ink-v1': '#808080', 'border-style': 'solid', opacity: '1', 'text-shadow': '1px 1px #ffffff' }));
+    css.push(rule('blockquote,[role="note"]', { 'background-color': '#ffffcc', border: '2px solid', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' }));
+    css.push(rule('hr', { height: '0', border: '0', 'border-top': '1px solid #808080', 'border-bottom': '1px solid #ffffff' }));
+    css.push(`@media (max-width:520px){${windowTitle}{padding-inline-end:48px !important;background-position:3px center,calc(100% - 2px) center,0 0 !important;background-size:16px 16px,42px 14px,100% 100% !important;}${windowOwner}[data-surface-window-v1="frame"]{background-position:calc(100% - 4px) 4px,4px 4px !important;background-size:42px 14px,calc(100% - 8px) 18px !important;}}`);
   }
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
   css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
@@ -153,6 +160,7 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     '[role="main"] > :where(article,section,div):has(> h1):has(> p,> section,> article)',
     '[role="main"] > :where(article,section,div):has(> header h1):has(> p,> section,> article)'
   ], 'reading');
+  const navigationWindow = select(['nav:not(header nav):not(main nav)', '[role="navigation"]:not(header *):not(main *)'], 'navigation-window');
   const selected = select(['[aria-selected="true"]', '[aria-pressed="true"]', '[aria-current]:not([aria-current="false"])'], 'selected');
   const error = select(['[aria-invalid="true"]'], 'error');
   const success = corrections.roles.success?.length ? select([], 'success') : null;
@@ -200,8 +208,21 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     sectionHeading: select(['main h2', 'article h2', '[role="main"] [role="heading"][aria-level="2"]'], 'section-heading'),
     navigation: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation'), field
   }));
+  if (theme.id === 'browser-archeology') {
+    const semanticWindow = `:is(${surface},${reading},${navigationWindow})`;
+    const panelTitle = `${semanticWindow} > :nth-child(1 of h2,h3,legend),${semanticWindow} > header > :nth-child(1 of h2,h3)`;
+    const untitledWindow = `${semanticWindow}:not(:has(h1,[role="heading"][aria-level="1"],> h2,> h3,> legend,> header > h2,> header > h3))`;
+    css.push(rule(panelTitle, { 'min-height': '20px', 'margin-block': '0', 'padding-block': '2px', 'padding-inline': '24px 60px', color: c.accentText, 'font-family': 'Arial,Helvetica,sans-serif', 'font-size': '16px', 'line-height': '1.2', 'background-color': c.accent, 'background-image': `${iconImage(theme.id, 'panel')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '3px center,calc(100% - 2px) center,0 0', 'background-size': '17px 17px,54px 18px,100% 100%', 'background-repeat': 'no-repeat', 'border-bottom': '1px solid #000040' }));
+    css.push(rule(`${panelTitle} :where(span,strong,em,small)`, { color: c.accentText }));
+    css.push(rule(untitledWindow, { 'padding-top': '25px', 'background-color': '#ffffff', 'background-image': `${windowControlsImage()},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '54px 18px,calc(100% - 8px) 18px', 'background-repeat': 'no-repeat' }));
+    css.push(rule(`${link}:visited`, { color: '#551a8b', 'text-decoration-color': '#551a8b' }));
+    css.push(rule(`${link}:hover,${link}:focus-visible`, { color: '#ff0000', 'background-color': 'transparent', 'text-decoration-color': '#ff0000', 'box-shadow': 'none' }));
+    css.push(rule(select([':disabled', '[aria-disabled="true"]'], 'disabled'), { color: '#808080', 'border-style': 'solid', opacity: '1', 'text-shadow': '1px 1px #ffffff' }));
+    css.push(rule('blockquote,[role="note"]', { 'background-color': '#ffffcc', border: '2px solid', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' }));
+    css.push(rule('hr', { height: '0', border: '0', 'border-top': '1px solid #808080', 'border-bottom': '1px solid #ffffff' }));
+    css.push(`@media (max-width:520px){${select(['h1', '[role="heading"][aria-level="1"]'], 'title')},${panelTitle}{padding-inline-end:48px !important;background-size:16px 16px,42px 14px,100% 100% !important;}${untitledWindow}{background-size:42px 14px,calc(100% - 8px) 18px !important;}}`);
+  }
   css.push(`@media (prefers-reduced-motion:reduce){${surface}{animation:none !important;}}`);
-  if (theme.id === 'browser-archeology') css.push(`@media (max-width:520px){${select(['h1', '[role="heading"][aria-level="1"]'], 'title')}{padding-inline-end:8px !important;background-image:${iconImage(theme.id, 'document')},linear-gradient(90deg,#000080,#1084d0) !important;background-position:4px center,0 0 !important;background-size:18px 18px,100% 100% !important;}}`);
   // States come last so decorative treatments cannot erase essential distinctions.
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, 'background-image': 'none' }));
   css.push(rule(`${selected} :where(span,strong,em)`, { color: 'inherit' }));

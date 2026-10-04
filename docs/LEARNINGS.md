@@ -4,6 +4,8 @@ Read this before theme/renderer changes; update it as experiments land. This rep
 
 ## Current understanding — October 4, 2026
 
+Latest owner observation: **each substantial Browser Archeology element should carry minimize, maximize and close furniture, greyed out so it does not look clickable, with other suitable cues from the original skin.** Experiment 07 applies one muted cluster per recognized document, panel, or substantial navigation rail; untitled regions receive an inactive strip, narrow layouts keep a smaller cluster, and nested rails collapse to one window. It also restores selected original-skin states and inset surfaces. See [the iteration record](EXPERIMENT-07.md). This is implemented and locally/live validated, but still awaits owner judgment on whether the controls look sufficiently inert.
+
 Latest owner observation: **Terminal Vision looks good on most websites, but Browser Archeology and Liquid Dream do not.** Experiment 06 treats Terminal Vision's success as a coherence lesson rather than a dark-mode-only effect: quiet base surfaces, a repeated low-contrast texture, one strong accent, and consistent interaction states survive imperfect recognition better than isolated high-intensity decoration. Browser Archeology now carries a system-wide desktop/chrome vocabulary and a conservative CSS-only document fallback; Liquid Dream uses quieter fluid surfaces with rainbow reserved for hierarchy. See [the iteration record](EXPERIMENT-06.md). This is an implemented hypothesis awaiting owner review, not evidence of broad website quality.
 
 The bounded failure matters: A still cannot reliably recover every prose child of a computed `display: contents` landmark. An `h2`-and-paragraph selector missed MDN's nested structure, while broadening it would recreate repeated document cards. Keep C as the structural comparison rather than hiding this limitation with a broad `div` rule.
@@ -106,3 +108,11 @@ Next experiment: test document-vs-application classification and heading-group b
 - Strong identity does not require maximum area. Liquid Dream is clearer when warm reading surfaces dominate and the rainbow marks navigation, headings and interaction instead of filling every recognized panel equally.
 - A CSS-only prose fallback can safely use a direct `h1` plus content evidence. An arbitrary `h2` plus descendant prose is not a safe substitute for computed structure; keep the visible failure rather than reintroducing repeated cards.
 - Decorative window controls are expendable at narrow widths. The actual site title must keep the available space; the furniture is not functionality.
+
+## Experiment 07 lessons
+
+- Repetition needs one ownership boundary. A panel with several headings gets one title bar; a neutral wrapper and nested navigation rail get one outer window.
+- Disabled-looking furniture should differ at the asset level, not merely through opacity. Muted gray glyphs with embossed highlights remain crisp while avoiding the active black control treatment.
+- An untitled substantial region can carry a thin inactive strip without inventing a false name. Its control cluster stays CSS background artwork with no DOM, hit target, cursor or accessibility role.
+- Narrow layouts now retain a smaller furniture cluster because the owner's newer requirement supersedes Experiment 06's omission rule. Reserved title padding prevents overlap in the exercised fixture.
+- The most reusable details from the original skin are state and depth cues: visited purple, red hover/focus, yellow notes, grooved separators, inset fields and embossed disabled controls. Fake browser menus and address text remain inappropriate for arbitrary sites.

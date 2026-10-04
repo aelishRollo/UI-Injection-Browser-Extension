@@ -268,23 +268,29 @@ function markUtilityPanels(root) {
 // Reuse actual document/panel headings as window chrome. The owner frame and
 // title decoration add no DOM, actions or accessibility semantics.
 function markWindows(root) {
-  for (const owner of collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="navigation"][data-surface-evidence-v1^="neutral-"]`)) {
+  for (const owner of collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="navigation"]`)) {
     if (!isVisible(owner) || isProtected(owner)) continue;
+    const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
+    const ownerEvidence = owner.getAttribute('data-surface-evidence-v1') || '';
+    if (ownerPurpose === 'navigation' && !ownerEvidence.startsWith('neutral-')) {
+      const rect = owner.getBoundingClientRect();
+      const neutralSelector = `[${ATTR_PURPOSE}="navigation"][data-surface-evidence-v1^="neutral-"]`;
+      const neutralRelative = owner.parentElement?.closest(neutralSelector) || owner.querySelector(neutralSelector);
+      if (neutralRelative || rect.width < 100 || rect.width > 400 || rect.height < 100 || owner.querySelectorAll('a[href]').length < 4) continue;
+    }
     let title = owner.querySelector(`[${ATTR_PURPOSE}="title"]`);
     if (!title && owner.matches('table')) {
       title = owner.querySelector(':scope > caption,:scope > thead > tr:first-child > th:only-child,:scope > tbody > tr:first-child > th:only-child,:scope > tr:first-child > th:only-child');
     }
     if (!title) title = owner.querySelector('legend,h1,h2,h3,[role="heading"]');
     if (title) {
-      const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
       const closestOwner = title.closest(ownerPurpose === 'navigation'
         ? `[${ATTR_PURPOSE}="navigation"]`
         : `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"]`);
       if (closestOwner !== owner) title = null;
     }
-    // Reading regions already have a high-confidence title bar. Require a real
-    // title for smaller panels so plain cards do not all become fake windows.
-    if (!title && owner.getAttribute(ATTR_PURPOSE) === 'panel') continue;
+    // Untitled, already-recognized panels still receive a thin inactive strip;
+    // no label or interactive control is invented for them.
     setAttribute(owner, ATTR_WINDOW, title ? 'titled' : 'frame');
     if (title) setAttribute(title, ATTR_WINDOW_TITLE, owner.getAttribute(ATTR_PURPOSE));
   }
@@ -582,7 +588,7 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v5', enabled: running,
+    adapter: 'contextual-v6', enabled: running,
     regions: { page: count('page'), shells: count('shell'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),

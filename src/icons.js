@@ -42,8 +42,9 @@ export function iconImage(theme, role) {
 
 // A single decorative image makes classic title-bar furniture recognizable
 // without creating focusable controls or taking over an existing pseudo-slot.
+// Muted outlines and glyphs deliberately read as disabled, not clickable.
 export function windowControlsImage() {
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 18" shape-rendering="crispEdges"><g fill="#c0c0c0" stroke="#000"><path d="M1 1h16v16H1zM19 1h16v16H19zM37 1h16v16H37z"/></g><path fill="none" stroke="#fff" d="M2 16V2h14M20 16V2h14M38 16V2h14"/><path stroke="#808080" d="M2 16h14V2M20 16h14V2M38 16h14V2"/><path stroke="#000" stroke-width="2" d="M5 12h8M23 5h8v8h-8zM41 5l8 8m0-8-8 8"/></svg>';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 18" shape-rendering="crispEdges"><g fill="#c0c0c0" stroke="#808080"><path d="M1 1h16v16H1zM19 1h16v16H19zM37 1h16v16H37z"/></g><path fill="none" stroke="#dfdfdf" d="M2 16V2h14M20 16V2h14M38 16V2h14"/><path stroke="#a0a0a0" d="M2 16h14V2M20 16h14V2M38 16h14V2"/><path fill="none" stroke="#f4f4f4" stroke-width="2" d="M6 13h8M24 6h8v8h-8zM42 6l8 8m0-8-8 8"/><path fill="none" stroke="#808080" stroke-width="2" d="M5 12h8M23 5h8v8h-8zM41 5l8 8m0-8-8 8"/></svg>';
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
