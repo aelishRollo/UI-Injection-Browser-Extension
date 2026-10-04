@@ -171,6 +171,24 @@ try {
     const baseline = await snapshot();
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
+    // A/B cannot use computed geometry, but a direct heading-and-prose child of a
+    // boxless main landmark is conservative enough to own a document canvas.
+    for (const [theme, expectedBackground] of [
+      ['browser-archeology', 'rgb(255, 255, 255)'],
+      ['liquid-dream', 'rgb(255, 249, 241)'],
+      ['terminal-vision', 'rgb(9, 26, 17)']
+    ]) {
+      await set({ enabled: true, renderer: 'simple', theme });
+      await waitStatus({ state: 'active', renderer: 'simple', theme });
+      assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), expectedBackground);
+    }
+    await set({ enabled: true, renderer: 'simple', theme: 'browser-archeology' });
+    await waitStatus({ state: 'active', renderer: 'simple', theme: 'browser-archeology' });
+    await page.setViewportSize({ width: 320, height: 640 });
+    assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 1, 'narrow title bars omit decorative window furniture');
+    await page.setViewportSize({ width: 1280, height: 960 });
+    await set({ enabled: false });
+    await waitStatus({ state: 'disabled' });
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await set({ enabled: true, renderer: 'contextual', theme });
       await waitStatus({ state: 'active', renderer: 'contextual', theme });
@@ -210,6 +228,9 @@ try {
         assert.equal(await page.locator('#facts th').first().getAttribute('data-surface-window-title-v1'), 'panel');
         assert.match(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
         assert.equal(await page.locator('button').count(), baselineButtons, 'window decoration must not create fake controls');
+        await page.setViewportSize({ width: 320, height: 640 });
+        assert.equal(await page.locator('h1').evaluate(el => (getComputedStyle(el).backgroundImage.match(/url\(/g) || []).length), 1, 'narrow contextual title bars omit decorative window furniture');
+        await page.setViewportSize({ width: 1280, height: 960 });
       }
       if (theme === 'terminal-vision') {
         assert.equal(await page.locator('#utility-rail').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');

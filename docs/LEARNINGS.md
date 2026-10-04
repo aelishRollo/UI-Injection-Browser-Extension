@@ -4,6 +4,10 @@ Read this before theme/renderer changes; update it as experiments land. This rep
 
 ## Current understanding — October 4, 2026
 
+Latest owner observation: **Terminal Vision looks good on most websites, but Browser Archeology and Liquid Dream do not.** Experiment 06 treats Terminal Vision's success as a coherence lesson rather than a dark-mode-only effect: quiet base surfaces, a repeated low-contrast texture, one strong accent, and consistent interaction states survive imperfect recognition better than isolated high-intensity decoration. Browser Archeology now carries a system-wide desktop/chrome vocabulary and a conservative CSS-only document fallback; Liquid Dream uses quieter fluid surfaces with rainbow reserved for hierarchy. See [the iteration record](EXPERIMENT-06.md). This is an implemented hypothesis awaiting owner review, not evidence of broad website quality.
+
+The bounded failure matters: A still cannot reliably recover every prose child of a computed `display: contents` landmark. An `h2`-and-paragraph selector missed MDN's nested structure, while broadening it would recreate repeated document cards. Keep C as the structural comparison rather than hiding this limitation with a broad `div` rule.
+
 Latest owner observation: **Browser Archeology still was not recognizable enough and needed icons plus stronger cues that elements are actual windows.** Experiment 05 responds with coordinated beveled frames, compact title bars, document/panel icons and decorative window furniture. A/B receive the title-bar treatment; C additionally binds existing document and panel titles to recognized window owners. See [the iteration record](EXPERIMENT-05.md). This is an implemented hypothesis awaiting owner review, not evidence that the recognizability problem is solved.
 
 Latest owner review of Experiment 03: **C is currently best on Wikipedia for Browser Archeology and Liquid Dream**, but both still lack the intended character. Browser Archeology feels accidentally old rather than like a deliberate desktop recreation; icons are a missing part of that identity. The owner also reports that only B produces dark mode for Terminal Vision on Wikipedia. These preferences describe the reviewed build, not automatic approval of the next iteration.
@@ -78,7 +82,6 @@ Validation and final visual review are recorded in [Experiment 03](EXPERIMENT-03
 
 Next experiment: test document-vs-application classification and heading-group boundaries on unseen pages, then decide whether semantic A/B should remain independent baselines or consume a shared purpose model. Get owner feedback on the visible hierarchy before treating the new mappings as settled.
 
-
 ## Experiment 04 lessons
 
 - A white ancestor wrapper can hide the page theme even when `body` is correctly dark. B transforms authored CSS; C needs paint ownership for the shell as well as the reading region. A remains a semantic baseline with partial coverage.
@@ -96,3 +99,10 @@ Next experiment: test document-vs-application classification and heading-group b
 - Decorative controls must stay decoration. The title-bar control cluster is one background image and adds no DOM or interaction; tests compare control counts before and after theming.
 - A newly painted title bar owns its text pairing. The first A/B capture exposed black heading text on navy, so title ink and common inline wrappers now explicitly use the white accent ink.
 - On the targeted desktop Wikipedia capture, A made the article title visibly window-like while C separated the article, Contents rail and facts table into framed windows without horizontal overflow. This is one desktop viewport; narrow title wrapping and false window ownership remain open.
+
+## Experiment 06 lessons
+
+- Terminal Vision's transferable advantage is coherence: a restrained canvas, repeated texture, clear accent hierarchy and related states continue to read as one theme even when the classifier misses a region.
+- Strong identity does not require maximum area. Liquid Dream is clearer when warm reading surfaces dominate and the rainbow marks navigation, headings and interaction instead of filling every recognized panel equally.
+- A CSS-only prose fallback can safely use a direct `h1` plus content evidence. An arbitrary `h2` plus descendant prose is not a safe substitute for computed structure; keep the visible failure rather than reintroducing repeated cards.
+- Decorative window controls are expendable at narrow widths. The actual site title must keep the available space; the furniture is not functionality.

@@ -1,25 +1,32 @@
 import { buildIconStyles, iconImage, windowControlsImage } from './icons.js';
 
+const LIQUID_WASH = 'linear-gradient(90deg,rgba(255,198,226,.58) 0%,rgba(255,229,163,.58) 24%,rgba(255,242,166,.54) 40%,rgba(163,236,218,.56) 60%,rgba(184,217,255,.58) 80%,rgba(223,197,255,.62) 100%)';
+const LIQUID_SURFACE = 'radial-gradient(circle at 4% 8%,rgba(255,198,226,.32),transparent 30%),radial-gradient(circle at 96% 92%,rgba(163,236,218,.28),transparent 32%),linear-gradient(135deg,#fff9f1,#fffdf8 48%,#f6f2ff)';
+
 // Shared motifs keep all three renderers visually consistent without changing site layout.
 function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome, animated }) {
   if (theme.id === 'browser-archeology') return [
-    rule(page, { 'background-image': 'none' }),
-    rule(heading, { 'letter-spacing': 'normal', 'text-shadow': 'none' }),
-    rule(surface, { 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 0 3px 0 #000080,0 0 0 1px #808080,3px 3px 0 rgba(0,0,0,.35)', 'background-image': 'none' }),
-    rule(chrome, { 'background-color': '#c0c0c0', 'box-shadow': 'inset 0 1px #fff,inset 0 -2px #808080' }),
+    rule(page, { 'background-image': 'repeating-conic-gradient(rgba(255,255,255,.035) 0 25%,rgba(0,0,0,.025) 0 50%)', 'background-size': '4px 4px' }),
+    rule(heading, { color: '#000080', 'letter-spacing': 'normal', 'text-shadow': 'none' }),
+    rule(surface, { 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.35)', 'background-image': 'none' }),
+    rule(chrome, { 'background-color': '#c0c0c0', 'background-image': 'repeating-linear-gradient(0deg,rgba(255,255,255,.1) 0 1px,transparent 1px 3px)', 'box-shadow': 'inset 0 1px #fff,inset 0 -2px #808080', 'font-family': 'Arial, Helvetica, sans-serif' }),
     rule(control, { 'font-family': 'Arial, Helvetica, sans-serif', 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080' }),
     rule(`${control}:active`, { 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040,inset -1px -1px #dfdfdf' }),
-    rule(link, { 'text-decoration-line': 'underline', 'text-underline-offset': '1px' })
+    rule(link, { 'text-decoration-line': 'underline', 'text-underline-offset': '1px' }),
+    rule(`${link}:hover`, { color: '#ffffff', 'background-color': '#000080', 'text-decoration-color': '#ffffff', 'box-shadow': '0 0 0 1px #000080' }),
+    rule('::selection', { color: '#ffffff', 'background-color': '#000080' })
   ];
   if (theme.id === 'liquid-dream') return [
-    rule(page, { 'background-image': 'radial-gradient(circle at 8% 15%,rgba(255,228,108,.23),transparent 26%),radial-gradient(circle at 94% 7%,rgba(71,230,209,.16),transparent 24%)' }),
-    rule(heading, { 'letter-spacing': '-0.045em', 'text-shadow': '0 2px 0 rgba(255,255,255,.42)' }),
-    rule(surface, { 'background-image': 'repeating-radial-gradient(ellipse at 90% 10%,rgba(255,255,255,.22) 0 4px,transparent 5px 18px),linear-gradient(135deg,#ffc6e2,#ffed8e 48%,#67dfd1)', 'background-size': '180% 180%,100% 100%', 'box-shadow': '0 22px 52px rgba(78,64,104,.14)' }),
-    rule(`${surface}:hover`, { 'box-shadow': '0 28px 62px rgba(78,64,104,.22)' }),
+    rule(page, { 'background-image': 'radial-gradient(circle at 8% 15%,rgba(255,228,108,.24),transparent 28%),radial-gradient(circle at 94% 7%,rgba(71,230,209,.18),transparent 26%),radial-gradient(circle at 72% 88%,rgba(223,197,255,.24),transparent 30%)', 'background-attachment': 'fixed' }),
+    rule(heading, { color: '#4b235d', 'letter-spacing': '-0.045em', 'text-shadow': '0 2px 0 rgba(255,255,255,.58)' }),
+    rule(surface, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', 'border-color': '#b9a5c2', 'box-shadow': '0 16px 42px rgba(78,64,104,.13)' }),
+    rule(`${surface}:hover`, { 'border-color': '#8f6da0', 'box-shadow': '0 20px 48px rgba(78,64,104,.19)' }),
     rule(control, { 'font-family': 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'border-radius': '999px', 'box-shadow': 'inset 0 1px 0 rgba(255,255,255,.8),0 12px 26px rgba(78,64,104,.12)' }),
-    rule(`${control}:hover`, { 'background-image': 'linear-gradient(105deg,#ffc6e2,#ffed8e 52%,#67dfd1)' }),
+    rule(`${control}:hover`, { 'background-image': LIQUID_WASH, 'border-color': '#7d5e8e' }),
+    rule(`${link}:hover`, { color: '#8b245e', 'text-decoration-thickness': '2px', 'text-shadow': '0 2px 12px rgba(255,106,183,.28)' }),
+    rule('::selection', { color: '#201928', 'background-color': '#a3ecda' }),
     rule(animated, { animation: 'surface-liquid-flow-v1 18s ease-in-out infinite alternate' }),
-    '@keyframes surface-liquid-flow-v1{from{background-position:0% 0%,0 0}to{background-position:100% 100%,0 0}}'
+    '@keyframes surface-liquid-flow-v1{from{background-position:0% 0%,100% 100%,0 0}to{background-position:18% 12%,82% 86%,0 0}}'
   ];
   return [];
 }
@@ -31,7 +38,6 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
     rule(section, { 'background-color': 'transparent', border: '0', 'box-shadow': 'none', 'background-image': 'none' }),
     rule(data, { 'background-color': theme.colors.surface, color: theme.colors.text })
   ];
-  const rainbow = 'linear-gradient(90deg,#ffc6e2 0%,#ffe5a3 24%,#fff2a6 40%,#a3ecda 60%,#b8d9ff 80%,#dfc5ff 100%)';
   const reset = { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0' };
   if (theme.id === 'browser-archeology') return [
     rule(reading, { ...reset, 'background-color': '#ffffff', border: '3px solid #c0c0c0', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.28)' }),
@@ -45,12 +51,12 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
     rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' })
   ];
   return [
-    rule(reading, { 'background-color': '#fff9f1', 'background-image': 'linear-gradient(135deg,#fff2f8,#fff9e6 38%,#effbf7 68%,#f4efff)', 'background-size': '100% 100%', border: '1px solid #b5a0bd', 'border-radius': '18px', 'box-shadow': '0 12px 32px rgba(78,64,104,.12)' }),
+    rule(reading, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #b5a0bd', 'border-radius': '18px', 'box-shadow': '0 12px 32px rgba(78,64,104,.12)' }),
     rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
-    rule(panel, { 'background-color': '#fff9f1', 'background-image': `repeating-radial-gradient(ellipse at 90% 10%,rgba(255,255,255,.18) 0 3px,transparent 4px 22px),${rainbow}`, 'background-size': '180% 180%,100% 100%', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
+    rule(panel, { 'background-color': '#fff9f1', 'background-image': 'repeating-radial-gradient(ellipse at 96% 5%,rgba(139,36,94,.08) 0 2px,transparent 3px 18px),radial-gradient(circle at 8% 18%,rgba(255,198,226,.45),transparent 38%),radial-gradient(circle at 92% 84%,rgba(163,236,218,.4),transparent 40%),linear-gradient(#fff9f1,#fffdf8)', 'background-size': '180% 180%,100% 100%,100% 100%,100% 100%', border: '1px solid #a98bb5', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
     rule(data, { ...reset, 'background-color': '#fff9f1', border: '1px solid #9b859e' }),
-    rule(`${title},${sectionHeading}`, { 'background-color': '#fff9f1', 'background-image': rainbow, 'border-bottom': '2px solid #b59ac9', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
-    rule(navigation, { 'background-color': '#fff9f1', 'background-image': rainbow, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.3)' }),
+    rule(`${title},${sectionHeading}`, { color: '#4b235d', 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'border-bottom': '2px solid #8f6da0', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
+    rule(navigation, { 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.36)' }),
     rule(field, { 'background-color': '#fff9f1', 'background-image': 'none', 'box-shadow': 'inset 0 1px 3px rgba(78,64,104,.18)' })
   ];
 }
@@ -118,6 +124,7 @@ function buildContextualStyles(theme, corrections) {
     css.push(rule(`${windowTitle}[data-surface-window-title-v1="reading"]`, { 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)` }));
     css.push(rule(`${windowTitle},${windowTitle} *`, { color: c.accentText }));
     css.push(rule(purpose('title'), { color: c.accentText, 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' }));
+    css.push(`@media (max-width:520px){${windowTitle}{padding-inline-end:8px !important;background-image:${iconImage(theme.id, 'panel')},linear-gradient(90deg,#000080,#1084d0) !important;background-position:3px center,0 0 !important;background-size:17px 17px,100% 100% !important;}${windowTitle}[data-surface-window-title-v1="reading"]{background-image:${iconImage(theme.id, 'document')},linear-gradient(90deg,#000080,#1084d0) !important;}}`);
   }
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
   css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
@@ -139,6 +146,13 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
   const surface = select(['article', 'aside', 'dialog', '[role="dialog"]', '[role="menu"]', '[role="listbox"]', 'fieldset'], 'surface');
   const button = select(['button', '[role="button"]', 'input[type="button"]', 'input[type="submit"]', 'input[type="reset"]'], 'button');
   const field = select(['textarea', 'select', 'input:not([type="hidden"],[type="checkbox"],[type="radio"],[type="range"],[type="color"],[type="image"],[type="button"],[type="submit"],[type="reset"])'], 'field');
+  const reading = select([
+    'main', '[role="main"]',
+    'main > :where(article,section,div):has(> h1):has(> p,> section,> article)',
+    'main > :where(article,section,div):has(> header h1):has(> p,> section,> article)',
+    '[role="main"] > :where(article,section,div):has(> h1):has(> p,> section,> article)',
+    '[role="main"] > :where(article,section,div):has(> header h1):has(> p,> section,> article)'
+  ], 'reading');
   const selected = select(['[aria-selected="true"]', '[aria-pressed="true"]', '[aria-current]:not([aria-current="false"])'], 'selected');
   const error = select(['[aria-invalid="true"]'], 'error');
   const success = corrections.roles.success?.length ? select([], 'success') : null;
@@ -179,7 +193,7 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     animated: surface
   }));
   css.push(...buildPurposeMotifs(theme, rule, {
-    reading: select(['main', '[role="main"]'], 'reading'),
+    reading,
     // A/B never decorated sections, so retain their authored paint.
     section: ':not(*)', panel: surface,
     data: select(['table'], 'data'), title: select(['h1', '[role="heading"][aria-level="1"]'], 'title'),
@@ -187,6 +201,7 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     navigation: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation'), field
   }));
   css.push(`@media (prefers-reduced-motion:reduce){${surface}{animation:none !important;}}`);
+  if (theme.id === 'browser-archeology') css.push(`@media (max-width:520px){${select(['h1', '[role="heading"][aria-level="1"]'], 'title')}{padding-inline-end:8px !important;background-image:${iconImage(theme.id, 'document')},linear-gradient(90deg,#000080,#1084d0) !important;background-position:4px center,0 0 !important;background-size:18px 18px,100% 100% !important;}}`);
   // States come last so decorative treatments cannot erase essential distinctions.
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, 'background-image': 'none' }));
   css.push(rule(`${selected} :where(span,strong,em)`, { color: 'inherit' }));
