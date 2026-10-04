@@ -87,7 +87,8 @@ try {
         await waitStatus({ state: 'disabled' });
         await page.waitForTimeout(100);
         assert.deepEqual(await appearance(), original, 'Disable did not restore original computed styles');
-        assert.equal(await page.locator('style.darkreader').count(), 0, await page.locator('style.darkreader').evaluateAll(elements => elements.map(el => el.outerHTML).join('\n')));
+        const residualDarkReader = page.locator('style.darkreader:not(.surface-picker-style-v1)');
+        assert.equal(await residualDarkReader.count(), 0, await residualDarkReader.evaluateAll(elements => elements.map(el => el.outerHTML).join('\n')));
       });
     }
   }
@@ -276,18 +277,66 @@ try {
     await set({ disabledHosts: [] });
     await waitStatus({ state: 'active' });
   });
-  await check('in-page theme picker stays compact, top-level and synchronized', async () => {
-    await set({ enabled: true, renderer: 'contextual', theme: 'terminal-vision', corrections: false, disabledHosts: [] });
+  await check('in-page theme picker stays readable, persistent and synchronized', async () => {
+    await set({ enabled: true, renderer: 'simple', theme: 'terminal-vision', corrections: false, disabledHosts: [] });
     await page.goto(fixture.url);
-    await waitStatus({ state: 'active', renderer: 'contextual', theme: 'terminal-vision' });
+    await waitStatus({ state: 'active', renderer: 'simple', theme: 'terminal-vision' });
     const picker = page.locator('#surface-theme-picker-v1');
     await picker.locator('.toggle').click();
     assert.equal(await picker.locator('.panel').isVisible(), true);
     assert.equal(await picker.locator('.option').count(), 3);
-    assert.equal(await picker.locator('[data-theme-id="terminal-vision"]').getAttribute('aria-pressed'), 'true');
     const swatchBox = await picker.locator('.swatch').first().boundingBox();
     assert.equal(Math.round(swatchBox?.width || 0), 32);
     assert.equal(Math.round(swatchBox?.height || 0), 32);
+
+    for (const renderer of ['simple', 'adaptive', 'contextual']) {
+      for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+        await set({ enabled: true, renderer, theme });
+        await waitStatus({ state: 'active', renderer, theme });
+        const pairs = await picker.evaluate(host => {
+          const root = host.shadowRoot;
+          const pair = (foreground, background) => [getComputedStyle(root.querySelector(foreground)).color, getComputedStyle(root.querySelector(background)).backgroundColor];
+          return [
+            ['heading', ...pair('h2', '.panel')],
+            ['intro', ...pair('.intro', '.panel')],
+            ['power label', ...pair('.power-label', '.power')],
+            ['power state', ...pair('.power-state', '.power')],
+            ...[...root.querySelectorAll('.option')].flatMap((option, index) => {
+              const background = getComputedStyle(option).backgroundColor;
+              return [
+                [`option ${index + 1} name`, getComputedStyle(option.querySelector('.option-name')).color, background],
+                [`option ${index + 1} description`, getComputedStyle(option.querySelector('.option-description')).color, background]
+              ];
+            })
+          ];
+        });
+        for (const [label, foreground, background] of pairs) {
+          const foregroundColor = parseColor(foreground);
+          const backgroundColor = parseColor(background);
+          assert.ok(foregroundColor && backgroundColor, `${renderer}/${theme} ${label}: unsupported ${foreground} on ${background}`);
+          assert.ok(contrastRatio(foregroundColor, backgroundColor) >= 4.5, `${renderer}/${theme} ${label}: ${foreground} on ${background}`);
+        }
+        if (renderer === 'simple') await page.screenshot({ path: join(out, `theme-picker-${theme}.png`) });
+      }
+    }
+
+    await set({ enabled: true, renderer: 'contextual', theme: 'terminal-vision' });
+    await waitStatus({ state: 'active', renderer: 'contextual', theme: 'terminal-vision' });
+    assert.equal(await picker.locator('[data-theme-id="terminal-vision"]').getAttribute('aria-pressed'), 'true');
+    await picker.locator('[data-theme-id="liquid-dream"]').click();
+    await waitStatus({ state: 'active', renderer: 'contextual', theme: 'liquid-dream' });
+    assert.equal(await picker.locator('[data-theme-id="liquid-dream"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await picker.locator('.power').getAttribute('aria-checked'), 'true');
+    await picker.locator('.power').click();
+    await waitStatus({ state: 'disabled' });
+    assert.equal(await picker.evaluate(element => getComputedStyle(element).display), 'block');
+    assert.equal(await picker.locator('.panel').isVisible(), true);
+    assert.equal(await picker.locator('.power').getAttribute('aria-checked'), 'false');
+    await picker.locator('.power').click();
+    await waitStatus({ state: 'active', renderer: 'contextual', theme: 'liquid-dream' });
+    assert.equal(await picker.locator('.panel').isVisible(), true);
+    assert.equal(await picker.locator('.power').getAttribute('aria-checked'), 'true');
+
     const panelBox = await picker.locator('.panel').boundingBox();
     assert.ok(panelBox && panelBox.x >= 0 && panelBox.y >= 0 && panelBox.x + panelBox.width <= 1280 && panelBox.y + panelBox.height <= 960);
     await page.screenshot({ path: join(out, 'theme-picker-open.png') });
@@ -295,16 +344,10 @@ try {
     const narrowPanelBox = await picker.locator('.panel').boundingBox();
     assert.ok(narrowPanelBox && narrowPanelBox.x >= 0 && narrowPanelBox.y >= 0 && narrowPanelBox.x + narrowPanelBox.width <= 320 && narrowPanelBox.y + narrowPanelBox.height <= 640);
     await page.setViewportSize({ width: 1280, height: 960 });
-    await picker.locator('[data-theme-id="liquid-dream"]').click();
-    await waitStatus({ state: 'active', renderer: 'contextual', theme: 'liquid-dream' });
-    assert.equal(await picker.locator('[data-theme-id="liquid-dream"]').getAttribute('aria-pressed'), 'true');
     const frame = page.frames().find(item => item.url().includes('frame.html'));
     assert.equal(await frame.locator('#surface-theme-picker-v1').count(), 0);
     await page.keyboard.press('Escape');
     assert.equal(await picker.locator('.panel').isHidden(), true);
-    await set({ enabled: false });
-    await waitStatus({ state: 'disabled' });
-    assert.equal(await picker.evaluate(element => getComputedStyle(element).display), 'none');
   });
   await check('20 switches leave no residual style nodes and restore the current page', async () => {
     await set({ enabled: false });

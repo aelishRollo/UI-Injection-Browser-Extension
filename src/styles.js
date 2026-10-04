@@ -118,7 +118,7 @@ function buildContextualStyles(theme, corrections) {
 export function buildStyles(theme, { renderer = 'simple', corrections = { roles: {}, preserve: [] } } = {}) {
   if (renderer === 'contextual') return buildContextualStyles(theme, corrections);
   const c = theme.colors;
-  const protectedSelectors = ['svg', 'math', '[contenteditable="true"]', ...corrections.preserve];
+  const protectedSelectors = ['svg', 'math', '[contenteditable="true"]', '[data-surface-picker-v1]', ...corrections.preserve];
   const exclusion = protectedSelectors.flatMap(s => [s, `${s} *`]).join(',');
   const select = (selectors, role) => {
     const list = [...selectors, ...(corrections.roles[role] || [])];

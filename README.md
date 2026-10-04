@@ -12,7 +12,7 @@ The built extension is in `dist/`.
 4. Choose Browser Archeology, Liquid Dream, or Terminal Vision.
 5. Expand **Experiment controls** to compare A, B, and C. Keep corrections off for the baseline.
 
-While a theme is active, the compact **Themes** control at the bottom right of the page provides quick switching without reopening the toolbar popup. It appears only in the top-level page and hides when Surface is paused or disabled for that website.
+The compact **Themes** control at the bottom right of the page provides quick switching without reopening the toolbar popup. Its panel also pauses or resumes Surface globally. The control appears only in the top-level page and remains available while paused so Surface can be resumed in place.
 
 **Pause all** restores original appearance globally. The website switch remembers an exact-host exception, including on subsequent visits. Preferences apply to embedded HTTP(S) frames based on the top-level site. Already-open tabs can connect from the popup; reload if the browser declines injection.
 

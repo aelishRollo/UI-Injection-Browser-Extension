@@ -109,6 +109,48 @@ const pickerStyles = `
     cursor: pointer;
   }
   .close:hover { background: var(--ui-bg); color: var(--ui-text); }
+  .power {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin: 0 0 10px;
+    padding: 7px 8px 7px 10px;
+    border: 1px solid var(--ui-border);
+    border-radius: 9px;
+    background: #182225;
+    color: var(--ui-text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .power:hover { border-color: var(--ui-accent); }
+  .power-copy { display: grid; gap: 1px; }
+  .power-label { font-size: 11px; font-weight: 800; line-height: 1.2; }
+  .power-state { color: var(--ui-muted); font-size: 9px; line-height: 1.2; }
+  .power-track {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    flex: none;
+    border-radius: 999px;
+    background: #5d6770;
+  }
+  .power-track::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--ui-text);
+    transition: transform 140ms ease;
+  }
+  .power[aria-checked="true"] .power-track { background: var(--ui-accent); }
+  .power[aria-checked="true"] .power-track::after { background: #101418; transform: translateX(14px); }
+  .power:disabled { cursor: wait; opacity: .65; }
   .options { display: grid; gap: 6px; }
   .option {
     display: grid;
@@ -130,7 +172,7 @@ const pickerStyles = `
   .option:hover { border-color: var(--ui-accent); }
   .option[aria-pressed="true"] {
     border-color: var(--ui-accent);
-    background: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-bg));
+    background: #202b2d;
   }
   .option:disabled { cursor: wait; opacity: .65; }
   .swatch {
@@ -182,11 +224,11 @@ const pickerStyles = `
     .toggle-kicker { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .toggle, .option, .close { scroll-behavior: auto; }
+    .power-track::after { transition: none; }
   }
 `;
 
-export function createThemePicker(onSelect) {
+export function createThemePicker({ selectTheme, setEnabled }) {
   if (window.top !== window) return { render() {} };
 
   const host = document.createElement('surface-theme-picker-v1');
@@ -200,8 +242,8 @@ export function createThemePicker(onSelect) {
 
   const shadow = host.attachShadow({ mode: 'open' });
   shadow.innerHTML = `
-    <style>${pickerStyles}</style>
-    <aside class="picker" aria-label="Theme controls">
+    <style class="darkreader surface-picker-style-v1">${pickerStyles}</style>
+    <aside class="picker" data-surface-picker-v1 aria-label="Theme controls">
       <button class="toggle" type="button" aria-expanded="false" aria-controls="surface-theme-panel-v1">
         <span class="toggle-icon" aria-hidden="true">✦</span>
         <span class="toggle-copy"><span class="toggle-kicker">3 themes</span><span class="toggle-label">Themes</span></span>
@@ -212,6 +254,10 @@ export function createThemePicker(onSelect) {
           <div><h2 id="surface-theme-heading-v1">Choose a theme</h2><p class="intro">Try a different look for this page.</p></div>
           <button class="close" type="button" aria-label="Close theme picker">×</button>
         </div>
+        <button class="power" type="button" role="switch" aria-checked="true">
+          <span class="power-copy"><span class="power-label">Surface themes</span><span class="power-state">On everywhere</span></span>
+          <span class="power-track" aria-hidden="true"></span>
+        </button>
         <div class="options" role="group" aria-label="Available themes"></div>
       </section>
       <p class="status" aria-live="polite"></p>
@@ -220,6 +266,9 @@ export function createThemePicker(onSelect) {
   const toggle = shadow.querySelector('.toggle');
   const panel = shadow.querySelector('.panel');
   const closeButton = shadow.querySelector('.close');
+  const power = shadow.querySelector('.power');
+  const powerState = shadow.querySelector('.power-state');
+  const toggleKicker = shadow.querySelector('.toggle-kicker');
   const options = shadow.querySelector('.options');
   const status = shadow.querySelector('.status');
   const buttons = new Map();
@@ -240,16 +289,18 @@ export function createThemePicker(onSelect) {
     button.addEventListener('click', async () => {
       if (busy || currentSettings?.theme === theme.id) return;
       busy = true;
+      power.disabled = true;
       for (const choice of buttons.values()) choice.disabled = true;
       status.textContent = `Applying ${theme.name}…`;
       try {
-        const next = await onSelect(theme.id);
+        const next = await selectTheme(theme.id);
         render(next, true);
         status.textContent = `${theme.name} is active.`;
       } catch (error) {
         status.textContent = `Could not apply ${theme.name}. ${error.message}`;
       } finally {
         busy = false;
+        power.disabled = false;
         for (const choice of buttons.values()) choice.disabled = false;
       }
     });
@@ -283,11 +334,33 @@ export function createThemePicker(onSelect) {
     if (!visible) setOpen(false);
     for (const [id, button] of buttons) button.setAttribute('aria-pressed', String(id === nextSettings.theme));
     const active = THEMES[nextSettings.theme];
-    toggle.setAttribute('aria-label', `Choose theme. Current theme: ${active.name}.`);
+    power.setAttribute('aria-checked', String(nextSettings.enabled));
+    powerState.textContent = nextSettings.enabled ? 'On everywhere' : 'Paused everywhere';
+    toggleKicker.textContent = nextSettings.enabled ? '3 themes' : 'Surface paused';
+    toggle.setAttribute('aria-label', `Choose theme. Current theme: ${active.name}. Surface is ${nextSettings.enabled ? 'on' : 'paused'}.`);
   }
 
   toggle.addEventListener('click', () => setOpen(panel.hidden));
   closeButton.addEventListener('click', () => setOpen(false, true));
+  power.addEventListener('click', async () => {
+    if (busy) return;
+    busy = true;
+    power.disabled = true;
+    for (const choice of buttons.values()) choice.disabled = true;
+    const enabling = !currentSettings.enabled;
+    status.textContent = `${enabling ? 'Resuming' : 'Pausing'} Surface…`;
+    try {
+      const next = await setEnabled(enabling);
+      render(next, true);
+      status.textContent = `Surface is ${next.enabled ? 'on' : 'paused'} everywhere.`;
+    } catch (error) {
+      status.textContent = `Could not ${enabling ? 'resume' : 'pause'} Surface. ${error.message}`;
+    } finally {
+      busy = false;
+      power.disabled = false;
+      for (const choice of buttons.values()) choice.disabled = false;
+    }
+  });
   shadow.addEventListener('click', event => event.stopPropagation());
   shadow.addEventListener('pointerdown', event => event.stopPropagation());
   document.addEventListener('pointerdown', event => {

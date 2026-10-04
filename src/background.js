@@ -32,6 +32,16 @@ async function handle(message, sender) {
       writes = operation.catch(() => {});
       return operation;
     }
+    case 'enabled:set': {
+      if (!sender.tab || sender.frameId !== 0 || !hostname(sender.url) || typeof message.enabled !== 'boolean') throw new Error('Invalid enabled state');
+      const operation = writes.then(async () => {
+        const settings = updateSettings(await readSettings(), { enabled: message.enabled });
+        await chrome.storage.local.set({ settings });
+        return { settings };
+      });
+      writes = operation.catch(() => {});
+      return operation;
+    }
     case 'styles:replace': {
       if (!sender.tab || !hostname(sender.url) || !sender.documentId) throw new Error('Unsupported document');
       const { previous = '', next = '' } = message;

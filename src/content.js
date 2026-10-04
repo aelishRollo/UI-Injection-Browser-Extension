@@ -23,7 +23,10 @@ if (!globalThis.__surfaceExperimentV1) {
     if (!result?.ok) throw new Error(result?.error || 'Extension service worker unavailable');
     return result;
   }
-  const themePicker = createThemePicker(async theme => (await request({ type: 'theme:select', theme })).settings);
+  const themePicker = createThemePicker({
+    selectTheme: async theme => (await request({ type: 'theme:select', theme })).settings,
+    setEnabled: async enabled => (await request({ type: 'enabled:set', enabled })).settings
+  });
   async function replaceCSS(next) {
     if (next === currentCSS) return;
     await request({ type: 'styles:replace', previous: currentCSS, next });
@@ -38,7 +41,8 @@ if (!globalThis.__surfaceExperimentV1) {
       try {
         const { settings, topHost, frameHost } = await request({ type: 'settings:get' });
         const enabled = isEnabled(settings, topHost || frameHost);
-        themePicker.render(settings, enabled);
+        // Keep the picker available so a paused extension can be resumed in place.
+        themePicker.render(settings, Boolean(topHost || frameHost));
         const signature = JSON.stringify([enabled, settings.theme, settings.renderer, settings.corrections, frameHost]);
         if (signature === lastSignature) continue;
         const started = performance.now();
