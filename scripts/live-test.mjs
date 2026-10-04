@@ -67,6 +67,11 @@ try {
               tag: element.tagName.toLowerCase(), purpose: element.getAttribute('data-surface-purpose-v1'),
               evidence: element.getAttribute('data-surface-evidence-v1'), label: element.textContent.trim().replace(/\s+/g, ' ').slice(0, 80)
             })));
+            if (renderer === 'contextual') result.visualProbes = await page.locator('h1,h1 span,[data-surface-glyph-v1],label[data-surface-context-v1="control"] span').evaluateAll(elements => elements.slice(0, 30).map(el => ({
+              tag: el.tagName, label: el.textContent.trim().slice(0, 60), tone: el.getAttribute('data-surface-tone-v1'), pair: el.getAttribute('data-surface-pair-v1'),
+              glyph: el.getAttribute('data-surface-glyph-v1'), color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor,
+              ancestors: [...(function* () { for (let n=el;n;n=n.parentElement) yield n; })()].slice(0, 5).map(n => ({tag:n.tagName,context:n.getAttribute('data-surface-context-v1'),background:getComputedStyle(n).backgroundColor,before:getComputedStyle(n,'::before').content,beforePaint:getComputedStyle(n,'::before').backgroundImage,after:getComputedStyle(n,'::after').content,afterPaint:getComputedStyle(n,'::after').backgroundImage}))
+            })));
             await page.screenshot({ path: join(out, `${site.id}-${renderer}-${theme}.png`), timeout: 30000 });
             result.applied = true;
             console.log(`${site.id}: ${renderer}/${theme} captured`);

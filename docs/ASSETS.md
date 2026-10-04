@@ -4,7 +4,7 @@ The active theme adaptations derive from the user's reference project at
 `/Users/alecrollison/Code/personal sites/html5up-read-only/assets/css/skins/`:
 `browser-archaeology.css`, `liquid-dream.css`, and `terminal-vision.css`.
 The source files remain untouched. The popup uses the requested spelling “Browser Archeology”.
-The active themes use CSS decoration and system fonts; no image assets are required.
+The active themes use CSS decoration, system fonts, and original inline SVG glyphs authored in `src/icons.js`. The glyphs are local data URLs, require no remote assets, and do not reuse third-party icon packs. Browser Archeology uses pixel geometry; Liquid Dream uses rounded flowing strokes. Original site logos/media are not part of this icon vocabulary.
 
 The retained `assets/corkboard-texture.webp` came from that project's
 `assets/images/corkboard-texture.webp` for the retired Psychedelic Scrapbook theme.

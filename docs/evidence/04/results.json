@@ -1,0 +1,936 @@
+{
+  "baselineCommit": "bc9376e",
+  "baseline": {
+    "recordedAt": "2026-10-04T14:17:11.896Z",
+    "browser": "153.0.8010.12",
+    "hashes": {
+      "content.js": "ab2555075d17fc83383bb12f26a1cfea17a8b0c2949f25d1800351cf44b0228e",
+      "adaptive.js": "ded7d27752398eab41a4daed42762036e780cd516e4f92279b56af91f6ab1df2",
+      "contextual.js": "5e3aaeec403e74fab9497c7131cb009c71a07d7a2b9ddc844c7a73ec17e41f6d",
+      "background.js": "6f557fb44fda7782b2cb6deeab56a28a91c018abf3a9a096fc3dd6931abe28e6"
+    },
+    "corrections": false,
+    "results": [
+      {
+        "id": "wikipedia",
+        "url": "https://en.wikipedia.org/wiki/Chromium_(web_browser)",
+        "title": "Chromium (web browser) - Wikipedia",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7158,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7158,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7158,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "regions": {
+              "page": 2,
+              "content": 8,
+              "chrome": 13,
+              "controls": 27,
+              "overlays": 0,
+              "brands": 7
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "regions": {
+              "page": 2,
+              "content": 64,
+              "chrome": 13,
+              "controls": 27,
+              "overlays": 0,
+              "brands": 7
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7130,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "regions": {
+              "page": 2,
+              "content": 64,
+              "chrome": 13,
+              "controls": 27,
+              "overlays": 0,
+              "brands": 7
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      }
+    ]
+  },
+  "final": {
+    "recordedAt": "2026-10-04T14:28:07.660Z",
+    "browser": "153.0.8010.12",
+    "hashes": {
+      "content.js": "905f4accc577db10da7efc152b1cf3500bea699bd4c70ac16e95f5098deadca7",
+      "adaptive.js": "ded7d27752398eab41a4daed42762036e780cd516e4f92279b56af91f6ab1df2",
+      "contextual.js": "4f321de7717881837a9ef16537f7dfe502ca7811080f01298b697e80aa097ea8",
+      "background.js": "6f557fb44fda7782b2cb6deeab56a28a91c018abf3a9a096fc3dd6931abe28e6"
+    },
+    "corrections": false,
+    "results": [
+      {
+        "id": "wikipedia",
+        "url": "https://en.wikipedia.org/wiki/Chromium_(web_browser)",
+        "title": "Chromium (web browser) - Wikipedia",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7156,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7156,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 27,
+              "elements": 7156,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 1,
+              "content": 64,
+              "chrome": 15,
+              "controls": 30,
+              "overlays": 0,
+              "brands": 7
+            },
+            "icons": {
+              "controls": 4,
+              "headings": 0
+            },
+            "visualProbes": [
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "menu",
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Main menu",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "search",
+                "color": "rgb(32, 33, 34)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "H1",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(16, 20, 24)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(16, 20, 24)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "language",
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "51 languages",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "more",
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Tools",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 1,
+              "content": 64,
+              "chrome": 15,
+              "controls": 30,
+              "overlays": 0,
+              "brands": 7
+            },
+            "icons": {
+              "controls": 4,
+              "headings": 10
+            },
+            "visualProbes": [
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "menu",
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Main menu",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "search",
+                "color": "rgb(32, 33, 34)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "H1",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(255, 255, 255)",
+                "background": "rgb(0, 0, 128)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(255, 255, 255)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(255, 255, 255)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "language",
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "51 languages",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "more",
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Tools",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(0, 0, 0)",
+                "background": "rgba(0, 0, 0, 0)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7128,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 1,
+              "content": 64,
+              "chrome": 15,
+              "controls": 30,
+              "overlays": 0,
+              "brands": 7
+            },
+            "icons": {
+              "controls": 4,
+              "headings": 10
+            },
+            "visualProbes": [
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "menu",
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Main menu",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "search",
+                "color": "rgb(32, 33, 34)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "H1",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(16, 20, 24)",
+                "background": "rgb(255, 249, 241)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": null,
+                "pair": null,
+                "glyph": null,
+                "color": "rgb(16, 20, 24)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Chromium (web browser)",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "language",
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "51 languages",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "",
+                "tone": null,
+                "pair": null,
+                "glyph": "more",
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              },
+              {
+                "tag": "SPAN",
+                "label": "Tools",
+                "tone": "control",
+                "pair": "control",
+                "glyph": null,
+                "color": "rgb(32, 25, 40)",
+                "background": "rgba(0, 0, 0, 0)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      },
+      {
+        "id": "mdn",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/CSS",
+        "title": "CSS: Cascading Style Sheets | MDN",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(255, 255, 255)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 0,
+              "content": 11,
+              "chrome": 4,
+              "controls": 8,
+              "overlays": 0,
+              "brands": 3
+            },
+            "icons": {
+              "controls": 0,
+              "headings": 0
+            },
+            "visualProbes": [
+              {
+                "tag": "H1",
+                "label": "CSS: Cascading Style Sheets",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(157, 255, 176)",
+                "background": "rgba(0, 0, 0, 0)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 0,
+              "content": 11,
+              "chrome": 4,
+              "controls": 8,
+              "overlays": 0,
+              "brands": 3
+            },
+            "icons": {
+              "controls": 0,
+              "headings": 8
+            },
+            "visualProbes": [
+              {
+                "tag": "H1",
+                "label": "CSS: Cascading Style Sheets",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(255, 255, 255)",
+                "background": "rgb(0, 0, 128)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "regions": {
+              "page": 2,
+              "shells": 0,
+              "content": 11,
+              "chrome": 4,
+              "controls": 8,
+              "overlays": 0,
+              "brands": 3
+            },
+            "icons": {
+              "controls": 0,
+              "headings": 8
+            },
+            "visualProbes": [
+              {
+                "tag": "H1",
+                "label": "CSS: Cascading Style Sheets",
+                "tone": "theme",
+                "pair": "theme",
+                "glyph": null,
+                "color": "rgb(32, 25, 40)",
+                "background": "rgb(255, 249, 241)"
+              }
+            ],
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      }
+    ]
+  },
+  "browserChecks": {
+    "recordedAt": "2026-10-04T14:27:36.312Z",
+    "passed": [
+      "simple/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "simple/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "simple/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "adaptive/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "adaptive/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "adaptive/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "contextual/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "contextual/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "contextual/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "contextual renderer pairs known surfaces and preserves uncertain regions",
+      "contextual foregrounds pass contrast on retained and alpha surfaces in every theme",
+      "reading hierarchy separates sections, fact panels, data and fields",
+      "dynamic DOM, SPA navigation, keyboard focus and working controls",
+      "one role correction works across all three themes",
+      "site disable propagates into HTTP frames and survives navigation",
+      "20 switches leave no residual style nodes and restore the current page",
+      "popup loads and changes persisted settings"
+    ],
+    "pageErrors": []
+  },
+  "performance": {
+    "recordedAt": "2026-10-04T14:30:28.425Z",
+    "configuration": {
+      "repeatCount": 1,
+      "modes": [
+        {
+          "renderer": "off",
+          "theme": null
+        },
+        {
+          "renderer": "contextual",
+          "theme": "terminal-vision"
+        },
+        {
+          "renderer": "contextual",
+          "theme": "browser-archeology"
+        },
+        {
+          "renderer": "contextual",
+          "theme": "liquid-dream"
+        }
+      ]
+    },
+    "samples": [
+      {
+        "renderer": "off",
+        "theme": null,
+        "applyMs": 59.3,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "terminal-vision",
+        "applyMs": 28.4,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "browser-archeology",
+        "applyMs": 23.1,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "liquid-dream",
+        "applyMs": 34.3,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      }
+    ],
+    "limitations": [
+      "Local fixture and headless browser; no product performance pass implied.",
+      "Playwright dispatches trusted click input, but click-to-two-rAF remains a laboratory rendering-opportunity measure rather than field INP.",
+      "CPU sampling covers page content engines, not extension worker CPU or all native rendering work.",
+      "Frame intervals and task duration include theme effects. Theme cost is not isolated by subtracting sampled engine values.",
+      "Navigations are warm-cache after the first run; loadToApplied includes automation and scheduling.",
+      "A verified equivalent-output frozen-style control, paint/composite traces, foreground runs, and real-site traces remain necessary for complete attribution."
+    ]
+  }
+}

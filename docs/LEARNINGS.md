@@ -2,7 +2,13 @@
 
 Read this before theme/renderer changes; update it as experiments land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current understanding — October 3, 2026
+## Current understanding — October 4, 2026
+
+Latest owner review of Experiment 03: **C is currently best on Wikipedia for Browser Archeology and Liquid Dream**, but both still lack the intended character. Browser Archeology feels accidentally old rather than like a deliberate desktop recreation; icons are a missing part of that identity. The owner also reports that only B produces dark mode for Terminal Vision on Wikipedia. These preferences describe the reviewed build, not automatic approval of the next iteration.
+
+Experiment 04 tests a themed icon vocabulary, stronger Browser Archeology title bars, shared purpose recognition for Terminal Vision, and conservative page-shell/utility-panel recognition. See [the iteration record](EXPERIMENT-04.md). Keep B available as the broad color-adaptation comparison; do not equate successful injection with dark-mode coverage.
+
+## Prior understanding — October 3, 2026
 
 The owner reports that Terminal Vision looks good on Wikipedia, Browser Archeology feels unordered, and Liquid Dream barely registers. The owner uses the unpacked extension and has not identified an experimental renderer; the default is A, so treat default-mode behavior as the primary experience. These are visual observations, not performance or accessibility results.
 
@@ -18,7 +24,7 @@ The owner reports that Terminal Vision looks good on Wikipedia, Browser Archeolo
 | Title / section heading | Heading level; small heading-and-utilities group | Navy title rule, restrained section rules | Rainbow heading band |
 | Input / action | Native control semantics | Recessed field / raised button | Quiet field / rounded action |
 
-C carries explicit purpose and evidence attributes, with diagnostic counts. A/B use a smaller CSS-only semantic approximation. This experiment leaves Terminal Vision's appearance and the default renderer unchanged. The purpose pass is currently enabled only for Browser Archeology and Liquid Dream; sharing it with Terminal requires a separate visual comparison.
+C carries explicit purpose and evidence attributes, with diagnostic counts. A/B use a smaller CSS-only semantic approximation. Experiment 03 left Terminal Vision and the default renderer unchanged. Experiment 04 extends the purpose pass to Terminal Vision after the owner identified its dark-surface gap. The default renderer remains A.
 
 ## Experiment 03 — purpose before decoration
 
@@ -51,3 +57,13 @@ Validation and final visual review are recorded in [Experiment 03](EXPERIMENT-03
 - Capture full article bodies, narrow viewports, forms, commerce, and application pages before generalizing. Track role false positives as carefully as missing decoration.
 
 Next experiment: test document-vs-application classification and heading-group boundaries on unseen pages, then decide whether semantic A/B should remain independent baselines or consume a shared purpose model. Get owner feedback on the visible hierarchy before treating the new mappings as settled.
+
+
+## Experiment 04 lessons
+
+- A white ancestor wrapper can hide the page theme even when `body` is correctly dark. B transforms authored CSS; C needs paint ownership for the shell as well as the reading region. A remains a semantic baseline with partial coverage.
+- Icon style is part of theme identity. Pixel geometry, document/folder glyphs, teal desktop and navy title bars work together for Browser Archeology. Liquid Dream uses rounded, flowing glyphs rather than simply recoloring the same pixel silhouettes.
+- Prefer an existing icon slot with semantic evidence. C replaces only small, empty, masked HTML slots with recognized menu/search/language/more meaning; unknown icons, SVG/media and logos are preserved. Initial name recognition is English-only. Newly added heading decorations use unused `::before` slots and are never fake buttons.
+- A generated separator or in-flow arrow is not necessarily a backdrop behind text. The first dark capture left the title black because the resolver treated a one-pixel separator as uncertain backdrop paint. Bound the pseudo-element check by normal flow and overlap, retaining the conservative fallback for true overlays.
+- Painted link/settings rails are different from arbitrary white cards. Recognition now requires a narrow neutral panel with predominantly links or grouped radios and labels. Inspect false positives on additional sites before broadening that rule.
+- Enabling a document owner changes dynamic insertion: a new article beneath it must inherit section treatment. A regression test caught the previous scan skipping that article; classification now covers both articles and sections.

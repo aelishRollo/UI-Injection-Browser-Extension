@@ -159,7 +159,7 @@ function markSurfaces(root) {
 }
 
 // Theme-independent purpose, separate from paint ownership and text contrast.
-// Keep the original Terminal experiment stable while evaluating this role model.
+// Every theme consumes the same recognized hierarchy.
 function markPurposes(root) {
   const reading = `[${ATTR_PURPOSE}="reading"]`;
   const safe = element => isVisible(element) && !isProtected(element) &&
@@ -188,7 +188,7 @@ function markPurposes(root) {
       assign(element, 'reading', 'content', landmarks.includes(element) ? 'prose-landmark' : 'boxless-landmark-prose');
     }
   }
-  for (const element of collect(root, `[${ATTR_CONTEXT}="content"],section`)) {
+  for (const element of collect(root, `[${ATTR_CONTEXT}="content"],section,article`)) {
     if (!element.hasAttribute(ATTR_CONTEXT) && (!element.closest(reading) || !element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]'))) continue;
     if (element.matches(reading)) continue;
     const inReading = element.parentElement?.closest(reading);
@@ -219,6 +219,85 @@ function markPurposes(root) {
   }
   for (const element of collect(root, `[${ATTR_CONTEXT}="control"]`)) {
     assign(element, element.matches('textarea,select,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="range"],[type="color"])') ? 'field' : 'action', null, 'native-control');
+  }
+}
+
+// Only neutral, solid ancestor wrappers around a known document are page shells.
+// Do not extrapolate from white to arbitrary cards, images or colored status UI.
+function markShells(root) {
+  for (const reading of collect(root, '[data-surface-purpose-v1="reading"]')) {
+    for (let element = reading.parentElement; element && element !== document.body; element = element.parentElement) {
+      if (element.hasAttribute(ATTR_CONTEXT) || !element.matches('div,main') || isProtected(element)) continue;
+      const style = getComputedStyle(element);
+      const color = parseColor(style.backgroundColor);
+      if (!color || color[3] !== 1 || Math.min(...color.slice(0, 3)) < 230 ||
+          Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) > 18 ||
+          style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+          element.getBoundingClientRect().width < innerWidth * .6) continue;
+      setAttribute(element, ATTR_CONTEXT, 'shell');
+      setAttribute(element, ATTR_CONFIDENCE, 'medium');
+      setAttribute(element, 'data-surface-evidence-v1', 'neutral-document-ancestor');
+    }
+  }
+}
+
+function markUtilityPanels(root) {
+  for (const element of collect(root, 'div,aside,nav,form')) {
+    if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(element);
+    const color = parseColor(style.backgroundColor);
+    if (!color || color[3] !== 1 || Math.min(...color.slice(0,3)) < 230 ||
+        Math.max(...color.slice(0,3)) - Math.min(...color.slice(0,3)) > 18 ||
+        style.backgroundImage !== 'none' || hasUncertainPaint(style)) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 100 || rect.width > 400 || rect.height < 100 || element.querySelector('img,video,canvas,article,main')) continue;
+    const links = [...element.querySelectorAll('a[href]')];
+    const textLength = element.textContent.replace(/\s+/g, '').length;
+    const navigation = links.length >= 4 && links.reduce((sum, a) => sum + a.textContent.replace(/\s+/g, '').length, 0) / textLength >= .6;
+    const settings = element.querySelectorAll('input[type="radio"]').length >= 3 && element.querySelectorAll('label').length >= 3;
+    if (!navigation && !settings) continue;
+    setAttribute(element, ATTR_CONTEXT, 'chrome');
+    setAttribute(element, ATTR_PURPOSE, 'navigation');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', navigation ? 'neutral-link-rail' : 'neutral-settings-rail');
+  }
+}
+
+function markGlyphs(root) {
+  // Restrict replacement to empty, already-painted HTML icon slots. Labels and
+  // ARIA supply meaning; no class-name, URL-name, logo or SVG-pixel guessing.
+  for (const element of collect(root, 'span,i')) {
+    if (element.children.length || element.textContent.trim() || !isVisible(element) || isProtected(element) ||
+        element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 10 || rect.width > 40 || rect.height < 10 || rect.height > 40 ||
+        style.maskImage === 'none' || parseFloat(style.borderTopWidth) || parseFloat(style.borderLeftWidth)) continue;
+    const control = element.closest('button,[role="button"],label[for]');
+    const owner = control instanceof HTMLLabelElement ? control.control : control;
+    const name = (owner?.getAttribute('aria-label') || control?.getAttribute('aria-label') || control?.textContent || '').trim();
+    let role;
+    if (/^(main )?menu$/i.test(name)) role = 'menu';
+    else if (/^(search|find)(\s|$)/i.test(name)) role = 'search';
+    else if (/^(\d+ )?languages?$/i.test(name)) role = 'language';
+    else if (/^(tools|more|more options)$/i.test(name)) role = 'more';
+    // An icon next to exactly one search input is another strong signal.
+    if (!role && element.parentElement.querySelectorAll('input').length === 1 &&
+        element.parentElement.querySelector('input[type="search"]')) role = 'search';
+    if (!role || control?.closest(`[${ATTR_CONTEXT}="overlay"]`)) continue;
+    setAttribute(element, 'data-surface-glyph-v1', role);
+    if (control instanceof HTMLLabelElement && owner?.matches('input[role="button"]')) {
+      setAttribute(control, ATTR_CONTEXT, 'control');
+      setAttribute(control, ATTR_CONFIDENCE, 'high');
+    }
+  }
+  if (activeTheme === 'terminal-vision') return;
+  for (const heading of collect(root, 'h1,h2')) {
+    if (!isVisible(heading) || isProtected(heading) || heading.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const purpose = heading.closest(`[${ATTR_PURPOSE}="title"],[${ATTR_PURPOSE}="section-heading"]`);
+    const before = getComputedStyle(heading, '::before');
+    if (!purpose || !['none', 'normal'].includes(before.content) || before.backgroundImage !== 'none' || before.maskImage !== 'none') continue;
+    setAttribute(heading, 'data-surface-heading-glyph-v1', purpose.getAttribute(ATTR_PURPOSE) === 'title' ? 'document' : 'section');
   }
 }
 
@@ -276,6 +355,25 @@ function hasUncertainPaint(style) {
     (style.maskImage && style.maskImage !== 'none');
 }
 
+function pseudoMayCoverText(owner, paint, textElement) {
+  // In-flow icons are separate boxes, not text backdrops. Keep uncertain
+  // transforms/negative spacing conservative, and retain true overlay paint.
+  const margins = ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'].map(key => parseFloat(paint[key]));
+  if (paint.position === 'static' && paint.transform === 'none' && paint.float === 'none' && margins.every(n => n >= 0)) return false;
+  if (paint.position === 'absolute' && paint.transform === 'none' && margins.every(n => n === 0) && getComputedStyle(owner).position !== 'static') {
+    const [left, top, width, height] = ['left', 'top', 'width', 'height'].map(key => parseFloat(paint[key]));
+    if ([left, top, width, height].every(Number.isFinite)) {
+      const box = owner.getBoundingClientRect();
+      const text = textElement.getBoundingClientRect();
+      const style = getComputedStyle(owner);
+      const x = box.left + parseFloat(style.borderLeftWidth) + left;
+      const y = box.top + parseFloat(style.borderTopWidth) + top;
+      return x < text.right && x + width > text.left && y < text.bottom && y + height > text.top;
+    }
+  }
+  return true;
+}
+
 function backgroundForText(element) {
   const layers = [];
   let owner;
@@ -290,16 +388,18 @@ function backgroundForText(element) {
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
     const purpose = current.getAttribute(ATTR_PURPOSE);
-    const headingPaint = activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose);
-    const ownsTheme = headingPaint || ['page', 'content', 'chrome', 'control'].includes(context);
+    const headingPaint = (activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) || (activeTheme === 'browser-archeology' && purpose === 'title');
+    const ownsTheme = headingPaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
+      if (pseudo === '::before' && current.hasAttribute('data-surface-heading-glyph-v1')) continue;
       const paint = getComputedStyle(current, pseudo);
       if (!['none', 'normal'].includes(paint.content) && paint.display !== 'none' &&
-          (paint.backgroundImage !== 'none' || (parseColor(paint.backgroundColor)?.[3] || 0) > 0)) return { reason: 'pseudo' };
+          (paint.backgroundImage !== 'none' || (parseColor(paint.backgroundColor)?.[3] || 0) > 0) &&
+          pseudoMayCoverText(current, paint, element)) return { reason: 'pseudo' };
     }
     let color;
     if (ownsTheme) {
-      color = context === 'page' ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
+      color = headingPaint && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
         color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);
@@ -370,7 +470,8 @@ function markText(root, media) {
       setAttribute(element, ATTR_CONFIDENCE, 'medium');
       continue;
     }
-    const preferred = role === 'link' ? palette.link : palette.text;
+    const titleInk = activeTheme === 'browser-archeology' && element.closest(`[${ATTR_PURPOSE}="title"]`);
+    const preferred = titleInk ? palette.accentText : role === 'link' ? palette.link : palette.text;
     const background = role === 'code' && backing.themed ? parseColor(palette.raised) : backing.color;
     const foreground = readableColor(preferred, background, minimum);
     setAttribute(element, ATTR_TONE, foreground ? 'theme' : 'preserve');
@@ -401,7 +502,10 @@ function scan(root = document) {
   markBrands(root);
   markSurfaces(root);
   markControls(root, media);
-  if (activeTheme !== 'terminal-vision') markPurposes(root);
+  markPurposes(root);
+  markShells(root);
+  markUtilityPanels(root);
+  markGlyphs(root);
   markText(root, media);
   markProminent();
 }
@@ -444,11 +548,12 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v3', enabled: running,
-    regions: { page: count('page'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
+    adapter: 'contextual-v4', enabled: running,
+    regions: { page: count('page'), shells: count('shell'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
     purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
+    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     uncertainty: { ...uncertainty }, decorationBudget: document.querySelectorAll(`[${ATTR_PROMINENT}]`).length
   };

@@ -29,3 +29,7 @@ There is no public correction schema, user CSS editor, appearance-override forma
 ## Purpose-based iteration (October 3)
 
 [Experiment 03](EXPERIMENT-03.md) assigns different treatments to documents, panels, navigation, headings, data tables and fields. Browser Archeology uses one document frame and distinct inset fields; Liquid Dream places a six-color rainbow on visible navigation/title accents and contextual panels, leaving prose quieter. C additionally groups chapter headings with small utility links and recognizes prose children of boxless landmarks. This is an experimental interpretation of theme intent; see [the learning log](LEARNINGS.md) before further changes.
+
+## Icon identity and dark backing (October 4)
+
+[Experiment 04](EXPERIMENT-04.md) adds original contextual icon glyphs and a navy/white title treatment for Browser Archeology. Liquid Dream uses rounded flowing glyphs and droplet section marks. C now recognizes neutral document shells and utility rails, and Terminal Vision participates in the same purpose hierarchy. This improves Wikipedia dark coverage; the MDN capture still exposes retained-ink failures. The owner prefers C for the two light themes on Wikipedia, not necessarily on every site.

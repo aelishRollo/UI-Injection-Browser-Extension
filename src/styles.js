@@ -1,3 +1,5 @@
+import { buildIconStyles } from './icons.js';
+
 // Shared motifs keep all three renderers visually consistent without changing site layout.
 function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome, animated }) {
   if (theme.id === 'browser-archeology') return [
@@ -24,7 +26,11 @@ function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, 
 
 // Assign decoration by visual purpose instead of repeating a card on every region.
 function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title, sectionHeading, navigation, field }) {
-  if (theme.id === 'terminal-vision') return [];
+  if (theme.id === 'terminal-vision') return [
+    rule(reading, { 'background-color': theme.colors.surface, color: theme.colors.text }),
+    rule(section, { 'background-color': 'transparent', border: '0', 'box-shadow': 'none', 'background-image': 'none' }),
+    rule(data, { 'background-color': theme.colors.surface, color: theme.colors.text })
+  ];
   const rainbow = 'linear-gradient(90deg,#ffc6e2 0%,#ffe5a3 24%,#fff2a6 40%,#a3ecda 60%,#b8d9ff 80%,#dfc5ff 100%)';
   const reset = { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0' };
   if (theme.id === 'browser-archeology') return [
@@ -101,6 +107,9 @@ function buildContextualStyles(theme, corrections) {
     reading: purpose('reading'), section: purpose('section'), panel: purpose('panel'), data: purpose('data'),
     title: purpose('title'), sectionHeading: purpose('section-heading'), navigation: purpose('navigation'), field: purpose('field')
   }));
+  css.push(...buildIconStyles(theme, rule));
+  css.push(rule(context('shell'), { 'background-color': c.background }));
+  if (theme.id === 'browser-archeology') css.push(rule(purpose('title'), { 'background-color': c.accent, color: c.accentText, 'box-shadow': 'inset 1px 1px #fff,inset -1px -1px #404040' }));
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
   css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
   return `/* Surface v1 | ${theme.id} | contextual */\n${css.join('\n')}`;

@@ -100,7 +100,8 @@ try {
     assert.equal(await page.locator('#retained-text').evaluate(el => getComputedStyle(el).color), 'rgb(21, 21, 21)');
     assert.equal(await page.locator('#overlay-heading').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
     assert.equal(await page.locator('#gradient-text').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
-    assert.equal(await page.locator('#article').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+    assert.equal(await page.locator('main').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+    assert.equal(await page.locator('#article').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)');
     assert.equal(await page.locator('#article p').evaluate(el => getComputedStyle(el).color), 'rgb(157, 255, 176)');
     assert.equal(await page.locator('#black-logo').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 244, 239)');
     assert.equal(active.contextual.enabled, true);
@@ -167,7 +168,8 @@ try {
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
     const baseline = await snapshot();
-    for (const theme of ['browser-archeology', 'liquid-dream']) {
+    const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
+    for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await set({ enabled: true, renderer: 'contextual', theme });
       await waitStatus({ state: 'active', renderer: 'contextual', theme });
       for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
@@ -178,16 +180,42 @@ try {
       assert.equal(await page.locator('#painted-title').getAttribute('data-surface-purpose-v1'), null);
       assert.equal(await page.locator('#protected [data-surface-purpose-v1]').count(), 0);
       if (theme === 'liquid-dream') {
-        for (const selector of ['header', '#heading-group', '#facts']) {
+        for (const selector of ['#shell > header', '#heading-group', '#facts']) {
           assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
         }
         // All light rainbow stops must support theme ink, including links.
         for (const stop of ['#ffc6e2','#ffe5a3','#fff2a6','#a3ecda','#b8d9ff','#dfc5ff']) {
           for (const ink of ['#201928', '#274bb5']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
         }
-      } else {
+      } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
       }
+      assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
+      for (const role of ['menu', 'language', 'search', 'more']) {
+        assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
+        assert.equal(await page.locator(`#${role}-icon`).evaluate(el => getComputedStyle(el).maskImage), 'none');
+      }
+      assert.equal(await page.locator('#unknown-icon').getAttribute('data-surface-glyph-v1'), null);
+      assert.equal(await page.locator('#brand-icon').getAttribute('data-surface-glyph-v1'), null);
+      assert.equal(await page.locator('.original-heading').evaluate(el => getComputedStyle(el, '::before').content), '"☆"');
+      const titlePair = await page.locator('h1').evaluate(el => ({color:getComputedStyle(el.querySelector('span')).color,background:getComputedStyle(el).backgroundColor}));
+      if (theme === 'browser-archeology') {
+        assert.equal(titlePair.background, 'rgb(0, 0, 128)');
+        assert.ok(contrastRatio(parseColor(titlePair.color),parseColor(titlePair.background)) >= 4.5);
+      }
+      if (theme === 'terminal-vision') {
+        assert.equal(await page.locator('#utility-rail').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        assert.equal(await page.locator('h1 span').getAttribute('data-surface-tone-v1'), 'theme');
+        assert.ok(contrastRatio(parseColor(titlePair.color),parseColor('#091a11')) >= 4.5);
+        assert.equal(await page.locator('#shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
+        assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+      }
+      await page.locator('#menu').click();
+      assert.equal(await page.locator('#menu').getAttribute('aria-expanded'), 'true');
+      await page.locator('#menu').click();
+      await page.locator('label[for="language-toggle"]').click();
+      assert.equal(await page.locator('#language-toggle').isChecked(), true);
+      await page.locator('label[for="language-toggle"]').click();
       await page.locator('#dynamic').evaluate(el => { el.innerHTML = '<section id="late-section"><h2>Added chapter</h2><p>A new article section should join the existing document without becoming another framed panel.</p><button id="late-action">New action</button></section>'; });
       await page.waitForTimeout(100);
       assert.equal(await page.locator('#late-section').getAttribute('data-surface-purpose-v1'), 'section');
@@ -197,7 +225,10 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1]').count(), 0);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1]').count(), 0);
+      assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
+      assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
+      assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);
     }
     await page.goto(fixture.url);
     await waitStatus({ state: 'disabled' });
