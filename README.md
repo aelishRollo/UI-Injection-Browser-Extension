@@ -12,6 +12,8 @@ The built extension is in `dist/`.
 4. Choose Browser Archeology, Liquid Dream, or Terminal Vision.
 5. Expand **Experiment controls** to compare A, B, and C. Keep corrections off for the baseline.
 
+While a theme is active, the compact **Themes** control at the bottom right of the page provides quick switching without reopening the toolbar popup. It appears only in the top-level page and hides when Surface is paused or disabled for that website.
+
 **Pause all** restores original appearance globally. The website switch remembers an exact-host exception, including on subsequent visits. Preferences apply to embedded HTTP(S) frames based on the top-level site. Already-open tabs can connect from the popup; reload if the browser declines injection.
 
 The prototype starts enabled with Terminal Vision and renderer A. Installing it grants HTTP(S) access so it can theme unfamiliar websites automatically. Settings and exceptions stay in `chrome.storage.local`. There is no analytics, remote theme code, or automatic reporting. Exporting a test note explicitly downloads a local JSON file; it does not send it anywhere. Renderer B may fetch public stylesheets through the extension worker without credentials to overcome cross-origin CSS restrictions.
@@ -49,6 +51,7 @@ After rebuilding, reload the unpacked extension and refresh previously themed ta
 - **C:** contextual regions with experimental purpose recognition for all three themes (reading documents, sections, panels, tables, navigation, headings, and fields). Its foreground/background resolver composites solid/translucent sRGB surfaces, keeps readable authored pairs, and adjusts failing text using theme ink. It preserves authored foregrounds over unresolved media/effects, gives protected brand marks their original backing color, and limits animation to one prominent region. Select C in Experiment controls to try it.
 - Lazy loading of the adaptation library only when B is selected.
 - Theme selection, global pause, exact-host disable, and restoration without a page reload.
+- A compact, page-level theme picker isolated from website and renderer styles with Shadow DOM.
 - Serialized settings changes and per-document application/cleanup.
 - An opt-in, shared role correction for YouTube's video overlay controls, plus fixture corrections for unmarked controls and error/success roles.
 - Local diagnostics and manual issue-note export.

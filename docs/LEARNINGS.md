@@ -8,6 +8,18 @@ Latest owner review of Experiment 03: **C is currently best on Wikipedia for Bro
 
 Experiment 04 tests a themed icon vocabulary, stronger Browser Archeology title bars, shared purpose recognition for Terminal Vision, and conservative page-shell/utility-panel recognition. See [the iteration record](EXPERIMENT-04.md). Keep B available as the broad color-adaptation comparison; do not equate successful injection with dark-mode coverage.
 
+## Theme picker interface — October 4, 2026
+
+Owner observation: theme switching should be available through a small, unobtrusive popup similar to the control on rollison.dev.
+
+Implementation: a single fixed **Themes** pill now opens a compact three-choice panel above the bottom-right corner. It uses the reference interaction pattern without copying the site's theme-specific decoration. The panel closes through its close button, Escape, or an outside pointer action. It exists only in the top-level document, is hidden whenever Surface is globally paused or disabled for the current host, and uses a shadow root so page CSS and all three renderers do not restyle its internals. Theme selection goes through a narrowly scoped top-frame message and the existing serialized settings store.
+
+Measured behavior: the local fixture under contextual Terminal Vision opened the panel, exposed exactly three synchronized choices, switched to Liquid Dream, remained absent from the embedded HTTP frame, closed with Escape, fit within 1280 × 960 and 320 × 640 viewports, and hid after global pause. The full 18-check Chromium suite passed across A/B/C and all themes; seven unit checks and the build also passed. The screenshot review showed the closed control occupying only the lower-right corner and the open panel staying clear of the main reading column. This is local-fixture evidence, not evidence that the fixed control avoids important site UI on every website.
+
+Useful correction during visual review: an `all: initial !important` reset on the host also reset inherited typography inside the shadow root. The picker now sets its font explicitly on its internal root rather than relying on host inheritance.
+
+Next experiment: review placement on real sites with their own bottom-right chat, cookie, or accessibility controls. If collisions are common, test a user-selectable corner or temporary edge displacement before adding host-specific placement rules.
+
 ## Prior understanding — October 3, 2026
 
 The owner reports that Terminal Vision looks good on Wikipedia, Browser Archeology feels unordered, and Liquid Dream barely registers. The owner uses the unpacked extension and has not identified an experimental renderer; the default is A, so treat default-mode behavior as the primary experience. These are visual observations, not performance or accessibility results.

@@ -1,4 +1,5 @@
 import { normalizeSettings, updateSettings, hostname } from './settings.js';
+import { THEME_IDS } from './themes.js';
 
 let writes = Promise.resolve();
 const readSettings = async () => normalizeSettings((await chrome.storage.local.get('settings')).settings);
@@ -15,6 +16,16 @@ async function handle(message, sender) {
       if (!fromExtensionPage(sender)) throw new Error('Settings are editable only from the extension');
       const operation = writes.then(async () => {
         const settings = updateSettings(await readSettings(), message.patch || {});
+        await chrome.storage.local.set({ settings });
+        return { settings };
+      });
+      writes = operation.catch(() => {});
+      return operation;
+    }
+    case 'theme:select': {
+      if (!sender.tab || sender.frameId !== 0 || !hostname(sender.url) || !THEME_IDS.includes(message.theme)) throw new Error('Invalid theme selection');
+      const operation = writes.then(async () => {
+        const settings = updateSettings(await readSettings(), { theme: message.theme });
         await chrome.storage.local.set({ settings });
         return { settings };
       });

@@ -2,6 +2,7 @@ import { THEMES } from './themes.js';
 import { isEnabled } from './settings.js';
 import { getCorrections } from './corrections.js';
 import { buildStyles } from './styles.js';
+import { createThemePicker } from './theme-picker.js';
 
 // executeScript can reconnect a tab opened before installation; initialization is idempotent.
 if (!globalThis.__surfaceExperimentV1) {
@@ -22,6 +23,7 @@ if (!globalThis.__surfaceExperimentV1) {
     if (!result?.ok) throw new Error(result?.error || 'Extension service worker unavailable');
     return result;
   }
+  const themePicker = createThemePicker(async theme => (await request({ type: 'theme:select', theme })).settings);
   async function replaceCSS(next) {
     if (next === currentCSS) return;
     await request({ type: 'styles:replace', previous: currentCSS, next });
@@ -36,6 +38,7 @@ if (!globalThis.__surfaceExperimentV1) {
       try {
         const { settings, topHost, frameHost } = await request({ type: 'settings:get' });
         const enabled = isEnabled(settings, topHost || frameHost);
+        themePicker.render(settings, enabled);
         const signature = JSON.stringify([enabled, settings.theme, settings.renderer, settings.corrections, frameHost]);
         if (signature === lastSignature) continue;
         const started = performance.now();
