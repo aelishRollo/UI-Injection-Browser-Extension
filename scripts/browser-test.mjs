@@ -185,6 +185,15 @@ try {
       await set({ enabled: true, renderer: 'simple', theme });
       await waitStatus({ state: 'active', renderer: 'simple', theme });
       assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), expectedBackground);
+      if (theme === 'terminal-vision') {
+        assert.deepEqual(await page.locator('#activity-grid [data-level]').evaluateAll(elements => elements.map(el => getComputedStyle(el).backgroundColor)), ['rgb(16, 45, 29)','rgb(23, 98, 68)','rgb(47, 158, 85)','rgb(126, 234, 148)','rgb(215, 255, 78)']);
+        const pair = await page.locator('#activity-summary').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `simple activity summary: ${pair.join(' on ')}`);
+      }
+      if (theme === 'browser-archeology') {
+        const pair = await page.locator('#brand-module-button').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `simple nested control label: ${pair.join(' on ')}`);
+      }
     }
     await set({ enabled: true, renderer: 'simple', theme: 'browser-archeology' });
     await waitStatus({ state: 'active', renderer: 'simple', theme: 'browser-archeology' });
@@ -217,6 +226,12 @@ try {
         }
       } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+        assert.equal(await page.locator('#brand-module-button').getAttribute('data-surface-context-v1'), 'control', 'design-system Brand class must not imply a protected brand mark');
+        assert.equal(await page.locator('#brand-module-label').getAttribute('data-surface-tone-v1'), 'control');
+        assert.equal(await page.locator('#styled-action').getAttribute('data-surface-context-v1'), 'control', 'visually button-like links should own a control foreground/background pair');
+        assert.equal(await page.locator('#styled-action span').getAttribute('data-surface-tone-v1'), 'control');
+        const pair = await page.locator('#brand-module-button').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `contextual nested control label: ${pair.join(' on ')}`);
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
       for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
@@ -250,6 +265,10 @@ try {
         assert.ok(contrastRatio(parseColor(titlePair.color),parseColor('#091a11')) >= 4.5);
         assert.equal(await page.locator('#shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
         assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        assert.deepEqual(await page.locator('#activity-grid [data-level]').evaluateAll(elements => elements.map(el => getComputedStyle(el).backgroundColor)), ['rgb(16, 45, 29)','rgb(23, 98, 68)','rgb(47, 158, 85)','rgb(126, 234, 148)','rgb(215, 255, 78)']);
+        assert.equal(await page.locator('#activity-summary').getAttribute('data-surface-context-v1'), 'control');
+        const pair = await page.locator('#activity-summary').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `contextual activity summary: ${pair.join(' on ')}`);
       }
       await page.locator('#menu').click();
       assert.equal(await page.locator('#menu').getAttribute('aria-expanded'), 'true');

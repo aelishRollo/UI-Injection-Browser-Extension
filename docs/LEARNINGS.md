@@ -2,7 +2,11 @@
 
 Read this before theme/renderer changes; update it as experiments land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current understanding — October 4, 2026
+## Current understanding — October 5, 2026
+
+Latest owner observation: **GitHub user profiles have visibility failures in Browser Archeology, and Terminal Vision has a specific failure around the green activity boxes.** Experiment 08 traces these to four reusable cases rather than a GitHub correction: nested authored foregrounds inside themed controls, visually button-like links without button roles, bounding-box-only media overlap, and scalar activity grids whose authored light scale conflicts with a dark theme. Browser Archeology now pairs nested header labels with system-gray controls; Terminal Vision gives semantic `data-level` grid cells a five-step phosphor scale and treats native disclosure rows as controls. See [the iteration record](EXPERIMENT-08.md).
+
+Measured on the public `github.com/aelishRollo` profile at 1440 × 1100, the affected Platform/Search/auth labels and contribution-activity disclosure headings had no remaining base-color contrast failures in simple or contextual Browser Archeology/Terminal Vision. Visual review confirmed the previously dark activity headings and pale calendar cells were legible. This is targeted profile evidence, not a claim that every authored profile card is resolved: Terminal Vision's simple renderer can still place themed foregrounds on unrecognized white README or data-visualization panels.
 
 Latest owner observation: **each substantial Browser Archeology element should carry minimize, maximize and close furniture, greyed out so it does not look clickable, with other suitable cues from the original skin.** Experiment 07 applies one muted cluster per recognized document, panel, or substantial navigation rail; untitled regions receive an inactive strip, narrow layouts keep a smaller cluster, and nested rails collapse to one window. It also restores selected original-skin states and inset surfaces. See [the iteration record](EXPERIMENT-07.md). This is implemented and locally/live validated, but still awaits owner judgment on whether the controls look sufficiently inert.
 
@@ -116,3 +120,10 @@ Next experiment: test document-vs-application classification and heading-group b
 - An untitled substantial region can carry a thin inactive strip without inventing a false name. Its control cluster stays CSS background artwork with no DOM, hit target, cursor or accessibility role.
 - Narrow layouts now retain a smaller furniture cluster because the owner's newer requirement supersedes Experiment 06's omission rule. Reserved title padding prevents overlap in the exercised fixture.
 - The most reusable details from the original skin are state and depth cues: visited purple, red hover/focus, yellow notes, grooved separators, inset fields and embossed disabled controls. Fake browser menus and address text remain inappropriate for arbitrary sites.
+
+## Experiment 08 lessons
+
+- A design-system class containing “Brand” is not evidence that the element is a protected brand mark. Require a whole `brand` token or stronger logo/wordmark/branding evidence.
+- Bounding boxes alone over-report media overlap when clipped or inactive responsive content still has geometry. Hit-test the media and keep the explicit local `figure`/`picture` relationship for genuine overlays.
+- Nested labels in a recognized control should consume the control's foreground/background pair even when the author adds harmless filter or compositing effects. Visually button-like links can be recognized from border, padding and display without relying on host classes.
+- A gridcell `data-level` sequence carries scalar meaning independent of its original green hue. A theme-native monotonic scale preserves that meaning more coherently than retaining a light-site palette on Terminal Vision.

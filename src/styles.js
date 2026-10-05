@@ -103,6 +103,9 @@ function buildContextualStyles(theme, corrections) {
     css.push(rule(`${context('content')}`, { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)' }));
     css.push(rule(`${context('content')}[data-surface-prominent-v1]`, { animation: 'surface-context-terminal-drift-v1 12s linear infinite' }));
     css.push(rule(`${context('control')}:hover,${tone('theme')}${text('link')}:hover`, { 'text-shadow': '0 0 9px rgba(215,255,78,.75)', 'box-shadow': '0 0 12px rgba(215,255,78,.18)' }));
+    for (const [level, color] of ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'].entries()) {
+      css.push(rule(`[role="grid"] [role="gridcell"][data-level="${level}"]`, { 'background-color': color, 'border-color': '#06110b', 'box-shadow': 'inset 0 0 0 1px rgba(157,255,176,.12)' }));
+    }
     css.push('@keyframes surface-context-terminal-drift-v1{to{background-position:90px 180px}}');
   }
   css.push(...buildThemeMotifs(theme, rule, {
@@ -151,7 +154,7 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
   const text = select(['p', 'li', 'dt', 'dd', 'label', 'legend', 'figcaption', 'caption', 'td', 'th'], 'text');
   const link = select(['a[href]', '[role="link"]'], 'link');
   const surface = select(['article', 'aside', 'dialog', '[role="dialog"]', '[role="menu"]', '[role="listbox"]', 'fieldset'], 'surface');
-  const button = select(['button', '[role="button"]', 'input[type="button"]', 'input[type="submit"]', 'input[type="reset"]'], 'button');
+  const button = select(['button', 'summary', '[role="button"]', 'input[type="button"]', 'input[type="submit"]', 'input[type="reset"]'], 'button');
   const field = select(['textarea', 'select', 'input:not([type="hidden"],[type="checkbox"],[type="radio"],[type="range"],[type="color"],[type="image"],[type="button"],[type="submit"],[type="reset"])'], 'field');
   const reading = select([
     'main', '[role="main"]',
@@ -176,6 +179,7 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
   css.push(rule(link, { color: c.link, 'text-decoration-color': c.link, 'text-underline-offset': '0.18em' }));
   css.push(rule(surface, { 'background-color': c.surface, color: c.text, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius }));
   css.push(rule(`${button},${field}`, { 'background-color': c.control || c.surface, color: c.text, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius, 'font-family': theme.font }));
+  css.push(rule(`${button} :where(span,strong,em,small),${link} :where(span,strong,em,small)`, { color: 'inherit' }));
   css.push(rule(button, { 'font-weight': theme.weight }));
   css.push(rule(`${button}:hover`, { 'background-color': c.raised, color: c.text, 'border-color': c.accent }));
   css.push(rule(`${link}:hover`, { 'text-decoration-line': 'underline' }));
@@ -193,6 +197,9 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     css.push(rule(heading, { 'text-shadow': '0 0 12px rgba(157,255,176,.5)' }));
     css.push(rule(surface, { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)', animation: 'surface-terminal-drift-v1 12s linear infinite' }));
     css.push(rule(`${button}:hover,${link}:hover`, { 'text-shadow': '0 0 9px rgba(215,255,78,.75)', 'box-shadow': '0 0 12px rgba(215,255,78,.18)' }));
+    for (const [level, color] of ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'].entries()) {
+      css.push(rule(`[role="grid"] [role="gridcell"][data-level="${level}"]`, { 'background-color': color, 'border-color': '#06110b', 'box-shadow': 'inset 0 0 0 1px rgba(157,255,176,.12)' }));
+    }
     css.push('@keyframes surface-terminal-drift-v1{to{background-position:90px 180px}}');
   }
   css.push(...buildThemeMotifs(theme, rule, {

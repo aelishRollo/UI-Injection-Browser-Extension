@@ -100,7 +100,18 @@ function overlapsMedia(element, media) {
   if (!rect.width || !rect.height) return false;
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
-  return media.some(item => item.element !== element && !element.contains(item.element) && x >= item.rect.left && x <= item.rect.right && y >= item.rect.top && y <= item.rect.bottom);
+  const stack = document.elementsFromPoint(x, y);
+  return media.some(item => {
+    if (item.element === element || element.contains(item.element) || x < item.rect.left || x > item.rect.right || y < item.rect.top || y > item.rect.bottom) return false;
+    let common = element.parentElement;
+    while (common && !common.contains(item.element)) common = common.parentElement;
+    const locallyRelated = common && common !== document.body && common !== document.documentElement;
+    const mediaX = item.rect.left + item.rect.width / 2;
+    const mediaY = item.rect.top + item.rect.height / 2;
+    const mediaIsPainted = document.elementsFromPoint(mediaX, mediaY).some(hit => hit === item.element || item.element.contains(hit));
+    return stack.some(hit => hit === item.element || item.element.contains(hit)) ||
+      (locallyRelated && (mediaIsPainted || common.matches('figure,picture')));
+  });
 }
 
 function selectorList(values = []) {
@@ -113,7 +124,9 @@ function isProtected(element) {
 }
 
 function markBrands(root) {
-  const candidates = collect(root, '[class*="logo" i],[id*="logo" i],[class*="brand" i],[id*="brand" i],[class*="wordmark" i],[id*="wordmark" i],img[alt*="logo" i],svg[aria-label*="logo" i]');
+  // Treat logo/wordmark names as strong evidence. A bare "brand" substring is
+  // too broad: design systems commonly use it for ordinary navigation text.
+  const candidates = collect(root, '[class*="logo" i],[id*="logo" i],[class*="wordmark" i],[id*="wordmark" i],[class~="brand" i],[id="brand" i],[class*="branding" i],[id*="branding" i],[class*="brand-logo" i],[id*="brand-logo" i],img[alt*="logo" i],svg[aria-label*="logo" i]');
   for (const candidate of candidates) {
     if (!isVisible(candidate)) continue;
     const target = candidate.closest('a,button,[role="link"]') || candidate;
@@ -357,9 +370,15 @@ function markPage() {
 function markControls(root, media) {
   const correctedButton = selectorList(activeCorrections.roles.button);
   const correctedOverlay = selectorList(activeCorrections.roles['overlay-control']);
-  const selector = `button,[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
+  const selector = `button,summary,a[href],[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
   for (const element of collect(root, selector)) {
     if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    if (element.matches('a[href]:not([role="button"])')) {
+      const style = getComputedStyle(element);
+      const bordered = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'].some(property => parseFloat(style[property]) >= 1);
+      const padded = parseFloat(style.paddingLeft) >= 4 && parseFloat(style.paddingRight) >= 4;
+      if (!bordered || !padded || !['block', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) continue;
+    }
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
     const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE);
@@ -482,7 +501,7 @@ function markText(root, media) {
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
-    if (control && backing.owner === control && !backing.reason && !mediaBacked) {
+    if (control && !mediaBacked) {
       if (element !== control) {
         setAttribute(element, ATTR_TEXT, role);
         setAttribute(element, ATTR_TONE, 'control');
@@ -588,7 +607,7 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v6', enabled: running,
+    adapter: 'contextual-v7', enabled: running,
     regions: { page: count('page'), shells: count('shell'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
