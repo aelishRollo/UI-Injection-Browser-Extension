@@ -8,6 +8,7 @@ Last confirmed October 8, 2026. Surface is version 0.2.0 and has one product ren
 
 - One purpose-aware renderer serves Browser Archeology, Liquid Dream, and Terminal Vision.
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
+- Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.
 - Dynamic updates are batched. Inserted content and relevant class, state, label, and text mutations are reclassified; detached themed nodes are restored and released.
 - Expressive theme CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints are not part of the current system.
 - Verified host role corrections are automatic and narrowly scoped. There is no user-facing correction mode.
@@ -42,6 +43,8 @@ Do not restore these paths, add a second renderer, or resume A/B/C comparisons u
 The unification in [Iteration 10](EXPERIMENT-10.md) passed eight unit tests and 12 isolated Chromium checks. A six-site × three-theme live capture covered Wikipedia, YouTube, GitHub, MDN, IKEA, and Excalidraw. The final five-repeat local workload produced 20 valid samples, 2,000 completed frame callbacks, zero stalls, and median p95 frame intervals of 16.7–16.8 ms. These are regression and review evidence, not universal compatibility or field-performance claims.
 
 Known boundaries remain shadow roots, canvas/WebGL pixels, arbitrary SVG and background media, inline-style-only changes, page-world CSSOM-only updates, geometry-only changes, and complex rendered-pixel compositing. These boundaries should not be answered by silently adding another renderer.
+
+A targeted October 8 Wikipedia main-page iteration removed the remaining large pale Terminal Vision regions by recognizing the composite panel hierarchy and neutral shell. Browser Archeology window artwork is top-anchored on tall title regions. The eight unit checks and 12 isolated Chromium checks continue to pass. A repeated five-run workload produced 2,000 completed callbacks, zero stalls, and 16.7–16.8 ms median p95 frame intervals; this local and targeted evidence is not universal coverage.
 
 ## Documentation precedence
 

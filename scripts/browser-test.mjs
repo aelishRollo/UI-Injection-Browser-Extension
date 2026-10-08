@@ -166,7 +166,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -176,8 +176,13 @@ try {
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
-      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
+      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading', 'composite-landing': 'panel', 'neutral-panel-one': 'panel', 'neutral-panel-two': 'panel' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
+      }
+      assert.equal(await page.locator('#composite-shell').getAttribute('data-surface-context-v1'), 'shell');
+      for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
+        assert.equal(await page.locator(selector).getAttribute('data-surface-context-v1'), 'content');
+        assert.equal(await page.locator(selector).getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
       }
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-context-v1'), 'visualization');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-purpose-v1'), 'visualization');
@@ -229,6 +234,7 @@ try {
         assert.equal(await page.locator('h1').getAttribute('data-surface-window-title-v1'), 'reading');
         assert.equal(await page.locator('#facts th').first().getAttribute('data-surface-window-title-v1'), 'panel');
         assert.match(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
+        assert.equal(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundPosition.split(', ')[1]), 'calc(100% - 2px) 2px', 'window controls stay at the top of a tall title region');
         assert.equal(await page.locator('#untitled-panel').evaluate(el => getComputedStyle(el).paddingTop), '25px');
         assert.equal(await page.locator('button').count(), baselineButtons, 'window decoration must not create fake controls');
         await page.setViewportSize({ width: 320, height: 640 });
@@ -241,6 +247,13 @@ try {
         assert.ok(contrastRatio(parseColor(titlePair.color),parseColor('#091a11')) >= 4.5);
         assert.equal(await page.locator('#shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
         assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        assert.equal(await page.locator('#composite-shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
+        for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
+          assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        }
+        await page.locator('#composite-landing').evaluate(element => element.classList.add('stateful-composite'));
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('#composite-landing').getAttribute('data-surface-purpose-v1'), 'panel', 'class-driven rescans must ignore Surface-owned background paint');
         assert.deepEqual(await page.locator('#activity-grid [data-level]').evaluateAll(elements => elements.map(el => getComputedStyle(el).backgroundColor)), ['rgb(16, 45, 29)','rgb(23, 98, 68)','rgb(47, 158, 85)','rgb(126, 234, 148)','rgb(215, 255, 78)']);
         assert.equal(await page.locator('#activity-summary').getAttribute('data-surface-context-v1'), 'control');
         const pair = await page.locator('#activity-summary').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);

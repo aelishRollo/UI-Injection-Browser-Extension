@@ -93,6 +93,13 @@ function isOpaque(color) {
   return alpha === undefined || Number(alpha) > 0.98;
 }
 
+function isNeutralSolidSurface(style) {
+  const color = parseColor(style.backgroundColor);
+  return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
+    Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
+    style.backgroundImage === 'none' && !hasUncertainPaint(style));
+}
+
 function backingFor(element) {
   for (let current = element; current instanceof Element; current = current.parentElement) {
     const style = getComputedStyle(current);
@@ -178,6 +185,24 @@ function markSurfaces(root) {
   for (const element of collect(root, 'main,[role="main"]')) {
     if (!element.querySelector(`[${ATTR_CONTEXT}="content"]`)) markSurface(element, 'content');
   }
+  // Composite landing pages often use a semantic content region around several
+  // substantial, pale, heading-led panels instead of article/aside elements.
+  // Recognize those authored panel boundaries without painting arbitrary cards.
+  const neutralPanels = collect(root, 'div').filter(element => {
+    if (element.hasAttribute(ATTR_CONTEXT) || !element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`) ||
+        !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    const heading = element.querySelector('h1,h2,h3,[role="heading"]');
+    const controls = element.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+    return isNeutralSolidSurface(style) && heading && rect.width >= 180 && rect.height >= 80 &&
+      (element.innerText || '').trim().length >= 100 && controls <= 6;
+  });
+  for (const element of neutralPanels.filter(candidate => !neutralPanels.some(other => other !== candidate && other.contains(candidate)))) {
+    setAttribute(element, ATTR_CONTEXT, 'content');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', 'neutral-heading-panel');
+  }
   for (const element of collect(root, 'header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
     if (!isVisible(element) || isProtected(element) || getComputedStyle(element).backgroundImage !== 'none') continue;
     if (element.closest(`[${ATTR_CONTEXT}="chrome"]`)) continue;
@@ -192,11 +217,12 @@ function markPurposes(root) {
   const reading = `[${ATTR_PURPOSE}="reading"]`;
   const safe = element => isVisible(element) && !isProtected(element) &&
     !element.closest(`[${ATTR_CONTEXT}="brand"]`) &&
-    getComputedStyle(element).backgroundImage === 'none';
+    (getComputedStyle(element).backgroundImage === 'none' ||
+      ['page', 'shell', 'content', 'chrome', 'control'].includes(element.getAttribute(ATTR_CONTEXT)));
   const assign = (element, purpose, context, evidence) => {
     if (!safe(element)) return;
     setAttribute(element, ATTR_PURPOSE, purpose);
-    setAttribute(element, 'data-surface-evidence-v1', evidence);
+    if (!element.hasAttribute('data-surface-evidence-v1')) setAttribute(element, 'data-surface-evidence-v1', evidence);
     if (context) {
       setAttribute(element, ATTR_CONTEXT, context);
       setAttribute(element, ATTR_CONFIDENCE, 'high');
@@ -293,21 +319,24 @@ function markVisualizations(root) {
   }
 }
 
-// Only neutral, solid ancestor wrappers around a known document are page shells.
-// Do not extrapolate from white to arbitrary cards, images or colored status UI.
+// Only neutral, solid ancestor wrappers around a substantial known content
+// region are page shells. Do not extrapolate from white to arbitrary cards,
+// images or colored status UI.
 function markShells(root) {
-  for (const reading of collect(root, '[data-surface-purpose-v1="reading"]')) {
-    for (let element = reading.parentElement; element && element !== document.body; element = element.parentElement) {
+  const sources = collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_CONTEXT}="content"]`).filter(element => {
+    const rect = element.getBoundingClientRect();
+    return rect.width >= innerWidth * .5 && rect.height >= 240 && (element.innerText || '').trim().length >= 300;
+  });
+  for (const source of sources) {
+    for (let element = source.parentElement; element && element !== document.body; element = element.parentElement) {
       if (element.hasAttribute(ATTR_CONTEXT) || !element.matches('div,main') || isProtected(element)) continue;
       const style = getComputedStyle(element);
-      const color = parseColor(style.backgroundColor);
-      if (!color || color[3] !== 1 || Math.min(...color.slice(0, 3)) < 230 ||
-          Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) > 18 ||
-          style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+      if (!isNeutralSolidSurface(style) ||
           element.getBoundingClientRect().width < innerWidth * .6) continue;
       setAttribute(element, ATTR_CONTEXT, 'shell');
       setAttribute(element, ATTR_CONFIDENCE, 'medium');
-      setAttribute(element, 'data-surface-evidence-v1', 'neutral-document-ancestor');
+      setAttribute(element, 'data-surface-evidence-v1', source.getAttribute(ATTR_PURPOSE) === 'reading'
+        ? 'neutral-document-ancestor' : 'neutral-content-ancestor');
     }
   }
 }

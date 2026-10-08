@@ -40,7 +40,7 @@ The isolated fixture uses ports 4173 and 4174. Browser and performance commands 
 ## Rendering model
 
 - A single purpose-aware renderer handles every theme.
-- Structural and semantic evidence establish paint ownership before visual decoration is applied.
+- Structural and semantic evidence establish paint ownership before visual decoration is applied, including substantial neutral, heading-led panels on composite landing pages.
 - Solid and translucent sRGB layers are composited to resolve readable text; authored pairs that already pass are retained.
 - Brand marks, media relationships, background images, complex effects, and labelled chart units use conservative preservation paths.
 - New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Detached themed nodes are restored and released.
