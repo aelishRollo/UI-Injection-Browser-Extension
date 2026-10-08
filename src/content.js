@@ -68,11 +68,14 @@ if (!globalThis.__surfaceUnifiedV2) {
           // Classification inspects the author's treatment before expressive CSS.
           await replaceCSS('');
           renderer ||= await import(chrome.runtime.getURL('contextual.js'));
-          await renderer.start(theme, corrections);
+          const { completion } = await renderer.start(theme, corrections);
           await replaceCSS(buildStyles(theme, { corrections }));
+          await renderer.prepareReveal();
+          await revealDocument();
+          await completion;
           status = { ...status, state: 'active', corrections: corrections.ids };
         }
-        await revealDocument();
+        if (!enabled) await revealDocument();
         status.applyMs = Math.round((performance.now() - started) * 100) / 100;
         status.applyCount++;
         lastSignature = signature;

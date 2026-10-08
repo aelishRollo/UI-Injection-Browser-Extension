@@ -9,7 +9,7 @@ export async function serveFixtures(port = 4173) {
     try {
       let pathname = new URL(req.url, 'http://localhost').pathname;
       if (pathname === '/slow-script.js') {
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise(resolve => setTimeout(resolve, 750));
         res.setHeader('Content-Type', 'text/javascript');
         res.end('globalThis.surfaceSlowFixtureLoaded = true;');
         return;

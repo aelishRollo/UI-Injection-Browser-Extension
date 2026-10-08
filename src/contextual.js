@@ -11,6 +11,8 @@ const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
 const ATTR_WINDOW = 'data-surface-window-v1';
 const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
+const ATTR_STARTING = 'data-surface-starting-v2';
+const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -116,6 +118,9 @@ function mediaRects() {
 }
 
 function overlapsMedia(element, media) {
+  const localFigure = element.closest('figure,picture');
+  if (localFigure && (element.matches('figcaption') || ['absolute', 'fixed'].includes(getComputedStyle(element).position)) &&
+      media.some(item => localFigure.contains(item.element))) return true;
   const rect = element.getBoundingClientRect();
   if (!rect.width || !rect.height) return false;
   const x = rect.left + rect.width / 2;
@@ -341,6 +346,52 @@ function markShells(root) {
   }
 }
 
+// The first visible frame needs only the page canvas and any neutral wrapper
+// spanning that canvas. Full purpose and contrast classification remains the
+// authoritative pass, but it must not hold script-heavy pages behind the
+// pre-paint guard. A semantic content landmark inside a large neutral ancestor
+// is enough to recognize this temporary shell without a host selector.
+function markInitialCanvas() {
+  markPage();
+  const candidates = new Set();
+  const landmark = document.querySelector('main,[role="main"],article');
+  for (let element = landmark?.parentElement; element && element !== document.body; element = element.parentElement) candidates.add(element);
+  const edgeAncestors = x => {
+    const result = new Set();
+    for (let element = document.elementFromPoint(x, innerHeight / 2); element && element !== document.body; element = element.parentElement) result.add(element);
+    return result;
+  };
+  const left = edgeAncestors(2);
+  const right = edgeAncestors(Math.max(2, innerWidth - 2));
+  for (const element of left) if (right.has(element)) candidates.add(element);
+  for (const element of candidates) {
+    if (!element.matches('div,main') || isProtected(element)) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < innerWidth * .8 || rect.height < Math.min(320, innerHeight * .5) || !isNeutralSolidSurface(getComputedStyle(element))) continue;
+    setAttribute(element, ATTR_CONTEXT, 'shell');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', 'neutral-viewport-ancestor');
+  }
+}
+
+export async function prepareReveal() {
+  if (!running || !document.body) return;
+  // Let the parser populate the first viewport and layout it once while the
+  // root is still guarded. The timeout keeps background tabs from waiting on
+  // a throttled animation frame.
+  await new Promise(resolve => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    requestAnimationFrame(finish);
+    setTimeout(finish, 50);
+  });
+  if (document.documentElement.hasAttribute(ATTR_STARTING)) markInitialCanvas();
+}
+
 function markUtilityPanels(root) {
   for (const element of collect(root, 'div,aside,nav,form')) {
     if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
@@ -360,6 +411,30 @@ function markUtilityPanels(root) {
     setAttribute(element, ATTR_PURPOSE, 'navigation');
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
     setAttribute(element, 'data-surface-evidence-v1', navigation ? 'neutral-link-rail' : 'neutral-settings-rail');
+  }
+}
+
+// Some sticky navigation rails use a short, pointer-transparent generated
+// gradient at their bottom edge to suggest more scrollable content. Once the
+// rail is themed, retaining a light-site fade produces a conspicuous white
+// strip. Recognize only that narrow structural shape and map its paint through
+// the active theme instead of rewriting arbitrary pseudo-elements.
+function markNavigationFades(root) {
+  for (const navigation of collect(root, `[${ATTR_PURPOSE}="navigation"]`)) {
+    let owner = navigation.parentElement;
+    for (let depth = 0; owner && owner !== document.body && depth < 4; depth++, owner = owner.parentElement) {
+      for (const pseudo of ['::before', '::after']) {
+        const paint = getComputedStyle(owner, pseudo);
+        const height = parseFloat(paint.height);
+        const width = parseFloat(paint.width);
+        if (['none', 'normal'].includes(paint.content) || paint.position !== 'sticky' || paint.pointerEvents !== 'none' ||
+            paint.bottom !== '0px' || !paint.backgroundImage.startsWith('linear-gradient(') ||
+            !Number.isFinite(height) || height <= 0 || height > 64 || !Number.isFinite(width) || width < 80) continue;
+        setAttribute(owner, ATTR_NAVIGATION_FADE, pseudo === '::before' ? 'before' : 'after');
+        break;
+      }
+      if (owner.hasAttribute(ATTR_NAVIGATION_FADE)) break;
+    }
   }
 }
 
@@ -644,6 +719,7 @@ function scan(root = document, media = mediaRects()) {
   markVisualizations(root);
   markShells(root);
   markUtilityPanels(root);
+  markNavigationFades(root);
   markWindows(root);
   markGlyphs(root);
   markText(root, media);
@@ -684,9 +760,8 @@ function scheduleScans(records) {
   });
 }
 
-function initialize() {
+function observe() {
   if (!running || !document.body || observer) return;
-  scan(document);
   observer = new MutationObserver(scheduleScans);
   observer.observe(document.documentElement, {
     childList: true,
@@ -697,6 +772,46 @@ function initialize() {
   });
 }
 
+function finishInitialScan() {
+  if (!running || !document.body) return;
+  // Re-evaluate the complete document from authored state. This happens in one
+  // task, so the temporary canvas treatment is replaced without an in-between
+  // authored paint.
+  restoreAll();
+  scan(document);
+  observe();
+}
+
+function initialize() {
+  if (!running || !document.body || observer || readinessListener) return;
+  setAttribute(document.documentElement, ATTR_STARTING, '');
+  markInitialCanvas();
+  let resolveCompletion;
+  let rejectCompletion;
+  const completion = new Promise((resolve, reject) => {
+    resolveCompletion = resolve;
+    rejectCompletion = reject;
+  });
+  const finishAfterPaint = () => requestAnimationFrame(() => setTimeout(() => {
+    try {
+      finishInitialScan();
+      resolveCompletion();
+    } catch (error) {
+      rejectCompletion(error);
+    }
+  }, 0));
+  if (document.readyState === 'loading') {
+    readinessListener = () => {
+      readinessListener = undefined;
+      finishAfterPaint();
+    };
+    document.addEventListener('DOMContentLoaded', readinessListener, { once: true });
+  } else {
+    finishAfterPaint();
+  }
+  return completion;
+}
+
 export async function start(theme, corrections) {
   if (running) stop();
   running = true;
@@ -704,16 +819,17 @@ export async function start(theme, corrections) {
   palette = theme.colors;
   activeCorrections = corrections;
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
-  if (document.body) initialize();
-  else {
+  if (!document.body) {
     await new Promise(resolve => {
-      readinessListener = () => {
-        initialize();
+      const bodyObserver = new MutationObserver(() => {
+        if (!document.body) return;
+        bodyObserver.disconnect();
         resolve();
-      };
-      document.addEventListener('DOMContentLoaded', readinessListener, { once: true });
+      });
+      bodyObserver.observe(document, { childList: true, subtree: true });
     });
   }
+  return { completion: initialize() };
 }
 
 export function stop() {
@@ -737,7 +853,7 @@ export function diagnostics() {
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
     purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'visualization', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
-    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length },
+    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length, navigationFades: document.querySelectorAll(`[${ATTR_NAVIGATION_FADE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     uncertainty: { ...uncertainty }
   };

@@ -75,6 +75,13 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] } }
   const successSelectors = corrections.roles.success || [];
   const css = [];
 
+  // While the document is still parsing, the unified renderer exposes a small
+  // canvas-first phase instead of waiting for the full purpose/contrast pass.
+  // These rules disappear with data-surface-starting-v2 at DOMContentLoaded.
+  const starting = ':root[data-surface-starting-v2]';
+  css.push(rule(`${starting},${starting} body`, { 'background-color': c.background, color: c.text, 'font-family': theme.font, 'color-scheme': theme.scheme }));
+  css.push(rule(`${starting} a`, { color: c.link }));
+
   css.push(rule(':root', { 'color-scheme': theme.scheme, 'accent-color': c.accent }));
   css.push(rule(`${context('page')}`, { 'background-color': c.background }));
   css.push(rule(`${context('content')}`, { 'background-color': c.surface, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius }));
@@ -116,6 +123,8 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] } }
   }));
   css.push(...buildIconStyles(theme, rule));
   css.push(rule(context('shell'), { 'background-color': c.background }));
+  const navigationFadeColor = theme.id === 'browser-archeology' ? '#d4d0c8' : c.surface;
+  css.push(rule('[data-surface-navigation-fade-v1="before"]::before,[data-surface-navigation-fade-v1="after"]::after', { 'background-color': 'transparent', 'background-image': `linear-gradient(rgba(0,0,0,0),${navigationFadeColor})` }));
   if (theme.id === 'browser-archeology') {
     const windowOwner = '[data-surface-window-v1]';
     const windowTitle = '[data-surface-window-title-v1]';

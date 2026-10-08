@@ -1,5 +1,7 @@
 # Iteration 12 — theme before the first visible frame
 
+> **Superseded startup timing.** This iteration removed the authored flash but held visibility through `DOMContentLoaded` and full classification, which proved unacceptably slow on real pages. [Iteration 13](EXPERIMENT-13.md) retains the guard with a fast canvas-first reveal.
+
 October 8, 2026. Baseline: `development` after Iteration 11. [Shared learning log](LEARNINGS.md).
 
 ## Owner observation

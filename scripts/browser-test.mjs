@@ -73,20 +73,32 @@ try {
         const root = document.documentElement;
         if (!root) return requestAnimationFrame(sample);
         window.__surfaceStartupFrames.push({
+          time: Math.round(performance.now()),
           opacity: getComputedStyle(root).opacity,
           ready: root.hasAttribute('data-surface-ready-v2'),
-          themed: root.getAttribute('data-surface-context-v1') === 'page'
+          themed: root.getAttribute('data-surface-context-v1') === 'page',
+          shell: document.querySelector('#startup-shell')?.getAttribute('data-surface-context-v1') || null,
+          shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null
         });
         if (!root.hasAttribute('data-surface-ready-v2')) requestAnimationFrame(sample);
       };
       requestAnimationFrame(sample);
     });
-    await page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
+    const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
+    const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
+    assert.equal(await page.evaluate(() => document.readyState), 'loading', 'Surface should reveal before a parser-blocking script finishes');
+    assert.equal(firstVisible.themed, true);
+    assert.equal(firstVisible.shell, 'shell');
+    assert.equal(firstVisible.shellBackground, 'rgb(6, 17, 11)');
+    await navigation;
     await waitStatus({ state: 'active', theme: 'terminal-vision' });
     const frames = await page.evaluate(() => window.__surfaceStartupFrames);
     assert.ok(frames.some(frame => frame.opacity === '0' && !frame.ready), `expected a guarded startup frame: ${JSON.stringify(frames)}`);
     assert.equal(frames.some(frame => frame.opacity !== '0' && !frame.ready), false, `an unguarded startup frame was visible: ${JSON.stringify(frames)}`);
-    assert.deepEqual(frames.at(-1), { opacity: '1', ready: true, themed: true });
+    assert.equal(frames.at(-1).opacity, '1');
+    assert.equal(frames.at(-1).ready, true);
+    assert.equal(frames.at(-1).themed, true);
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
     await set({ enabled: false });
     await waitStatus({ state: 'disabled' });
@@ -250,6 +262,9 @@ try {
         assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `unified nested control label: ${pair.join(' on ')}`);
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
+      assert.equal(await page.locator('#utility-fade').getAttribute('data-surface-navigation-fade-v1'), 'after');
+      const fadeColor = { 'terminal-vision': 'rgb(9, 26, 17)', 'browser-archeology': 'rgb(212, 208, 200)', 'liquid-dream': 'rgb(255, 249, 241)' }[theme];
+      assert.ok((await page.locator('#utility-fade').evaluate(el => getComputedStyle(el, '::after').backgroundImage)).includes(fadeColor), `${theme} navigation fade should end in ${fadeColor}`);
       for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
         assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
         assert.equal(await page.locator(`#${role}-icon`).evaluate(el => getComputedStyle(el).maskImage), 'none');
@@ -309,7 +324,7 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1]').count(), 0);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
       assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
       assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);
