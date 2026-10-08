@@ -2,7 +2,11 @@
 
 Read this before theme/renderer changes; update it as experiments land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current understanding — October 5, 2026
+## Current understanding — October 8, 2026
+
+Latest owner request: **look for performance and visibility issues and fix them.** Experiment 09 found two independent problems. Continuous/fixed/multi-radial background paints caused repeated missed frame opportunities, especially in Liquid Dream, while a labelled chart on a solid authored panel could inherit theme ink without transferring ownership of its white backing. The renderers now use static, cheaper gradients; C preserves a conservatively recognized chart and its supporting labels as one authored visualization unit. See [the iteration record](EXPERIMENT-09.md).
+
+Measured on the local scroll/interaction fixture over five repeats, every renderer/theme combination finished with a 16.7–16.8 ms median p95 frame interval. Simple Liquid Dream moved from 66.7 ms to 16.8 ms and from 380.2 ms to 231.0 ms median main-thread task duration; contextual Terminal Vision moved from 50.0 ms to 16.8 ms and from 362.2 ms to 257.2 ms. All 18 isolated Chromium checks and eight unit checks pass. This is local headless evidence, not a field-performance claim.
 
 Latest owner observation: **GitHub user profiles have visibility failures in Browser Archeology, and Terminal Vision has a specific failure around the green activity boxes.** Experiment 08 traces these to four reusable cases rather than a GitHub correction: nested authored foregrounds inside themed controls, visually button-like links without button roles, bounding-box-only media overlap, and scalar activity grids whose authored light scale conflicts with a dark theme. Browser Archeology now pairs nested header labels with system-gray controls; Terminal Vision gives semantic `data-level` grid cells a five-step phosphor scale and treats native disclosure rows as controls. See [the iteration record](EXPERIMENT-08.md).
 
@@ -127,3 +131,11 @@ Next experiment: test document-vs-application classification and heading-group b
 - Bounding boxes alone over-report media overlap when clipped or inactive responsive content still has geometry. Hit-test the media and keep the explicit local `figure`/`picture` relationship for genuine overlays.
 - Nested labels in a recognized control should consume the control's foreground/background pair even when the author adds harmless filter or compositing effects. Visually button-like links can be recognized from border, padding and display without relying on host classes.
 - A gridcell `data-level` sequence carries scalar meaning independent of its original green hue. A theme-native monotonic scale preserves that meaning more coherently than retaining a light-site palette on Terminal Vision.
+
+## Experiment 09 lessons
+
+- Static paint can still be expensive during scrolling. Removing continuous motion did not fix Liquid Dream until its full-page and repeated multi-radial gradients were simplified as well.
+- Theme identity survived the cheaper treatment: keep rainbow hierarchy bands, restrained linear surface washes, typography and control shape; motion is not required to communicate the theme.
+- A large labelled SVG or canvas inside a solid, labelled owner is useful structural evidence for an authored visualization. Preserve that foreground/background unit instead of repainting arbitrary white cards or forcing theme ink onto them.
+- Mutation processing should share document-wide media geometry across a batch and discard nested added roots. Repeating the same full-document query for every added node is avoidable work.
+- A profiler allow-list is part of the measurement system. Excluding `contextual.js` made its sampled engine time incorrectly appear as zero; measurement blind spots must be fixed alongside product cost.

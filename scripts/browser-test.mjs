@@ -78,6 +78,8 @@ try {
         assert.equal(await page.evaluate(() => [...document.styleSheets].some(sheet => {
           try { return [...sheet.cssRules].some(rule => /surface-terminal-drift-v1|surface-liquid-flow-v1|inset 0 3px 0/.test(rule.cssText)); } catch { return false; }
         })), false);
+        assert.equal(await page.locator('#article').evaluate(el => getComputedStyle(el).animationName), 'none', `${renderer}/${theme} must not continuously animate semantic surfaces`);
+        assert.equal(await page.locator('.grid > aside').evaluate(el => getComputedStyle(el).animationName), 'none', `${renderer}/${theme} must not continuously animate semantic surfaces`);
         // The exact accent must survive the adaptation engine's later updates.
         const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
@@ -112,8 +114,6 @@ try {
     assert.equal(active.contextual.enabled, true);
     assert.ok(active.contextual.regions.content > 0);
     assert.ok(active.contextual.text.preserved >= 3);
-    assert.equal(active.contextual.decorationBudget, 1);
-    assert.equal(await page.locator('[data-surface-prominent-v1]').count(), 1);
     await page.locator('#add').click();
     await page.waitForTimeout(100);
     assert.equal(await page.locator('#dynamic article').getAttribute('data-surface-context-v1'), 'content');
@@ -121,7 +121,7 @@ try {
     await page.locator('#dynamic').evaluate(element => element.replaceChildren());
     await set({ enabled: false });
     await waitStatus({ state: 'disabled' });
-    assert.equal(await page.locator('[data-surface-context-v1],[data-surface-text-v1],[data-surface-tone-v1],[data-surface-confidence-v1],[data-surface-prominent-v1],[data-surface-ui-icon-v1]').count(), 0);
+    assert.equal(await page.locator('[data-surface-context-v1],[data-surface-text-v1],[data-surface-tone-v1],[data-surface-confidence-v1],[data-surface-ui-icon-v1]').count(), 0);
     assert.equal(await page.locator('[style*="--surface-original-"]').count(), 0);
   });
 
@@ -168,7 +168,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#input,#painted-title,#untitled-panel').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -212,6 +212,15 @@ try {
       for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
       }
+      assert.equal(await page.locator('#visualization').getAttribute('data-surface-context-v1'), 'visualization');
+      assert.equal(await page.locator('#visualization').getAttribute('data-surface-purpose-v1'), 'visualization');
+      assert.equal(await page.locator('#visualization').getAttribute('data-surface-evidence-v1'), 'labelled-data-graphic');
+      assert.equal(await page.locator('#visualization').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+      for (const selector of ['#visualization-title', '#visualization-summary']) {
+        const pair = await page.locator(selector).evaluate(el => [getComputedStyle(el).color, getComputedStyle(el.closest('#visualization')).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `${theme} ${selector}: ${pair.join(' on ')}`);
+      }
+      assert.equal(await page.locator('#visualization svg text').first().evaluate(el => getComputedStyle(el).fill), 'rgb(32, 33, 34)');
       assert.equal(await page.locator('#chapter').evaluate(el => getComputedStyle(el).boxShadow), 'none');
       assert.equal(await page.locator('#chapter').evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
       assert.equal(await page.locator('#painted-title').getAttribute('data-surface-purpose-v1'), null);

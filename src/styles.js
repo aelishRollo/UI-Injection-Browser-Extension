@@ -1,10 +1,10 @@
 import { buildIconStyles, iconImage, windowControlsImage } from './icons.js';
 
 const LIQUID_WASH = 'linear-gradient(90deg,rgba(255,198,226,.58) 0%,rgba(255,229,163,.58) 24%,rgba(255,242,166,.54) 40%,rgba(163,236,218,.56) 60%,rgba(184,217,255,.58) 80%,rgba(223,197,255,.62) 100%)';
-const LIQUID_SURFACE = 'radial-gradient(circle at 4% 8%,rgba(255,198,226,.32),transparent 30%),radial-gradient(circle at 96% 92%,rgba(163,236,218,.28),transparent 32%),linear-gradient(135deg,#fff9f1,#fffdf8 48%,#f6f2ff)';
+const LIQUID_SURFACE = 'linear-gradient(135deg,#fff1f7 0%,#fffdf8 48%,#f0fff9 100%)';
 
 // Shared motifs keep all three renderers visually consistent without changing site layout.
-function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome, animated }) {
+function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome }) {
   if (theme.id === 'browser-archeology') return [
     rule(page, { 'background-image': 'repeating-conic-gradient(rgba(255,255,255,.035) 0 25%,rgba(0,0,0,.025) 0 50%)', 'background-size': '4px 4px' }),
     rule(heading, { color: '#000080', 'letter-spacing': 'normal', 'text-shadow': 'none' }),
@@ -17,16 +17,14 @@ function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, 
     rule('::selection', { color: '#ffffff', 'background-color': '#000080' })
   ];
   if (theme.id === 'liquid-dream') return [
-    rule(page, { 'background-image': 'radial-gradient(circle at 8% 15%,rgba(255,228,108,.24),transparent 28%),radial-gradient(circle at 94% 7%,rgba(71,230,209,.18),transparent 26%),radial-gradient(circle at 72% 88%,rgba(223,197,255,.24),transparent 30%)', 'background-attachment': 'fixed' }),
+    rule(page, { 'background-image': 'none' }),
     rule(heading, { color: '#4b235d', 'letter-spacing': '-0.045em', 'text-shadow': '0 2px 0 rgba(255,255,255,.58)' }),
     rule(surface, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', 'border-color': '#b9a5c2', 'box-shadow': '0 16px 42px rgba(78,64,104,.13)' }),
     rule(`${surface}:hover`, { 'border-color': '#8f6da0', 'box-shadow': '0 20px 48px rgba(78,64,104,.19)' }),
     rule(control, { 'font-family': 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'border-radius': '999px', 'box-shadow': 'inset 0 1px 0 rgba(255,255,255,.8),0 12px 26px rgba(78,64,104,.12)' }),
     rule(`${control}:hover`, { 'background-image': LIQUID_WASH, 'border-color': '#7d5e8e' }),
     rule(`${link}:hover`, { color: '#8b245e', 'text-decoration-thickness': '2px', 'text-shadow': '0 2px 12px rgba(255,106,183,.28)' }),
-    rule('::selection', { color: '#201928', 'background-color': '#a3ecda' }),
-    rule(animated, { animation: 'surface-liquid-flow-v1 18s ease-in-out infinite alternate' }),
-    '@keyframes surface-liquid-flow-v1{from{background-position:0% 0%,100% 100%,0 0}to{background-position:18% 12%,82% 86%,0 0}}'
+    rule('::selection', { color: '#201928', 'background-color': '#a3ecda' })
   ];
   return [];
 }
@@ -54,7 +52,7 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
   return [
     rule(reading, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #b5a0bd', 'border-radius': '18px', 'box-shadow': '0 12px 32px rgba(78,64,104,.12)' }),
     rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
-    rule(panel, { 'background-color': '#fff9f1', 'background-image': 'repeating-radial-gradient(ellipse at 96% 5%,rgba(139,36,94,.08) 0 2px,transparent 3px 18px),radial-gradient(circle at 8% 18%,rgba(255,198,226,.45),transparent 38%),radial-gradient(circle at 92% 84%,rgba(163,236,218,.4),transparent 40%),linear-gradient(#fff9f1,#fffdf8)', 'background-size': '180% 180%,100% 100%,100% 100%,100% 100%', border: '1px solid #a98bb5', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
+    rule(panel, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #a98bb5', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
     rule(data, { ...reset, 'background-color': '#fff9f1', border: '1px solid #9b859e' }),
     rule(`${title},${sectionHeading}`, { color: '#4b235d', 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'border-bottom': '2px solid #8f6da0', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
     rule(navigation, { 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.36)' }),
@@ -101,17 +99,14 @@ function buildContextualStyles(theme, corrections) {
     css.push(rule(`${context('page')}`, { 'background-image': 'repeating-linear-gradient(0deg,transparent 0 3px,rgba(157,255,176,.035) 3px 4px)' }));
     css.push(rule(`${text('heading')}${highOrMedium}`, { 'text-shadow': '0 0 12px rgba(157,255,176,.5)' }));
     css.push(rule(`${context('content')}`, { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)' }));
-    css.push(rule(`${context('content')}[data-surface-prominent-v1]`, { animation: 'surface-context-terminal-drift-v1 12s linear infinite' }));
     css.push(rule(`${context('control')}:hover,${tone('theme')}${text('link')}:hover`, { 'text-shadow': '0 0 9px rgba(215,255,78,.75)', 'box-shadow': '0 0 12px rgba(215,255,78,.18)' }));
     for (const [level, color] of ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'].entries()) {
       css.push(rule(`[role="grid"] [role="gridcell"][data-level="${level}"]`, { 'background-color': color, 'border-color': '#06110b', 'box-shadow': 'inset 0 0 0 1px rgba(157,255,176,.12)' }));
     }
-    css.push('@keyframes surface-context-terminal-drift-v1{to{background-position:90px 180px}}');
   }
   css.push(...buildThemeMotifs(theme, rule, {
     page: context('page'), heading: `${text('heading')}${highOrMedium}`, surface: context('content'),
-    control: context('control'), link: `${tone('theme')}${text('link')}`, chrome: context('chrome'),
-    animated: `${context('content')}[data-surface-prominent-v1]`
+    control: context('control'), link: `${tone('theme')}${text('link')}`, chrome: context('chrome')
   }));
   const purpose = value => `[data-surface-purpose-v1="${value}"]`;
   css.push(...buildPurposeMotifs(theme, rule, {
@@ -137,7 +132,6 @@ function buildContextualStyles(theme, corrections) {
     css.push(`@media (max-width:520px){${windowTitle}{padding-inline-end:48px !important;background-position:3px center,calc(100% - 2px) center,0 0 !important;background-size:16px 16px,42px 14px,100% 100% !important;}${windowOwner}[data-surface-window-v1="frame"]{background-position:calc(100% - 4px) 4px,4px 4px !important;background-size:42px 14px,calc(100% - 8px) 18px !important;}}`);
   }
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, '--surface-control-ink-v1': c.accentText, 'background-image': 'none' }));
-  css.push(`@media (prefers-reduced-motion:reduce){${context('content')}[data-surface-prominent-v1],${context('control')}[data-surface-prominent-v1]{animation:none !important;}}`);
   return `/* Surface v1 | ${theme.id} | contextual */\n${css.join('\n')}`;
 }
 
@@ -195,17 +189,15 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
   if (theme.id === 'terminal-vision') {
     css.push(rule('body', { 'background-image': 'repeating-linear-gradient(0deg,transparent 0 3px,rgba(157,255,176,.035) 3px 4px)' }));
     css.push(rule(heading, { 'text-shadow': '0 0 12px rgba(157,255,176,.5)' }));
-    css.push(rule(surface, { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)', animation: 'surface-terminal-drift-v1 12s linear infinite' }));
+    css.push(rule(surface, { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)' }));
     css.push(rule(`${button}:hover,${link}:hover`, { 'text-shadow': '0 0 9px rgba(215,255,78,.75)', 'box-shadow': '0 0 12px rgba(215,255,78,.18)' }));
     for (const [level, color] of ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'].entries()) {
       css.push(rule(`[role="grid"] [role="gridcell"][data-level="${level}"]`, { 'background-color': color, 'border-color': '#06110b', 'box-shadow': 'inset 0 0 0 1px rgba(157,255,176,.12)' }));
     }
-    css.push('@keyframes surface-terminal-drift-v1{to{background-position:90px 180px}}');
   }
   css.push(...buildThemeMotifs(theme, rule, {
     page: 'body', heading, surface, control: `:is(${button},${field})`, link,
-    chrome: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation'),
-    animated: surface
+    chrome: select(['header', 'footer', 'nav', '[role="banner"]', '[role="navigation"]', '[role="contentinfo"]'], 'navigation')
   }));
   css.push(...buildPurposeMotifs(theme, rule, {
     reading,
@@ -229,7 +221,6 @@ export function buildStyles(theme, { renderer = 'simple', corrections = { roles:
     css.push(rule('hr', { height: '0', border: '0', 'border-top': '1px solid #808080', 'border-bottom': '1px solid #ffffff' }));
     css.push(`@media (max-width:520px){${select(['h1', '[role="heading"][aria-level="1"]'], 'title')},${panelTitle}{padding-inline-end:48px !important;background-size:16px 16px,42px 14px,100% 100% !important;}${untitledWindow}{background-size:42px 14px,calc(100% - 8px) 18px !important;}}`);
   }
-  css.push(`@media (prefers-reduced-motion:reduce){${surface}{animation:none !important;}}`);
   // States come last so decorative treatments cannot erase essential distinctions.
   css.push(rule(selected, { 'background-color': c.accent, color: c.accentText, 'background-image': 'none' }));
   css.push(rule(`${selected} :where(span,strong,em)`, { color: 'inherit' }));

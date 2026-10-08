@@ -6,10 +6,10 @@ This is internal authoring v1, not an XML/JSON interoperability standard.
 | Theme | Recognizable traits carried over | Style-only adaptation |
 |---|---|---|
 | Browser Archeology | Teal desktop, white document surfaces, gray system chrome, navy accents, blue underlined links, beveled controls, serif body and sans-serif headings | Based on `browser-archaeology.css`. A narrow navy inset rule suggests window chrome without inserting fake toolbars, labels, or title-bar buttons. Existing content and icons stay in place. |
-| Liquid Dream | Warm cream, pink/yellow/mint gradients, serif type, rounded surfaces, soft shadows, drifting ripple motif | Ripples animate surface backgrounds rather than new pseudo-elements. Renderer C animates only one prominent content region. Gradients use light stops with dark ink; source photo filters, shape clipping, and layout changes are excluded. |
-| Terminal Vision | Green/acid palette, monospace, squared rules, scanlines, grid, glowing type and hover edges, animated grid | Scanlines live on the page background rather than above photos. Hero geometry/cursor text is not copied into arbitrary headings; existing pseudo-elements remain available to the site. |
+| Liquid Dream | Warm cream, pink/yellow/mint gradients, serif type, rounded surfaces, soft shadows, fluid color bands | Surface fills and hierarchy bands are static. Repeated multi-radial and full-page gradient paints were replaced after they produced missed frame opportunities in the local scroll workload. Gradients use light stops with dark ink; source photo filters, shape clipping, and layout changes are excluded. |
+| Terminal Vision | Green/acid palette, monospace, squared rules, scanlines, grid, glowing type and hover edges | Static scanlines live on the page background rather than above photos. Hero geometry/cursor text is not copied into arbitrary headings; existing pseudo-elements remain available to the site. |
 
-These substitutions are hypotheses about retaining identity on foreign websites. They are not evidence that full personality has been preserved; source-to-prototype visual review and user evaluation remain required. Configured motion honors the reduced-motion preference. No reduced-effects mode or performance-driven stripping is implemented.
+These substitutions are hypotheses about retaining identity on foreign websites. They are not evidence that full personality has been preserved; source-to-prototype visual review and user evaluation remain required. Current theme treatments contain no continuous decorative motion; interactive state changes remain immediate.
 
 ## Semantic rules
 

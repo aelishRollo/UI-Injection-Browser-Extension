@@ -6,7 +6,6 @@ const ATTR_CONTEXT = 'data-surface-context-v1';
 const ATTR_TEXT = 'data-surface-text-v1';
 const ATTR_TONE = 'data-surface-tone-v1';
 const ATTR_CONFIDENCE = 'data-surface-confidence-v1';
-const ATTR_PROMINENT = 'data-surface-prominent-v1';
 const ATTR_ICON = 'data-surface-ui-icon-v1';
 const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
@@ -18,6 +17,8 @@ const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
 
 let observer;
 let readinessListener;
+let scanScheduled = false;
+let queuedRoots = new Set();
 let running = false;
 let activeTheme = '';
 let palette;
@@ -234,6 +235,41 @@ function markPurposes(root) {
   }
   for (const element of collect(root, `[${ATTR_CONTEXT}="control"]`)) {
     assign(element, element.matches('textarea,select,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="range"],[type="color"])') ? 'field' : 'action', null, 'native-control');
+  }
+}
+
+// Preserve a chart and its supporting labels as one authored visual unit. Large,
+// labelled SVG/canvas graphics are stronger evidence than generic white cards,
+// and requiring a solid owner keeps decorative media and arbitrary divs out.
+function markVisualizations(root) {
+  const graphics = collect(root, 'canvas,svg[role="img"],svg[aria-label],svg[aria-labelledby],[role="img"]:not(img)');
+  for (const graphic of graphics) {
+    if (!isVisible(graphic) || graphic.closest('a,button,nav,[role="navigation"],[role="button"],[data-surface-context-v1="brand"]')) continue;
+    const rect = graphic.getBoundingClientRect();
+    const labelled = graphic.matches('canvas,[role="img"],[aria-label],[aria-labelledby]') || graphic.querySelectorAll('text').length >= 2;
+    if (!labelled || rect.width < 160 || rect.height < 80) continue;
+    let owner = graphic.closest('figure,[role="figure"]');
+    if (!owner) {
+      let candidate = graphic.parentElement;
+      for (let depth = 0; candidate && depth < 5; depth++, candidate = candidate.parentElement) {
+        if (candidate.matches('body,html,main,article,[role="main"]') || candidate.hasAttribute(ATTR_WINDOW)) break;
+        const hasLabel = candidate.matches('[aria-label],[aria-labelledby]') || Boolean(candidate.querySelector('h1,h2,h3,h4,h5,h6,figcaption'));
+        const style = getComputedStyle(candidate);
+        if (hasLabel && isOpaque(style.backgroundColor) && style.backgroundImage === 'none' && !hasUncertainPaint(style)) {
+          owner = candidate;
+          break;
+        }
+      }
+    }
+    if (!owner || !isVisible(owner) || isProtected(owner) || owner.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(owner);
+    const ownerRect = owner.getBoundingClientRect();
+    if (!isOpaque(style.backgroundColor) || style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+        ownerRect.width < 160 || ownerRect.height < 100 || owner.querySelectorAll('button,input,select,textarea,[role="button"]').length > 6) continue;
+    setAttribute(owner, ATTR_CONTEXT, 'visualization');
+    setAttribute(owner, ATTR_PURPOSE, 'visualization');
+    setAttribute(owner, ATTR_CONFIDENCE, 'high');
+    setAttribute(owner, 'data-surface-evidence-v1', 'labelled-data-graphic');
   }
 }
 
@@ -541,43 +577,46 @@ function markText(root, media) {
   }
 }
 
-function markProminent() {
-  if (document.querySelector(`[${ATTR_PROMINENT}]`)) return;
-  if (activeTheme === 'terminal-vision' || activeTheme === 'liquid-dream') {
-    const panels = activeTheme === 'liquid-dream' ? [...document.querySelectorAll(`[${ATTR_PURPOSE}="panel"]`)].filter(isVisible) : [];
-    const candidates = panels.length ? panels : [...document.querySelectorAll(`[${ATTR_CONTEXT}="content"]`)].filter(isVisible);
-    candidates.sort((a, b) => {
-      const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect();
-      return br.width * br.height - ar.width * ar.height;
-    });
-    if (candidates[0]) setAttribute(candidates[0], ATTR_PROMINENT, 'true');
-  }
-}
-
-function scan(root = document) {
+function scan(root = document, media = mediaRects()) {
   if (!running || !document.body) return;
-  const media = mediaRects();
   markBrands(root);
   markSurfaces(root);
   markControls(root, media);
   markPurposes(root);
+  markVisualizations(root);
   markShells(root);
   markUtilityPanels(root);
   markWindows(root);
   markGlyphs(root);
   markText(root, media);
-  markProminent();
+}
+
+function scheduleScans(records) {
+  for (const record of records) {
+    for (const node of record.addedNodes) if (node instanceof Element) queuedRoots.add(node);
+  }
+  if (!queuedRoots.size || scanScheduled) return;
+  scanScheduled = true;
+  queueMicrotask(() => {
+    scanScheduled = false;
+    if (!running) {
+      queuedRoots.clear();
+      return;
+    }
+    const roots = [...queuedRoots].filter(root => root.isConnected);
+    queuedRoots.clear();
+    const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
+    if (!outermost.length) return;
+    const media = mediaRects();
+    for (const root of outermost) scan(root, media);
+  });
 }
 
 function initialize() {
   if (!running || !document.body || observer) return;
   markPage();
   scan(document);
-  observer = new MutationObserver(records => {
-    const roots = records.flatMap(record => [...record.addedNodes]).filter(node => node instanceof Element);
-    if (!roots.length) return;
-    queueMicrotask(() => roots.forEach(scan));
-  });
+  observer = new MutationObserver(scheduleScans);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
@@ -598,6 +637,8 @@ export function start(theme, corrections) {
 export function stop() {
   observer?.disconnect();
   observer = undefined;
+  queuedRoots.clear();
+  scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);
   readinessListener = undefined;
   running = false;
@@ -607,13 +648,13 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v7', enabled: running,
-    regions: { page: count('page'), shells: count('shell'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
+    adapter: 'contextual-v8', enabled: running,
+    regions: { page: count('page'), shells: count('shell'), content: count('content'), visualizations: count('visualization'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
-    purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
+    purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'visualization', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
     icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
-    uncertainty: { ...uncertainty }, decorationBudget: document.querySelectorAll(`[${ATTR_PROMINENT}]`).length
+    uncertainty: { ...uncertainty }
   };
 }

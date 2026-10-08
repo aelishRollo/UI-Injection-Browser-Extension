@@ -94,7 +94,7 @@ try {
       const parents = new Map(profile.nodes.flatMap(n => (n.children || []).map(id => [id, n.id])));
       const isEngine = id => {
         for (let current = id; current; current = parents.get(current)) {
-          if (/^chrome-extension:\/\/[^/]+\/(content|adaptive)\.js/.test(nodes.get(current)?.callFrame.url || '')) return true;
+          if (/^chrome-extension:\/\/[^/]+\/(content|adaptive|contextual)\.js/.test(nodes.get(current)?.callFrame.url || '')) return true;
         }
         return false;
       };
