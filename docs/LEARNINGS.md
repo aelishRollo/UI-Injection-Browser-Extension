@@ -1,14 +1,20 @@
 # Shared theme learning log
 
-Read this before theme/renderer changes; update it as experiments land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
+Read [the authoritative project state](PROJECT-STATE.md) and this file before theme or renderer changes. Update this log as iterations land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current understanding — October 8, 2026
+## Current project state — October 8, 2026
+
+**This section is current. Everything below “Historical experiment log” is retained evidence, not active architecture or an instruction to restore old modes.** Surface has one unified renderer. Experiments 01–09 may describe A/B/C, Dark Reader, correction-off baselines, renderer selection, or next experiments; all of those paths and recommendations are superseded. See [the project-state record](PROJECT-STATE.md) for documentation precedence and future-work rules.
 
 Latest owner direction: **replace the A/B/C experiment suite with one performant, beautiful approach.** Iteration 10 makes the contextual purpose-and-paint pipeline the only renderer and removes the semantic-only path, Dark Reader adapter and dependency, renderer/correction settings, stylesheet bridge, and comparison controls. The retained system combines purpose recognition, paired contrast, media/brand/visualization preservation, static theme motifs, automatic verified corrections, and batched dynamic updates. See [the unification record](EXPERIMENT-10.md).
 
 The unified lifecycle now reclassifies inserted content plus relevant class/state/label/text mutations, restores affected subtrees before rescanning, and restores/releases detached nodes. A live six-site × three-theme capture pass completed without application errors. Review caught two reusable failures: authored colored promo headings must not become theme title bands, and a solid control over media must keep control ownership through foreground resolution. Both are fixed and covered by the fixture.
 
 On the final five-repeat local workload, all 20 original/theme samples completed 2,000 frame callbacks with zero stalls. Median p95 frame intervals were 16.7–16.8 ms. Eight unit checks and 12 isolated Chromium checks pass. Excalidraw remains intentionally conservative: the canvas is authored while sufficiently opaque controls can be themed. Shadow roots, canvas pixels, CSSOM-only updates, inline-style-only updates, and geometry-only changes remain bounded rather than prompting a second renderer.
+
+## Historical experiment log — superseded architecture
+
+The entries below preserve observations, failures, and measurements that informed the current design. Date-relative words such as “latest,” “current,” and “next” apply only within their original experiment context.
 
 Latest owner request: **look for performance and visibility issues and fix them.** Experiment 09 found two independent problems. Continuous/fixed/multi-radial background paints caused repeated missed frame opportunities, especially in Liquid Dream, while a labelled chart on a solid authored panel could inherit theme ink without transferring ownership of its white backing. The renderers now use static, cheaper gradients; C preserves a conservatively recognized chart and its supporting labels as one authored visualization unit. See [the iteration record](EXPERIMENT-09.md).
 

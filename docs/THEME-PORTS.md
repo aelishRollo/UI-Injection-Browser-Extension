@@ -1,5 +1,7 @@
 # Theme intent and adaptation record
 
+> **Current architecture note:** These themes now run only through the unified renderer described in [the authoritative project state](PROJECT-STATE.md). References below to A/B/C, Dark Reader, optional corrections, or renderer comparisons are historical theme-development context, not available product modes.
+
 Source: the three corresponding files under the user's reference project `assets/css/skins/`.
 This is internal authoring v1, not an XML/JSON interoperability standard.
 
@@ -18,19 +20,23 @@ These substitutions are hypotheses about retaining identity on foreign websites.
 - A selector correction may assign an error or success role where meaning is known. It does not modify ARIA attributes or invent content.
 - Error uses a double border and wavy underline; success uses a solid underline/rule. Native state text remains essential.
 - We do not infer meaning from arbitrary class substrings such as `red`, `danger`, or `green` in v1. Preserving color-only semantics remains an unresolved general-engine problem.
-- Icons with explicit SVG fills and image pixels are outside the expressive selector set. B's SVG adaptation and CSS background images need further work.
+- Icons with explicit SVG fills and image pixels are outside the expressive selector set. The unified renderer preserves uncertain SVG and CSS background media rather than passing them to a second adaptation engine.
 
 ## Corrections versus appearance overrides
 
-`src/corrections.js` currently contains host matching plus selector-to-role mappings and protected regions. Corrections are off by default so the baseline can be measured. The YouTube mapping uses the same video-overlay role across themes; the fixture mapping verifies reusability with all three themes.
+`src/corrections.js` contains host matching plus selector-to-role mappings and protected regions. Verified corrections apply automatically; there is no settings toggle or corrections-off product mode. The YouTube mapping uses the same video-overlay role across themes, while the fixture mapping verifies that roles remain reusable across all three themes.
 
 There is no public correction schema, user CSS editor, appearance-override format, or layout representation yet. A future editor can target the renderer's role or appearance boundary without requiring that we freeze today's internal data structures.
 
-## Purpose-based iteration (October 3)
+## Historical theme-development record (Experiments 03–07)
+
+The sections below explain how retained motifs evolved before unification. Their renderer comparisons and proposed next steps are superseded.
+
+### Purpose-based iteration (October 3)
 
 [Experiment 03](EXPERIMENT-03.md) assigns different treatments to documents, panels, navigation, headings, data tables and fields. Browser Archeology uses one document frame and distinct inset fields; Liquid Dream places a six-color rainbow on visible navigation/title accents and contextual panels, leaving prose quieter. C additionally groups chapter headings with small utility links and recognizes prose children of boxless landmarks. This is an experimental interpretation of theme intent; see [the learning log](LEARNINGS.md) before further changes.
 
-## Icon identity and dark backing (October 4)
+### Icon identity and dark backing (October 4)
 
 [Experiment 04](EXPERIMENT-04.md) adds original contextual icon glyphs and a navy/white title treatment for Browser Archeology. Liquid Dream uses rounded flowing glyphs and droplet section marks. C now recognizes neutral document shells and utility rails, and Terminal Vision participates in the same purpose hierarchy. This improves Wikipedia dark coverage; the MDN capture still exposes retained-ink failures. The owner prefers C for the two light themes on Wikipedia, not necessarily on every site.
 
@@ -38,6 +44,6 @@ There is no public correction schema, user CSS editor, appearance-override forma
 
 [Experiment 07](EXPERIMENT-07.md) makes the minimize, maximize and close furniture consistent across substantial Browser Archeology regions and mutes it with disabled system colors. Titled regions reuse one real heading; untitled panels and standalone navigation rails receive a thin inactive strip. Nested rails collapse to one outer window, and narrow layouts retain a smaller control cluster. Appropriate details from the original skin now include purple visited links, red hover/focus links, yellow notes, grooved separators, inset field focus and embossed disabled controls.
 
-## Coherent motif system (October 4)
+### Coherent motif system (October 4)
 
 [Experiment 06](EXPERIMENT-06.md) applies Terminal Vision's restrained, repeated motif strategy to the light themes. Browser Archeology gains a subtle desktop/chrome texture, navy hierarchy and selection-like interaction states; Liquid Dream moves full-spectrum color toward navigation, headings and interaction while reading surfaces use quiet fluid washes. A/B also gain a bounded direct-document fallback for boxless landmarks. This is a visual hypothesis under review, not a claim that the themes now generalize across websites.

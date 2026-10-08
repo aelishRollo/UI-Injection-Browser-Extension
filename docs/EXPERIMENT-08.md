@@ -1,5 +1,7 @@
 # Experiment 08 — GitHub profile visibility and scalar activity
 
+> **Historical evidence only — superseded by Surface 0.2.0.** This record describes the removed multi-renderer architecture. A/B/C, Dark Reader, renderer selection, correction toggles, and multi-renderer test modes are not current product paths. Do not follow this file's instructions or next steps as active work; see [the authoritative project state](PROJECT-STATE.md) and [Iteration 10](EXPERIMENT-10.md).
+
 October 5, 2026. Baseline: `development` after Experiment 07. [Shared learning log](LEARNINGS.md).
 
 ## Owner observation and hypothesis

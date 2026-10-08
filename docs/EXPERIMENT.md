@@ -1,5 +1,7 @@
 # Experiment 01: expressive CSS versus adaptation + CSS
 
+> **Historical evidence only — superseded by Surface 0.2.0.** This record describes the removed multi-renderer architecture. A/B/C, Dark Reader, renderer selection, correction toggles, and multi-renderer test modes are not current product paths. Do not follow this file's instructions or next steps as active work; see [the authoritative project state](PROJECT-STATE.md) and [Iteration 10](EXPERIMENT-10.md).
+
 Implementation was authorized after the MVP brief. Authorization covers the comparative prototype; it does not select a final renderer, Dark Reader fork, XML/JSON standard, telemetry system, or public release.
 
 ## Hypothesis and decision

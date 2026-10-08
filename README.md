@@ -4,6 +4,8 @@ Surface is a local Chromium MV3 extension that applies expressive, readable them
 
 Surface recognizes page purpose before decorating it. Reading regions, sections, panels, navigation, tables, labelled visualizations, controls, headings, and fields receive coordinated treatments. Text and its effective solid background are resolved as a pair; uncertain media, effects, brand marks, and authored visualizations are preserved rather than guessed.
 
+> **Current project state:** Surface 0.2.0 has one unified renderer. The former A/B/C suite, Dark Reader integration, correction toggle, and renderer setting were deliberately removed. [The authoritative architecture record](docs/PROJECT-STATE.md) takes precedence over Experiments 01–09, which are retained only as historical evidence.
+
 ## Try it
 
 The built extension is in `dist/`.
@@ -59,4 +61,4 @@ The worker inserts generated CSS with USER origin and removes the exact prior sh
 
 ## Shared learning
 
-[docs/LEARNINGS.md](docs/LEARNINGS.md) is the current decision log. Experiments 01–09 remain as historical evidence for why the previous A/B/C renderer suite was replaced; they do not describe the current product controls. See [asset provenance](docs/ASSETS.md) and [theme adaptations](docs/THEME-PORTS.md) for visual-source details.
+[docs/PROJECT-STATE.md](docs/PROJECT-STATE.md) is the authoritative architecture record, and [docs/LEARNINGS.md](docs/LEARNINGS.md) is the ongoing evidence log. Experiments 01–09 remain as historical evidence for why the previous A/B/C renderer suite was replaced; their recommendations and next steps are not current work. See [asset provenance](docs/ASSETS.md) and [theme adaptations](docs/THEME-PORTS.md) for visual-source details.

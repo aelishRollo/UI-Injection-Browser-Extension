@@ -1,5 +1,7 @@
 # Iteration 10 — one unified renderer
 
+> **Current architecture decision.** This iteration established the active Surface 0.2.0 architecture. It supersedes the renderer choices, operating instructions, and proposed next steps in Experiments 01–09. See [the authoritative project state](PROJECT-STATE.md) for the maintained summary and documentation precedence.
+
 October 8, 2026. Baseline: `development` after Experiment 09. [Shared learning log](LEARNINGS.md).
 
 ## Owner direction

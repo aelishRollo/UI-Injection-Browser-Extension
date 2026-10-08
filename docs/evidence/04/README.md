@@ -1,5 +1,7 @@
 # Wikipedia C captures
 
+> **Historical evidence only.** This material supports a superseded A/B/C experiment and is not a current implementation guide. See [the authoritative project state](../../PROJECT-STATE.md) and [Iteration 10](../../EXPERIMENT-10.md).
+
 October 4, 2026; 1440 × 1000; corrections off.
 
 - `terminal-before.png`: baseline `bc9376e`.
