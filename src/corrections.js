@@ -1,5 +1,5 @@
 // Deliberately small. These teach roles to every theme; no theme-specific values.
-// Corrections are opt-in in the experiment so the uncorrected baseline stays measurable.
+// Verified corrections apply automatically when general semantics are unavailable.
 const corrections = [
   {
     id: 'youtube-player-controls', hosts: ['youtube.com', 'www.youtube.com', 'm.youtube.com'],
@@ -13,8 +13,8 @@ const corrections = [
   }
 ];
 
-export function getCorrections(host, enabled) {
-  const matches = enabled ? corrections.filter(c => c.hosts.includes(host)) : [];
+export function getCorrections(host) {
+  const matches = corrections.filter(c => c.hosts.includes(host));
   const roles = {};
   for (const correction of matches) {
     for (const [role, selectors] of Object.entries(correction.roles)) {

@@ -1,20 +1,25 @@
 import { parseColor, compositeLayers, contrastRatio, minimumContrast, readableColor } from './contrast.js';
 
-// Renderer C is a bounded experiment: annotate understood regions, keep uncertain
-// regions unchanged, and remove every annotation/custom property on teardown.
+// Surface's unified renderer annotates understood regions, keeps uncertain
+// regions unchanged, and removes every annotation/custom property on teardown.
 const ATTR_CONTEXT = 'data-surface-context-v1';
 const ATTR_TEXT = 'data-surface-text-v1';
 const ATTR_TONE = 'data-surface-tone-v1';
 const ATTR_CONFIDENCE = 'data-surface-confidence-v1';
-const ATTR_PROMINENT = 'data-surface-prominent-v1';
 const ATTR_ICON = 'data-surface-ui-icon-v1';
+const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
+const ATTR_WINDOW = 'data-surface-window-v1';
+const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
 
 let observer;
 let readinessListener;
+let scanScheduled = false;
+let queuedRoots = new Set();
+let queuedRemovedRoots = new Set();
 let running = false;
 let activeTheme = '';
 let palette;
@@ -43,17 +48,28 @@ function setProperty(element, name, value) {
   element.style.setProperty(name, value);
 }
 
-function restoreAll() {
-  for (const [element, state] of touched) {
-    for (const [name, value] of state.attrs) {
-      if (value === null) element.removeAttribute(name);
-      else element.setAttribute(name, value);
-    }
-    for (const [name, original] of state.properties) {
-      if (original.value) element.style.setProperty(name, original.value, original.priority);
-      else element.style.removeProperty(name);
-    }
+function restoreElement(element) {
+  const state = touched.get(element);
+  if (!state) return;
+  for (const [name, value] of state.attrs) {
+    if (value === null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
   }
+  for (const [name, original] of state.properties) {
+    if (original.value) element.style.setProperty(name, original.value, original.priority);
+    else element.style.removeProperty(name);
+  }
+  touched.delete(element);
+}
+
+function restoreSubtree(root) {
+  if (!(root instanceof Element)) return;
+  restoreElement(root);
+  for (const element of root.querySelectorAll('*')) restoreElement(element);
+}
+
+function restoreAll() {
+  for (const element of [...touched.keys()]) restoreElement(element);
   touched.clear();
 }
 
@@ -97,7 +113,18 @@ function overlapsMedia(element, media) {
   if (!rect.width || !rect.height) return false;
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
-  return media.some(item => item.element !== element && !element.contains(item.element) && x >= item.rect.left && x <= item.rect.right && y >= item.rect.top && y <= item.rect.bottom);
+  const stack = document.elementsFromPoint(x, y);
+  return media.some(item => {
+    if (item.element === element || element.contains(item.element) || x < item.rect.left || x > item.rect.right || y < item.rect.top || y > item.rect.bottom) return false;
+    let common = element.parentElement;
+    while (common && !common.contains(item.element)) common = common.parentElement;
+    const locallyRelated = common && common !== document.body && common !== document.documentElement;
+    const mediaX = item.rect.left + item.rect.width / 2;
+    const mediaY = item.rect.top + item.rect.height / 2;
+    const mediaIsPainted = document.elementsFromPoint(mediaX, mediaY).some(hit => hit === item.element || item.element.contains(hit));
+    return stack.some(hit => hit === item.element || item.element.contains(hit)) ||
+      (locallyRelated && (mediaIsPainted || common.matches('figure,picture')));
+  });
 }
 
 function selectorList(values = []) {
@@ -110,7 +137,9 @@ function isProtected(element) {
 }
 
 function markBrands(root) {
-  const candidates = collect(root, '[class*="logo" i],[id*="logo" i],[class*="brand" i],[id*="brand" i],[class*="wordmark" i],[id*="wordmark" i],img[alt*="logo" i],svg[aria-label*="logo" i]');
+  // Treat logo/wordmark names as strong evidence. A bare "brand" substring is
+  // too broad: design systems commonly use it for ordinary navigation text.
+  const candidates = collect(root, '[class*="logo" i],[id*="logo" i],[class*="wordmark" i],[id*="wordmark" i],[class~="brand" i],[id="brand" i],[class*="branding" i],[id*="branding" i],[class*="brand-logo" i],[id*="brand-logo" i],img[alt*="logo" i],svg[aria-label*="logo" i]');
   for (const candidate of candidates) {
     if (!isVisible(candidate)) continue;
     const target = candidate.closest('a,button,[role="link"]') || candidate;
@@ -157,6 +186,228 @@ function markSurfaces(root) {
   }
 }
 
+// Theme-independent purpose, separate from paint ownership and text contrast.
+// Every theme consumes the same recognized hierarchy.
+function markPurposes(root) {
+  const reading = `[${ATTR_PURPOSE}="reading"]`;
+  const safe = element => isVisible(element) && !isProtected(element) &&
+    !element.closest(`[${ATTR_CONTEXT}="brand"]`) &&
+    getComputedStyle(element).backgroundImage === 'none';
+  const assign = (element, purpose, context, evidence) => {
+    if (!safe(element)) return;
+    setAttribute(element, ATTR_PURPOSE, purpose);
+    setAttribute(element, 'data-surface-evidence-v1', evidence);
+    if (context) {
+      setAttribute(element, ATTR_CONTEXT, context);
+      setAttribute(element, ATTR_CONFIDENCE, 'high');
+    }
+  };
+  const landmarks = collect(root, 'main,[role="main"],article');
+  // display:contents supplies semantics but has no box to paint. Inspect only
+  // its direct prose children, never turn its navigation rails into documents.
+  const candidates = landmarks.flatMap(element => getComputedStyle(element).display === 'contents'
+    ? [...element.children].filter(child => child.matches('div,section,article') && child.querySelector('h1,h2,[role="heading"]'))
+    : [element]);
+  for (const element of candidates) {
+    const paragraphs = element.querySelectorAll('p').length;
+    const controls = element.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+    if (paragraphs >= 3 && controls <= Math.max(6, paragraphs * 2) &&
+        (element.innerText || '').length >= 300 && !element.parentElement?.closest(reading)) {
+      assign(element, 'reading', 'content', landmarks.includes(element) ? 'prose-landmark' : 'boxless-landmark-prose');
+    }
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="content"],section,article`)) {
+    if (!element.hasAttribute(ATTR_CONTEXT) && (!element.closest(reading) || !element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]'))) continue;
+    if (element.matches(reading)) continue;
+    const inReading = element.parentElement?.closest(reading);
+    const panel = element.matches('aside,dialog,fieldset,[role="dialog"],[role="menu"],[role="listbox"]');
+    assign(element, inReading && !panel ? 'section' : 'panel', 'content', panel ? 'semantic-panel' : 'content-hierarchy');
+  }
+  // A floated, bordered key/value table is an auxiliary fact panel. Ordinary
+  // data tables keep their own role; neither relies on a Wikipedia class name.
+  for (const element of collect(root, 'table')) {
+    if (!element.closest(reading)) continue;
+    const style = getComputedStyle(element);
+    const panel = style.cssFloat !== 'none' && parseFloat(style.borderTopWidth) > 0 &&
+      element.querySelector('th') && element.querySelector('td');
+    assign(element, panel ? 'panel' : 'data', 'content', panel ? 'floated-bordered-facts' : 'semantic-table');
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="chrome"]`)) assign(element, 'navigation', null, 'semantic-navigation');
+  for (const element of collect(root, 'h1,h2,[role="heading"][aria-level="1"],[role="heading"][aria-level="2"]')) {
+    const backing = backingFor(element);
+    if (backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE)) continue;
+    const title = element.matches('h1,[aria-level="1"]');
+    const backingColor = parseColor(backing?.color);
+    const authoredColoredBacking = backingColor?.[3] === 1 &&
+      Math.max(...backingColor.slice(0, 3)) - Math.min(...backingColor.slice(0, 3)) > 35 &&
+      !backing.element.matches('html,body') &&
+      !backing.element.hasAttribute(ATTR_CONTEXT) && !backing.element.hasAttribute(ATTR_PURPOSE);
+    // A level-one heading on an authored promo/status card is not a page title.
+    // Preserve that foreground/background pair instead of painting a title band.
+    if (title && authoredColoredBacking) continue;
+    if (!title && !element.closest(reading)) continue;
+    const parent = element.parentElement;
+    const group = !title && parent?.matches('div,header') &&
+      !parent.querySelector('p,table,img,input,button,h1,h3,h4,h5,h6') &&
+      parent.querySelectorAll('h2,[role="heading"]').length === 1 &&
+      parent.textContent.trim().length <= element.textContent.trim().length + 80;
+    assign(group ? parent : element, title ? 'title' : 'section-heading', null, group ? 'heading-with-utilities' : 'heading-level');
+  }
+  for (const element of collect(root, `[${ATTR_CONTEXT}="control"]`)) {
+    assign(element, element.matches('textarea,select,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="range"],[type="color"])') ? 'field' : 'action', null, 'native-control');
+  }
+}
+
+// Preserve a chart and its supporting labels as one authored visual unit. Large,
+// labelled SVG/canvas graphics are stronger evidence than generic white cards,
+// and requiring a solid owner keeps decorative media and arbitrary divs out.
+function markVisualizations(root) {
+  const graphics = collect(root, 'canvas,svg[role="img"],svg[aria-label],svg[aria-labelledby],[role="img"]:not(img)');
+  for (const graphic of graphics) {
+    if (!isVisible(graphic) || graphic.closest('a,button,nav,[role="navigation"],[role="button"],[data-surface-context-v1="brand"]')) continue;
+    const rect = graphic.getBoundingClientRect();
+    const labelled = graphic.matches('canvas,[role="img"],[aria-label],[aria-labelledby]') || graphic.querySelectorAll('text').length >= 2;
+    if (!labelled || rect.width < 160 || rect.height < 80) continue;
+    let owner = graphic.closest('figure,[role="figure"]');
+    if (!owner) {
+      let candidate = graphic.parentElement;
+      for (let depth = 0; candidate && depth < 5; depth++, candidate = candidate.parentElement) {
+        if (candidate.matches('body,html,main,article,[role="main"]') || candidate.hasAttribute(ATTR_WINDOW)) break;
+        const hasLabel = candidate.matches('[aria-label],[aria-labelledby]') || Boolean(candidate.querySelector('h1,h2,h3,h4,h5,h6,figcaption'));
+        const style = getComputedStyle(candidate);
+        if (hasLabel && isOpaque(style.backgroundColor) && style.backgroundImage === 'none' && !hasUncertainPaint(style)) {
+          owner = candidate;
+          break;
+        }
+      }
+    }
+    if (!owner || !isVisible(owner) || isProtected(owner) || owner.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(owner);
+    const ownerRect = owner.getBoundingClientRect();
+    if (!isOpaque(style.backgroundColor) || style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+        ownerRect.width < 160 || ownerRect.height < 100 || owner.querySelectorAll('button,input,select,textarea,[role="button"]').length > 6) continue;
+    setAttribute(owner, ATTR_CONTEXT, 'visualization');
+    setAttribute(owner, ATTR_PURPOSE, 'visualization');
+    setAttribute(owner, ATTR_CONFIDENCE, 'high');
+    setAttribute(owner, 'data-surface-evidence-v1', 'labelled-data-graphic');
+  }
+}
+
+// Only neutral, solid ancestor wrappers around a known document are page shells.
+// Do not extrapolate from white to arbitrary cards, images or colored status UI.
+function markShells(root) {
+  for (const reading of collect(root, '[data-surface-purpose-v1="reading"]')) {
+    for (let element = reading.parentElement; element && element !== document.body; element = element.parentElement) {
+      if (element.hasAttribute(ATTR_CONTEXT) || !element.matches('div,main') || isProtected(element)) continue;
+      const style = getComputedStyle(element);
+      const color = parseColor(style.backgroundColor);
+      if (!color || color[3] !== 1 || Math.min(...color.slice(0, 3)) < 230 ||
+          Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) > 18 ||
+          style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+          element.getBoundingClientRect().width < innerWidth * .6) continue;
+      setAttribute(element, ATTR_CONTEXT, 'shell');
+      setAttribute(element, ATTR_CONFIDENCE, 'medium');
+      setAttribute(element, 'data-surface-evidence-v1', 'neutral-document-ancestor');
+    }
+  }
+}
+
+function markUtilityPanels(root) {
+  for (const element of collect(root, 'div,aside,nav,form')) {
+    if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(element);
+    const color = parseColor(style.backgroundColor);
+    if (!color || color[3] !== 1 || Math.min(...color.slice(0,3)) < 230 ||
+        Math.max(...color.slice(0,3)) - Math.min(...color.slice(0,3)) > 18 ||
+        style.backgroundImage !== 'none' || hasUncertainPaint(style)) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 100 || rect.width > 400 || rect.height < 100 || element.querySelector('img,video,canvas,article,main')) continue;
+    const links = [...element.querySelectorAll('a[href]')];
+    const textLength = element.textContent.replace(/\s+/g, '').length;
+    const navigation = links.length >= 4 && links.reduce((sum, a) => sum + a.textContent.replace(/\s+/g, '').length, 0) / textLength >= .6;
+    const settings = element.querySelectorAll('input[type="radio"]').length >= 3 && element.querySelectorAll('label').length >= 3;
+    if (!navigation && !settings) continue;
+    setAttribute(element, ATTR_CONTEXT, 'chrome');
+    setAttribute(element, ATTR_PURPOSE, 'navigation');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', navigation ? 'neutral-link-rail' : 'neutral-settings-rail');
+  }
+}
+
+// Reuse actual document/panel headings as window chrome. The owner frame and
+// title decoration add no DOM, actions or accessibility semantics.
+function markWindows(root) {
+  for (const owner of collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="navigation"]`)) {
+    if (!isVisible(owner) || isProtected(owner)) continue;
+    const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
+    const ownerEvidence = owner.getAttribute('data-surface-evidence-v1') || '';
+    if (ownerPurpose === 'navigation' && !ownerEvidence.startsWith('neutral-')) {
+      const rect = owner.getBoundingClientRect();
+      const neutralSelector = `[${ATTR_PURPOSE}="navigation"][data-surface-evidence-v1^="neutral-"]`;
+      const neutralRelative = owner.parentElement?.closest(neutralSelector) || owner.querySelector(neutralSelector);
+      if (neutralRelative || rect.width < 100 || rect.width > 400 || rect.height < 100 || owner.querySelectorAll('a[href]').length < 4) continue;
+    }
+    let title = owner.querySelector(`[${ATTR_PURPOSE}="title"]`);
+    if (!title && owner.matches('table')) {
+      title = owner.querySelector(':scope > caption,:scope > thead > tr:first-child > th:only-child,:scope > tbody > tr:first-child > th:only-child,:scope > tr:first-child > th:only-child');
+    }
+    if (!title) title = owner.querySelector('legend,h1,h2,h3,[role="heading"]');
+    if (title) {
+      const closestOwner = title.closest(ownerPurpose === 'navigation'
+        ? `[${ATTR_PURPOSE}="navigation"]`
+        : `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"]`);
+      if (closestOwner !== owner) title = null;
+    }
+    // Untitled, already-recognized panels still receive a thin inactive strip;
+    // no label or interactive control is invented for them.
+    setAttribute(owner, ATTR_WINDOW, title ? 'titled' : 'frame');
+    if (title) setAttribute(title, ATTR_WINDOW_TITLE, owner.getAttribute(ATTR_PURPOSE));
+  }
+}
+
+function markGlyphs(root) {
+  // Restrict replacement to empty, already-painted HTML icon slots. Labels and
+  // ARIA supply meaning; no class-name, URL-name, logo or SVG-pixel guessing.
+  for (const element of collect(root, 'span,i')) {
+    if (element.children.length || element.textContent.trim() || !isVisible(element) || isProtected(element) ||
+        element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 10 || rect.width > 40 || rect.height < 10 || rect.height > 40 ||
+        style.maskImage === 'none' || parseFloat(style.borderTopWidth) || parseFloat(style.borderLeftWidth)) continue;
+    const control = element.closest('button,[role="button"],label[for]');
+    const owner = control instanceof HTMLLabelElement ? control.control : control;
+    const name = (owner?.getAttribute('aria-label') || control?.getAttribute('aria-label') || control?.textContent || '').trim();
+    let role;
+    if (/^(main )?menu$/i.test(name)) role = 'menu';
+    else if (/^(search|find)(\s|$)/i.test(name)) role = 'search';
+    else if (/^(\d+ )?languages?$/i.test(name)) role = 'language';
+    else if (/^(tools|more|more options)$/i.test(name)) role = 'more';
+    else if (/^(home|homepage)$/i.test(name)) role = 'home';
+    else if (/^(history|view history)$/i.test(name)) role = 'history';
+    else if (/^(settings|preferences|appearance)$/i.test(name)) role = 'settings';
+    else if (/^(download|save|save file)$/i.test(name)) role = 'download';
+    // An icon next to exactly one search input is another strong signal.
+    if (!role && element.parentElement.querySelectorAll('input').length === 1 &&
+        element.parentElement.querySelector('input[type="search"]')) role = 'search';
+    if (!role || control?.closest(`[${ATTR_CONTEXT}="overlay"]`)) continue;
+    setAttribute(element, 'data-surface-glyph-v1', role);
+    if (control instanceof HTMLLabelElement && owner?.matches('input[role="button"]')) {
+      setAttribute(control, ATTR_CONTEXT, 'control');
+      setAttribute(control, ATTR_CONFIDENCE, 'high');
+    }
+  }
+  if (activeTheme === 'terminal-vision') return;
+  for (const heading of collect(root, 'h1,h2')) {
+    if (!isVisible(heading) || isProtected(heading) || heading.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    if (activeTheme === 'browser-archeology' && heading.hasAttribute(ATTR_WINDOW_TITLE)) continue;
+    const purpose = heading.closest(`[${ATTR_PURPOSE}="title"],[${ATTR_PURPOSE}="section-heading"]`);
+    const before = getComputedStyle(heading, '::before');
+    if (!purpose || !['none', 'normal'].includes(before.content) || before.backgroundImage !== 'none' || before.maskImage !== 'none') continue;
+    setAttribute(heading, 'data-surface-heading-glyph-v1', purpose.getAttribute(ATTR_PURPOSE) === 'title' ? 'document' : 'section');
+  }
+}
+
 function markPage() {
   const bodyStyle = getComputedStyle(document.body);
   const htmlStyle = getComputedStyle(document.documentElement);
@@ -175,12 +426,22 @@ function markPage() {
 function markControls(root, media) {
   const correctedButton = selectorList(activeCorrections.roles.button);
   const correctedOverlay = selectorList(activeCorrections.roles['overlay-control']);
-  const selector = `button,[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
+  const selector = `button,summary,a[href],[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
   for (const element of collect(root, selector)) {
     if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    if (element.matches('a[href]:not([role="button"])')) {
+      const style = getComputedStyle(element);
+      const bordered = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'].some(property => parseFloat(style[property]) >= 1);
+      const padded = parseFloat(style.paddingLeft) >= 4 && parseFloat(style.paddingRight) >= 4;
+      if (!bordered || !padded || !['block', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) continue;
+    }
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
-    if (forcedOverlay || backing?.image || overlapsMedia(element, media)) {
+    const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE);
+    const style = getComputedStyle(element);
+    const ownBackground = parseColor(style.backgroundColor);
+    const ownsSolidPaint = ownBackground?.[3] > .9 && style.backgroundImage === 'none' && !hasUncertainPaint(style);
+    if (forcedOverlay || authoredImage || (overlapsMedia(element, media) && !ownsSolidPaint)) {
       setAttribute(element, ATTR_CONTEXT, 'overlay');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setProperty(element, ORIGINAL_COLOR, getComputedStyle(element).color);
@@ -210,6 +471,25 @@ function hasUncertainPaint(style) {
     (style.maskImage && style.maskImage !== 'none');
 }
 
+function pseudoMayCoverText(owner, paint, textElement) {
+  // In-flow icons are separate boxes, not text backdrops. Keep uncertain
+  // transforms/negative spacing conservative, and retain true overlay paint.
+  const margins = ['marginTop', 'marginRight', 'marginBottom', 'marginLeft'].map(key => parseFloat(paint[key]));
+  if (paint.position === 'static' && paint.transform === 'none' && paint.float === 'none' && margins.every(n => n >= 0)) return false;
+  if (paint.position === 'absolute' && paint.transform === 'none' && margins.every(n => n === 0) && getComputedStyle(owner).position !== 'static') {
+    const [left, top, width, height] = ['left', 'top', 'width', 'height'].map(key => parseFloat(paint[key]));
+    if ([left, top, width, height].every(Number.isFinite)) {
+      const box = owner.getBoundingClientRect();
+      const text = textElement.getBoundingClientRect();
+      const style = getComputedStyle(owner);
+      const x = box.left + parseFloat(style.borderLeftWidth) + left;
+      const y = box.top + parseFloat(style.borderTopWidth) + top;
+      return x < text.right && x + width > text.left && y < text.bottom && y + height > text.top;
+    }
+  }
+  return true;
+}
+
 function backgroundForText(element) {
   const layers = [];
   let owner;
@@ -223,18 +503,23 @@ function backgroundForText(element) {
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
-    const ownsTheme = ['page', 'content', 'chrome', 'control'].includes(context);
+    const purpose = current.getAttribute(ATTR_PURPOSE);
+    const headingPaint = (activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) || (activeTheme === 'browser-archeology' && purpose === 'title');
+    const windowTitlePaint = activeTheme === 'browser-archeology' && current.hasAttribute(ATTR_WINDOW_TITLE);
+    const ownsTheme = headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
+      if (pseudo === '::before' && current.hasAttribute('data-surface-heading-glyph-v1')) continue;
       const paint = getComputedStyle(current, pseudo);
       if (!['none', 'normal'].includes(paint.content) && paint.display !== 'none' &&
-          (paint.backgroundImage !== 'none' || (parseColor(paint.backgroundColor)?.[3] || 0) > 0)) return { reason: 'pseudo' };
+          (paint.backgroundImage !== 'none' || (parseColor(paint.backgroundColor)?.[3] || 0) > 0) &&
+          pseudoMayCoverText(current, paint, element)) return { reason: 'pseudo' };
     }
     let color;
     if (ownsTheme) {
-      color = context === 'page' ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#c0c0c0' : palette.surface;
+      color = (headingPaint || windowTitlePaint) && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
-        color = selected ? palette.accent : (palette.control || palette.surface);
+        color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);
       }
     } else {
       if (style.backgroundImage !== 'none') return { reason: 'image' };
@@ -275,7 +560,7 @@ function markText(root, media) {
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
-    if (control && backing.owner === control && !backing.reason && !mediaBacked) {
+    if (control) {
       if (element !== control) {
         setAttribute(element, ATTR_TEXT, role);
         setAttribute(element, ATTR_TONE, 'control');
@@ -302,7 +587,8 @@ function markText(root, media) {
       setAttribute(element, ATTR_CONFIDENCE, 'medium');
       continue;
     }
-    const preferred = role === 'link' ? palette.link : palette.text;
+    const titleInk = activeTheme === 'browser-archeology' && element.closest(`[${ATTR_PURPOSE}="title"],[${ATTR_WINDOW_TITLE}]`);
+    const preferred = titleInk ? palette.accentText : role === 'link' ? palette.link : palette.text;
     const background = role === 'code' && backing.themed ? parseColor(palette.raised) : backing.color;
     const foreground = readableColor(preferred, background, minimum);
     setAttribute(element, ATTR_TONE, foreground ? 'theme' : 'preserve');
@@ -314,38 +600,67 @@ function markText(root, media) {
   }
 }
 
-function markProminent() {
-  if (document.querySelector(`[${ATTR_PROMINENT}]`)) return;
-  if (activeTheme === 'terminal-vision' || activeTheme === 'liquid-dream') {
-    const candidates = [...document.querySelectorAll(`[${ATTR_CONTEXT}="content"]`)].filter(isVisible);
-    candidates.sort((a, b) => {
-      const ar = a.getBoundingClientRect(); const br = b.getBoundingClientRect();
-      return br.width * br.height - ar.width * ar.height;
-    });
-    if (candidates[0]) setAttribute(candidates[0], ATTR_PROMINENT, 'true');
-  }
-}
-
-function scan(root = document) {
+function scan(root = document, media = mediaRects()) {
   if (!running || !document.body) return;
-  const media = mediaRects();
+  if (root === document || root === document.documentElement || root === document.body) markPage();
   markBrands(root);
   markSurfaces(root);
   markControls(root, media);
+  markPurposes(root);
+  markVisualizations(root);
+  markShells(root);
+  markUtilityPanels(root);
+  markWindows(root);
+  markGlyphs(root);
   markText(root, media);
-  markProminent();
+}
+
+function scheduleScans(records) {
+  for (const record of records) {
+    if (record.type === 'childList') {
+      for (const node of record.addedNodes) if (node instanceof Element) queuedRoots.add(node);
+      for (const node of record.removedNodes) if (node instanceof Element) queuedRemovedRoots.add(node);
+    } else {
+      const target = record.target.nodeType === Node.TEXT_NODE ? record.target.parentElement : record.target;
+      if (target instanceof Element) queuedRoots.add(target);
+    }
+  }
+  if ((!queuedRoots.size && !queuedRemovedRoots.size) || scanScheduled) return;
+  scanScheduled = true;
+  queueMicrotask(() => {
+    scanScheduled = false;
+    if (!running) {
+      queuedRoots.clear();
+      queuedRemovedRoots.clear();
+      return;
+    }
+    for (const root of queuedRemovedRoots) if (!root.isConnected) restoreSubtree(root);
+    queuedRemovedRoots.clear();
+    const roots = [...queuedRoots].filter(root => root.isConnected);
+    queuedRoots.clear();
+    const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
+    if (!outermost.length) return;
+    const media = mediaRects();
+    for (const root of outermost) {
+      // Recompute the affected subtree from authored state. This covers common
+      // SPA class/state/text updates without repeatedly rescanning the document.
+      restoreSubtree(root);
+      scan(root, media);
+    }
+  });
 }
 
 function initialize() {
   if (!running || !document.body || observer) return;
-  markPage();
   scan(document);
-  observer = new MutationObserver(records => {
-    const roots = records.flatMap(record => [...record.addedNodes]).filter(node => node instanceof Element);
-    if (!roots.length) return;
-    queueMicrotask(() => roots.forEach(scan));
+  observer = new MutationObserver(scheduleScans);
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'hidden', 'role', 'aria-label', 'aria-labelledby', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid', 'data-level']
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
 export function start(theme, corrections) {
@@ -365,6 +680,9 @@ export function start(theme, corrections) {
 export function stop() {
   observer?.disconnect();
   observer = undefined;
+  queuedRoots.clear();
+  queuedRemovedRoots.clear();
+  scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);
   readinessListener = undefined;
   running = false;
@@ -374,11 +692,14 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v2', enabled: running,
-    regions: { page: count('page'), content: count('content'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
+    adapter: 'unified-v1', enabled: running,
+    trackedElements: touched.size,
+    regions: { page: count('page'), shells: count('shell'), content: count('content'), visualizations: count('visualization'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),
+    purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'visualization', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
+    icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
-    uncertainty: { ...uncertainty }, decorationBudget: document.querySelectorAll(`[${ATTR_PROMINENT}]`).length
+    uncertainty: { ...uncertainty }
   };
 }

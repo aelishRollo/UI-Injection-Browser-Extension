@@ -1,6 +1,6 @@
 # Experiment 01 — initial findings
 
-> Historical results: these measurements used Terminal Vision, Psychedelic Scrapbook, and Nutrition Facts. The active lineup is now Browser Archeology, Liquid Dream, and Terminal Vision; the older public-site and performance findings do not validate the replacement themes.
+> **Historical evidence only — superseded by Surface 0.2.0.** This record describes removed themes and the removed multi-renderer architecture. A/B/C, Dark Reader, renderer selection, correction toggles, and multi-renderer test modes are not current product paths. Do not follow this file's recommendations or next steps as active work; see [the authoritative project state](PROJECT-STATE.md) and [Iteration 10](EXPERIMENT-10.md). These measurements used Terminal Vision, Psychedelic Scrapbook, and Nutrition Facts; they do not validate the current Browser Archeology, Liquid Dream, and Terminal Vision lineup.
 
 
 **The comparative prototype is loadable. Neither renderer has cleared the broad visual-quality gate.** Color adaptation is useful, but it does not solve safe surface treatment, text-over-media contrast, or brand preservation by itself.

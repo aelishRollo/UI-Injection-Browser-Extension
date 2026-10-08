@@ -1,0 +1,768 @@
+{
+  "baselineCommit": "57cc4cd",
+  "baseline": {
+    "recordedAt": "2026-10-03T21:51:19.444Z",
+    "browser": "153.0.8010.12",
+    "hashes": {
+      "content.js": "df8b96567e2e71dd032e525a318f490635693e4b545c835e75247780794dde4b",
+      "adaptive.js": "ded7d27752398eab41a4daed42762036e780cd516e4f92279b56af91f6ab1df2",
+      "contextual.js": "01ed6ae46151822e095885acf20f08f50098d0deaf8514b0908e3718b2cd6abb",
+      "background.js": "6f557fb44fda7782b2cb6deeab56a28a91c018abf3a9a096fc3dd6931abe28e6"
+    },
+    "corrections": false,
+    "results": [
+      {
+        "id": "wikipedia",
+        "url": "https://en.wikipedia.org/wiki/Chromium_(web_browser)",
+        "title": "Chromium (web browser) - Wikipedia",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      }
+    ]
+  },
+  "fullMatrix": {
+    "recordedAt": "2026-10-03T21:59:45.573Z",
+    "browser": "153.0.8010.12",
+    "hashes": {
+      "content.js": "ab2555075d17fc83383bb12f26a1cfea17a8b0c2949f25d1800351cf44b0228e",
+      "adaptive.js": "ded7d27752398eab41a4daed42762036e780cd516e4f92279b56af91f6ab1df2",
+      "contextual.js": "9e24c3af64e28fa3715ead1098bc15105b2d2a661575e3f8150cafd4d70de555",
+      "background.js": "6f557fb44fda7782b2cb6deeab56a28a91c018abf3a9a096fc3dd6931abe28e6"
+    },
+    "corrections": false,
+    "results": [
+      {
+        "id": "wikipedia",
+        "url": "https://en.wikipedia.org/wiki/Chromium_(web_browser)",
+        "title": "Chromium (web browser) - Wikipedia",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 7142,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 0,
+              "data": 0,
+              "navigation": 0,
+              "title": 0,
+              "section-heading": 0,
+              "field": 0,
+              "action": 0
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "purposes": {
+              "reading": 1,
+              "section": 20,
+              "panel": 1,
+              "data": 42,
+              "navigation": 13,
+              "title": 1,
+              "section-heading": 9,
+              "field": 1,
+              "action": 26
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7116,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "purposes": {
+              "reading": 1,
+              "section": 20,
+              "panel": 1,
+              "data": 42,
+              "navigation": 13,
+              "title": 1,
+              "section-heading": 9,
+              "field": 1,
+              "action": 26
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      },
+      {
+        "id": "mdn",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/CSS",
+        "title": "CSS: Cascading Style Sheets | MDN",
+        "combinations": [
+          {
+            "renderer": "simple",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "simple",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(157, 255, 176)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "adaptive",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 25,
+              "elements": 5027,
+              "bodyColor": "rgb(32, 25, 40)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(255, 255, 255)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 0,
+              "data": 0,
+              "navigation": 0,
+              "title": 0,
+              "section-heading": 0,
+              "field": 0,
+              "action": 0
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 9,
+              "data": 0,
+              "navigation": 4,
+              "title": 1,
+              "section-heading": 0,
+              "field": 0,
+              "action": 8
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1425,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 9,
+              "data": 0,
+              "navigation": 4,
+              "title": 1,
+              "section-heading": 0,
+              "field": 0,
+              "action": 8
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      }
+    ]
+  },
+  "finalContextual": {
+    "recordedAt": "2026-10-03T22:04:48.476Z",
+    "browser": "153.0.8010.12",
+    "hashes": {
+      "content.js": "ab2555075d17fc83383bb12f26a1cfea17a8b0c2949f25d1800351cf44b0228e",
+      "adaptive.js": "ded7d27752398eab41a4daed42762036e780cd516e4f92279b56af91f6ab1df2",
+      "contextual.js": "5e3aaeec403e74fab9497c7131cb009c71a07d7a2b9ddc844c7a73ec17e41f6d",
+      "background.js": "6f557fb44fda7782b2cb6deeab56a28a91c018abf3a9a096fc3dd6931abe28e6"
+    },
+    "corrections": false,
+    "results": [
+      {
+        "id": "wikipedia",
+        "url": "https://en.wikipedia.org/wiki/Chromium_(web_browser)",
+        "title": "Chromium (web browser) - Wikipedia",
+        "combinations": [
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7120,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 0,
+              "data": 0,
+              "navigation": 0,
+              "title": 0,
+              "section-heading": 0,
+              "field": 0,
+              "action": 0
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7120,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "purposes": {
+              "reading": 1,
+              "section": 20,
+              "panel": 1,
+              "data": 42,
+              "navigation": 13,
+              "title": 1,
+              "section-heading": 9,
+              "field": 1,
+              "action": 26
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 7120,
+              "bodyColor": "rgb(32, 33, 34)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "purposes": {
+              "reading": 1,
+              "section": 20,
+              "panel": 1,
+              "data": 42,
+              "navigation": 13,
+              "title": 1,
+              "section-heading": 9,
+              "field": 1,
+              "action": 26
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      },
+      {
+        "id": "mdn",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/CSS",
+        "title": "CSS: Cascading Style Sheets | MDN",
+        "combinations": [
+          {
+            "renderer": "contextual",
+            "theme": "terminal-vision",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(255, 255, 255)",
+              "bodyBackground": "rgb(6, 17, 11)"
+            },
+            "purposes": {
+              "reading": 0,
+              "section": 0,
+              "panel": 0,
+              "data": 0,
+              "navigation": 0,
+              "title": 0,
+              "section-heading": 0,
+              "field": 0,
+              "action": 0
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "browser-archeology",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(0, 128, 128)"
+            },
+            "purposes": {
+              "reading": 2,
+              "section": 7,
+              "panel": 2,
+              "data": 0,
+              "navigation": 4,
+              "title": 1,
+              "section-heading": 7,
+              "field": 0,
+              "action": 8
+            },
+            "qualityVerdict": "requires human review"
+          },
+          {
+            "renderer": "contextual",
+            "theme": "liquid-dream",
+            "applied": true,
+            "document": {
+              "width": 1440,
+              "viewport": 1440,
+              "darkreaderStyles": 0,
+              "elements": 5001,
+              "bodyColor": "rgb(0, 0, 0)",
+              "bodyBackground": "rgb(248, 241, 231)"
+            },
+            "purposes": {
+              "reading": 2,
+              "section": 7,
+              "panel": 2,
+              "data": 0,
+              "navigation": 4,
+              "title": 1,
+              "section-heading": 7,
+              "field": 0,
+              "action": 8
+            },
+            "qualityVerdict": "requires human review"
+          }
+        ]
+      }
+    ]
+  },
+  "browserChecks": {
+    "recordedAt": "2026-10-03T22:04:30.030Z",
+    "passed": [
+      "simple/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "simple/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "simple/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "adaptive/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "adaptive/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "adaptive/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "contextual/terminal-vision: apply, preserve media, isolate CSS, restore",
+      "contextual/browser-archeology: apply, preserve media, isolate CSS, restore",
+      "contextual/liquid-dream: apply, preserve media, isolate CSS, restore",
+      "contextual renderer pairs known surfaces and preserves uncertain regions",
+      "contextual foregrounds pass contrast on retained and alpha surfaces in every theme",
+      "reading hierarchy separates sections, fact panels, data and fields",
+      "dynamic DOM, SPA navigation, keyboard focus and working controls",
+      "one role correction works across all three themes",
+      "site disable propagates into HTTP frames and survives navigation",
+      "20 switches leave no residual style nodes and restore the current page",
+      "popup loads and changes persisted settings"
+    ],
+    "pageErrors": []
+  },
+  "performance": {
+    "recordedAt": "2026-10-03T22:05:13.657Z",
+    "configuration": {
+      "repeatCount": 1,
+      "modes": [
+        {
+          "renderer": "off",
+          "theme": null
+        },
+        {
+          "renderer": "contextual",
+          "theme": "terminal-vision"
+        },
+        {
+          "renderer": "contextual",
+          "theme": "browser-archeology"
+        },
+        {
+          "renderer": "contextual",
+          "theme": "liquid-dream"
+        }
+      ]
+    },
+    "samples": [
+      {
+        "renderer": "off",
+        "theme": null,
+        "applyMs": 55.8,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "terminal-vision",
+        "applyMs": 32.9,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "browser-archeology",
+        "applyMs": 31.4,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      },
+      {
+        "renderer": "contextual",
+        "theme": "liquid-dream",
+        "applyMs": 29.4,
+        "frameMeasurementValid": true,
+        "stalledFrames": 0,
+        "completedFrames": 100,
+        "trustedInputCount": 30,
+        "untrustedInputCount": 0
+      }
+    ],
+    "limitations": [
+      "Local fixture and headless browser; no product performance pass implied.",
+      "Playwright dispatches trusted click input, but click-to-two-rAF remains a laboratory rendering-opportunity measure rather than field INP.",
+      "CPU sampling covers page content engines, not extension worker CPU or all native rendering work.",
+      "Frame intervals and task duration include theme effects. Theme cost is not isolated by subtracting sampled engine values.",
+      "Navigations are warm-cache after the first run; loadToApplied includes automation and scheduling.",
+      "A verified equivalent-output frozen-style control, paint/composite traces, foreground runs, and real-site traces remain necessary for complete attribution."
+    ]
+  }
+}

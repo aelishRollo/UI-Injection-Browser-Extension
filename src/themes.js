@@ -24,4 +24,3 @@ export const THEMES = {
   }
 };
 export const THEME_IDS = Object.keys(THEMES);
-export const RENDERERS = ['simple', 'adaptive', 'contextual'];

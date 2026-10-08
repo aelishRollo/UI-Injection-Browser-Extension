@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Surface — Theme Experiment",
-  "version": "0.1.0",
-  "description": "Try expressive visual themes across websites. A local research prototype.",
+  "name": "Surface — Website Themes",
+  "version": "0.2.0",
+  "description": "Expressive, readable themes for ordinary websites.",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["http://*/*", "https://*/*"],

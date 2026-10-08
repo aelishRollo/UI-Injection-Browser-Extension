@@ -26,5 +26,5 @@ export async function serveFixtures(port = 4173) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const server = await serveFixtures();
-  console.log(`Fixture running at ${server.url}. Enable the extension there to compare renderers.`);
+  console.log(`Fixture running at ${server.url}. Enable the extension there to preview themes.`);
 }

@@ -2,21 +2,18 @@
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Surface — themes</title><link rel="stylesheet" href="popup.css"></head>
 <body>
-  <header><div class="brand"><span class="mark" aria-hidden="true">S</span><span>Surface<span class="edition">EXPERIMENT 01</span></span></div><button id="pause" class="quiet" aria-pressed="false">Pause all</button></header>
+  <header><div class="brand"><span class="mark" aria-hidden="true">S</span><span>Surface<span class="edition">UNIFIED</span></span></div><button id="pause" class="quiet" aria-pressed="false">Pause all</button></header>
   <main>
     <div class="intro"><span class="eyebrow">A DIFFERENT FEELING</span><h1>Same web.<br>A little more you.</h1><p>Choose a look. Keep exploring.</p></div>
     <fieldset class="themes"><legend class="sr-only">Choose a theme</legend><div id="themes"></div></fieldset>
     <section class="site"><div><span class="section-label">THIS WEBSITE</span><strong id="hostname">Connecting…</strong></div><label class="switch"><input id="site-enabled" type="checkbox" aria-label="Enable themes on this website"><span aria-hidden="true"></span></label></section>
     <div class="status-line"><span id="status-dot" class="dot"></span><p id="status" role="status" aria-live="polite">Connecting to this page…</p><button id="retry" class="quiet" hidden>Retry</button></div>
-    <details id="experiment"><summary>Experiment controls <span aria-hidden="true">＋</span></summary><div class="experiment-content">
-      <label for="renderer" class="section-label">RENDERER</label><select id="renderer"><option value="simple">A · Expressive CSS</option><option value="adaptive">B · Color adaptation + expressive CSS</option><option value="contextual">C · Contextual surfaces + fallback</option></select>
-      <p class="help" id="renderer-help">Generic styling using recognizable page elements.</p>
-      <label class="check"><input id="corrections" type="checkbox">Enable site corrections</label><p class="help">Off for the baseline. Currently includes YouTube controls and the test fixture.</p>
+    <details id="feedback"><summary>Feedback & diagnostics <span aria-hidden="true">＋</span></summary><div class="feedback-content">
       <label for="note" class="section-label">HOW DOES THIS PAGE FEEL?</label><textarea id="note" rows="3" placeholder="What works? What made you turn it off?"></textarea>
       <button id="export" class="export">Export a test note <span aria-hidden="true">↗</span></button><p class="help">Downloads your note, hostname, and diagnostics. Nothing is sent automatically.</p>
       <details><summary class="diagnostic-summary">Diagnostics</summary><pre id="diagnostics"></pre></details>
     </div></details>
   </main>
-  <footer><span class="footer-dot"></span> Stored on this device. Made for experimenting.</footer>
+  <footer><span class="footer-dot"></span> Stored on this device. No tracking.</footer>
   <script type="module" src="popup.js"></script>
 </body></html>
