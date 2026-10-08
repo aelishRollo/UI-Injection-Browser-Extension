@@ -7,6 +7,7 @@ import { createThemePicker } from './theme-picker.js';
 // executeScript can reconnect a tab opened before installation; initialization is idempotent.
 if (!globalThis.__surfaceUnifiedV2) {
   globalThis.__surfaceUnifiedV2 = true;
+  const READY_ATTRIBUTE = 'data-surface-ready-v2';
   let currentCSS = '';
   let renderer;
   let pending = false;
@@ -28,6 +29,19 @@ if (!globalThis.__surfaceUnifiedV2) {
     if (next === currentCSS) return;
     await request({ type: 'styles:replace', previous: currentCSS, next });
     currentCSS = next;
+  }
+  async function revealDocument() {
+    if (!document.documentElement) {
+      await new Promise(resolve => {
+        const observer = new MutationObserver(() => {
+          if (!document.documentElement) return;
+          observer.disconnect();
+          resolve();
+        });
+        observer.observe(document, { childList: true });
+      });
+    }
+    document.documentElement.setAttribute(READY_ATTRIBUTE, '');
   }
   async function reconcile() {
     pending = true;
@@ -54,16 +68,18 @@ if (!globalThis.__surfaceUnifiedV2) {
           // Classification inspects the author's treatment before expressive CSS.
           await replaceCSS('');
           renderer ||= await import(chrome.runtime.getURL('contextual.js'));
-          renderer.start(theme, corrections);
+          await renderer.start(theme, corrections);
           await replaceCSS(buildStyles(theme, { corrections }));
           status = { ...status, state: 'active', corrections: corrections.ids };
         }
+        await revealDocument();
         status.applyMs = Math.round((performance.now() - started) * 100) / 100;
         status.applyCount++;
         lastSignature = signature;
       } catch (error) {
         await renderer?.stop();
         await replaceCSS('').catch(() => {});
+        await revealDocument().catch(() => {});
         lastSignature = '';
         status = { ...status, state: 'error', error: error.message };
       }

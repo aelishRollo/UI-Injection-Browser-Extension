@@ -1,0 +1,7 @@
+/* Prevent an authored frame from painting before Surface has decided whether
+   this document is themed. content.js removes this guard by marking the root
+   ready after the final stylesheet is installed, or after a disabled/error
+   path has restored the authored page. */
+:root:not([data-surface-ready-v2]) {
+  opacity: 0 !important;
+}

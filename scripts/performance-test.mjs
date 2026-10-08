@@ -21,6 +21,12 @@ try {
     args: [`--disable-extensions-except=${resolve('dist')}`, `--load-extension=${resolve('dist')}`, '--no-first-run']
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+  for (let i = 0; i < 100; i++) {
+    const installed = await worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings?.version === 2);
+    if (installed) break;
+    if (i === 99) throw new Error('Extension installation did not initialize settings');
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
   const page = await context.newPage();
   await page.exposeFunction('__surfaceTrustedClick', selector => page.locator(selector).click({ force: true, timeout: 2000 }));
   const cdp = await context.newCDPSession(page);
@@ -39,16 +45,17 @@ try {
       console.log(`Starting ${repeat + 1}/${repeatCount} ${mode.theme || 'original'}`);
       await page.goto(fixture.url, { waitUntil: 'load' });
       let active;
+      const expectedState = mode.enabled ? 'active' : 'disabled';
       for (let i = 0; i < 100; i++) {
         active = await worker.evaluate(async () => {
           const tab = (await chrome.tabs.query({})).find(t => t.url?.startsWith('http://127.0.0.1:4173'));
           return chrome.tabs.sendMessage(tab.id, { type: 'status:get' }, { frameId: 0 });
         }).catch(() => null);
         if (active?.state === 'error') throw new Error(active.error);
-        if (active?.state === (mode.enabled ? 'active' : 'disabled')) break;
+        if (active?.state === expectedState) break;
         await page.waitForTimeout(50);
       }
-      if (!active || !['active', 'disabled'].includes(active.state)) throw new Error('Renderer did not settle');
+      if (active?.state !== expectedState) throw new Error(`Renderer did not settle as ${expectedState}`);
       const loadToAppliedMs = Date.now() - loadStarted;
       await page.waitForTimeout(250);
       const before = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value]));

@@ -528,7 +528,12 @@ function backgroundForText(element) {
   // to the entire group, not just to that ancestor's own background paint.
   for (let current = element; current instanceof Element; current = current.parentElement) {
     const style = getComputedStyle(current);
-    if (hasUncertainPaint(style)) return { reason: 'effects' };
+    // preload.css makes only the root transparent until the first theme is
+    // ready. That extension-owned guard must not be mistaken for authored
+    // opacity and force every text pair down the preservation path.
+    const guardedRoot = current === document.documentElement &&
+      !current.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
+    if (!guardedRoot && hasUncertainPaint(style)) return { reason: 'effects' };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
@@ -692,7 +697,7 @@ function initialize() {
   });
 }
 
-export function start(theme, corrections) {
+export async function start(theme, corrections) {
   if (running) stop();
   running = true;
   activeTheme = theme.id;
@@ -701,8 +706,13 @@ export function start(theme, corrections) {
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
   if (document.body) initialize();
   else {
-    readinessListener = () => initialize();
-    document.addEventListener('DOMContentLoaded', readinessListener, { once: true });
+    await new Promise(resolve => {
+      readinessListener = () => {
+        initialize();
+        resolve();
+      };
+      document.addEventListener('DOMContentLoaded', readinessListener, { once: true });
+    });
   }
 }
 

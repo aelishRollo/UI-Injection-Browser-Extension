@@ -20,6 +20,12 @@ try {
     args: [`--disable-extensions-except=${resolve('dist')}`, `--load-extension=${resolve('dist')}`, '--no-first-run']
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 15000 });
+  for (let i = 0; i < 100; i++) {
+    const installed = await worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings?.version === 2);
+    if (installed) break;
+    if (i === 99) throw new Error('Extension installation did not initialize settings');
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
   const extensionId = new URL(worker.url()).host;
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(e.message));
@@ -58,6 +64,35 @@ try {
   await waitStatus({ state: 'disabled' });
   const original = await appearance();
   await page.screenshot({ path: join(out, 'original.png') });
+
+  await check('full navigation never exposes an unthemed frame', async () => {
+    await set({ enabled: true, theme: 'terminal-vision' });
+    await page.addInitScript(() => {
+      window.__surfaceStartupFrames = [];
+      const sample = () => {
+        const root = document.documentElement;
+        if (!root) return requestAnimationFrame(sample);
+        window.__surfaceStartupFrames.push({
+          opacity: getComputedStyle(root).opacity,
+          ready: root.hasAttribute('data-surface-ready-v2'),
+          themed: root.getAttribute('data-surface-context-v1') === 'page'
+        });
+        if (!root.hasAttribute('data-surface-ready-v2')) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    await page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
+    await waitStatus({ state: 'active', theme: 'terminal-vision' });
+    const frames = await page.evaluate(() => window.__surfaceStartupFrames);
+    assert.ok(frames.some(frame => frame.opacity === '0' && !frame.ready), `expected a guarded startup frame: ${JSON.stringify(frames)}`);
+    assert.equal(frames.some(frame => frame.opacity !== '0' && !frame.ready), false, `an unguarded startup frame was visible: ${JSON.stringify(frames)}`);
+    assert.deepEqual(frames.at(-1), { opacity: '1', ready: true, themed: true });
+    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
+    await set({ enabled: false });
+    await waitStatus({ state: 'disabled' });
+    await page.goto(fixture.url);
+    await waitStatus({ state: 'disabled' });
+  });
 
   for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
       await check(`${theme}: apply, preserve media, isolate CSS, restore`, async () => {

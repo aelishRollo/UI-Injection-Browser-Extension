@@ -8,6 +8,12 @@ export async function serveFixtures(port = 4173) {
   const server = http.createServer(async (req, res) => {
     try {
       let pathname = new URL(req.url, 'http://localhost').pathname;
+      if (pathname === '/slow-script.js') {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        res.setHeader('Content-Type', 'text/javascript');
+        res.end('globalThis.surfaceSlowFixtureLoaded = true;');
+        return;
+      }
       if (['/', '/next'].includes(pathname)) pathname = '/index.html';
       const file = resolve(root, '.' + pathname);
       if (!file.startsWith(root + sep)) throw new Error('Invalid path');
