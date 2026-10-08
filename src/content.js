@@ -5,17 +5,14 @@ import { buildStyles } from './styles.js';
 import { createThemePicker } from './theme-picker.js';
 
 // executeScript can reconnect a tab opened before installation; initialization is idempotent.
-if (!globalThis.__surfaceExperimentV1) {
-  globalThis.__surfaceExperimentV1 = true;
+if (!globalThis.__surfaceUnifiedV2) {
+  globalThis.__surfaceUnifiedV2 = true;
   let currentCSS = '';
-  let adapter;
-  let contextual;
+  let renderer;
   let pending = false;
   let applying = false;
   let lastSignature = '';
-  let status = { state: 'starting', theme: null, renderer: null, error: null, corrections: [], applyCount: 0, applyMs: 0 };
-  // Dark Reader's website bundle wraps runtime.sendMessage without returning its
-  // Promise. Capture the real extension transport before lazy-loading that bundle.
+  let status = { state: 'starting', theme: null, error: null, corrections: [], applyCount: 0, applyMs: 0 };
   const sendMessage = chrome.runtime.sendMessage.bind(chrome.runtime);
 
   async function request(message) {
@@ -43,36 +40,29 @@ if (!globalThis.__surfaceExperimentV1) {
         const enabled = isEnabled(settings, topHost || frameHost);
         // Keep the picker available so a paused extension can be resumed in place.
         themePicker.render(settings, Boolean(topHost || frameHost));
-        const signature = JSON.stringify([enabled, settings.theme, settings.renderer, settings.corrections, frameHost]);
+        const signature = JSON.stringify([enabled, settings.theme, frameHost]);
         if (signature === lastSignature) continue;
         const started = performance.now();
-        status = { ...status, state: 'applying', error: null, theme: settings.theme, renderer: settings.renderer, topHost, frameHost };
-        await contextual?.stop();
-        await adapter?.stop();
+        status = { ...status, state: 'applying', error: null, theme: settings.theme, topHost, frameHost };
+        await renderer?.stop();
         if (!enabled) {
           await replaceCSS('');
           status = { ...status, state: 'disabled', corrections: [] };
         } else {
           const theme = THEMES[settings.theme];
-          const corrections = getCorrections(frameHost, settings.corrections);
-          if (settings.renderer === 'adaptive') {
-            adapter ||= await import(chrome.runtime.getURL('adaptive.js'));
-            adapter.start(theme, corrections, url => request({ type: 'stylesheet:fetch', url }));
-          } else if (settings.renderer === 'contextual') {
-            // Classification must inspect the author's treatment, not the outgoing theme.
-            await replaceCSS('');
-            contextual ||= await import(chrome.runtime.getURL('contextual.js'));
-            contextual.start(theme, corrections);
-          }
-          await replaceCSS(buildStyles(theme, { renderer: settings.renderer, corrections }));
+          const corrections = getCorrections(frameHost);
+          // Classification inspects the author's treatment before expressive CSS.
+          await replaceCSS('');
+          renderer ||= await import(chrome.runtime.getURL('contextual.js'));
+          renderer.start(theme, corrections);
+          await replaceCSS(buildStyles(theme, { corrections }));
           status = { ...status, state: 'active', corrections: corrections.ids };
         }
         status.applyMs = Math.round((performance.now() - started) * 100) / 100;
         status.applyCount++;
         lastSignature = signature;
       } catch (error) {
-        await contextual?.stop();
-        await adapter?.stop();
+        await renderer?.stop();
         await replaceCSS('').catch(() => {});
         lastSignature = '';
         status = { ...status, state: 'error', error: error.message };
@@ -86,13 +76,12 @@ if (!globalThis.__surfaceExperimentV1) {
   });
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'status:get') {
-      sendResponse({ ...status, adapter: adapter?.diagnostics() || null, contextual: contextual?.diagnostics() || null, stylesheetBytes: currentCSS.length });
+      sendResponse({ ...status, renderer: renderer?.diagnostics() || null, stylesheetBytes: currentCSS.length });
     } else if (message?.type === 'retry') {
       lastSignature = '';
       void reconcile();
       sendResponse({ retrying: true });
     }
   });
-  // CSS selectors automatically cover new DOM. Variant A needs no DOM observer or polling.
   void reconcile();
 }

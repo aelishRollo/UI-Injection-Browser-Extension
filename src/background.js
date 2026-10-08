@@ -57,30 +57,6 @@ async function handle(message, sender) {
       }
       return { applied: true };
     }
-    case 'stylesheet:fetch': {
-      // No page-facing bridge; only this extension's isolated content script can request this.
-      if (!sender.tab || !hostname(sender.url)) throw new Error('Unsupported document');
-      const url = new URL(message.url);
-      if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error('Unsupported stylesheet URL');
-      const response = await fetch(url.href, { credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(12000) });
-      if (!response.ok) throw new Error(`Stylesheet request failed (${response.status})`);
-      const type = response.headers.get('content-type') || 'text/css';
-      if (!/^(text\/|application\/(css|octet-stream))/i.test(type)) throw new Error('Only stylesheet text is fetched');
-      const reader = response.body.getReader();
-      const chunks = []; let size = 0;
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          size += value.byteLength;
-          if (size > 3 * 1024 * 1024) throw new Error('Stylesheet exceeds the experiment’s 3 MB limit');
-          chunks.push(value);
-        }
-      } finally { await reader.cancel().catch(() => {}); }
-      const bytes = new Uint8Array(size); let offset = 0;
-      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-      return { text: new TextDecoder().decode(bytes), contentType: type };
-    }
     case 'tab:connect': {
       if (!fromExtensionPage(sender) || !Number.isInteger(message.tabId)) throw new Error('Invalid tab');
       const tab = await chrome.tabs.get(message.tabId);

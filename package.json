@@ -1,9 +1,9 @@
 {
-  "name": "ui-injection-experiment",
-  "version": "0.1.0",
+  "name": "surface-website-themes",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "A comparative Chromium experiment for expressive website themes",
+  "description": "A unified Chromium extension for expressive website themes",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
@@ -12,6 +12,5 @@
     "test:performance": "node scripts/performance-test.mjs",
     "fixtures": "node scripts/serve.mjs"
   },
-  "dependencies": { "darkreader": "4.9.133" },
   "devDependencies": { "esbuild": "0.25.12", "playwright": "1.58.2" }
 }

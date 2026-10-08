@@ -14,8 +14,9 @@
       <p id="inline" style="background:#fff3d4;color:#784400">Inline style: should remain readable when updated.</p>
       <div class="context-grid">
         <div id="retained-card"><h3>Retained site surface</h3><span id="retained-text">This dark text belongs to a white surface the renderer does not understand.</span></div>
-        <figure id="media-overlay"><img src="landscape.svg" alt="Illustrated mountains behind an overlay"><figcaption id="overlay-heading">Original light text over media</figcaption></figure>
+        <figure id="media-overlay"><img src="landscape.svg" alt="Illustrated mountains behind an overlay"><figcaption id="overlay-heading">Original light text over media</figcaption><button id="media-solid-action">Open image</button></figure>
         <div id="gradient-panel"><p id="gradient-text">Original text over an authored gradient</p></div>
+        <div id="authored-color-card"><div id="authored-color-title" role="heading" aria-level="1">Authored promotion</div></div>
       </div>
       <div class="fixture-panel"><h3>Unmarked component</h3><div class="fixture-action" tabindex="0">A custom action without a semantic role</div><p class="fixture-error">Error: this operation failed.</p><p class="fixture-success">Success: your changes were saved.</p></div>
       <p><label>Invalid field <input id="invalid" aria-invalid="true" value="Not a valid value"></label></p>
@@ -24,7 +25,7 @@
         <div style="background:#111;color:#222;padding:12px"><strong id="dark-contrast">Text on a retained dark surface</strong></div>
         <div style="background:#fff;padding:12px"><div style="background:rgba(0,0,0,.5)"><span id="alpha-contrast" style="background:rgba(255,255,255,.25);color:#888">Text over two translucent layers</span></div></div>
         <button id="nested-selected" aria-pressed="true"><strong style="color:red"><span>Nested selected label</span></strong></button>
-        <button id="nested-hover"><span>Nested hover label</span></button>
+        <button id="nested-hover" style="-webkit-text-fill-color:#fff"><span>Nested hover label</span></button>
         <div id="pseudo-backing"><span id="pseudo-text">Text over a generated backdrop</span></div>
         <span id="fill-text" style="-webkit-text-fill-color:#aaa;color:#111">Separate glyph fill</span>
         <p id="effect-text" style="filter:blur(.1px);color:#555">Uncertain effect stays unresolved</p>

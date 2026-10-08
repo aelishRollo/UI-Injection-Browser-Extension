@@ -35,19 +35,12 @@ function showError(error) {
 }
 function render() {
   document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
-  $('renderer').value = settings.renderer;
-  $('corrections').checked = settings.corrections;
   $('pause').textContent = settings.enabled ? 'Pause all' : 'Resume all';
   $('pause').setAttribute('aria-pressed', String(!settings.enabled));
   const host = hostname(tab?.url);
   $('hostname').textContent = host || 'This page is unavailable';
   $('site-enabled').checked = Boolean(host && !settings.disabledHosts.includes(host));
   $('site-enabled').disabled = !host;
-  $('renderer-help').textContent = {
-    simple: 'Generic styling using recognizable page elements.',
-    adaptive: 'Dark Reader adapts site colors underneath the same expressive styling. Experimental.',
-    contextual: 'Checks text against solid and translucent surfaces while keeping the theme’s colors. Media remains conservative. Experimental.'
-  }[settings.renderer];
 }
 async function update(patch) {
   try {
@@ -67,7 +60,7 @@ async function refreshStatus() {
     latestStatus = await chrome.tabs.sendMessage(tab.id, { type: 'status:get' }, { frameId: 0 });
     if (!latestStatus) throw new Error('Reload this page to connect the extension.');
     const messages = {
-      active: `${settings.renderer === 'adaptive' ? 'Adaptation + theme' : settings.renderer === 'contextual' ? 'Contextual theme' : 'Theme'} is active.`,
+      active: 'Theme is active.',
       disabled: settings.enabled ? 'Original appearance on this website.' : 'Paused on every website.',
       applying: 'Applying your choice…', starting: 'Connecting to this page…', error: latestStatus.error
     };
@@ -80,14 +73,12 @@ async function refreshStatus() {
 
 $('pause').addEventListener('click', () => update({ enabled: !settings.enabled }));
 $('site-enabled').addEventListener('change', () => update({ siteHost: hostname(tab?.url), siteEnabled: $('site-enabled').checked }));
-$('renderer').addEventListener('change', () => update({ renderer: $('renderer').value }));
-$('corrections').addEventListener('change', () => update({ corrections: $('corrections').checked }));
 $('retry').addEventListener('click', async () => {
   try { await chrome.tabs.sendMessage(tab.id, { type: 'retry' }, { frameId: 0 }); await refreshStatus(); }
   catch (error) { showError(error); }
 });
 $('export').addEventListener('click', () => {
-  const report = { version: 1, recordedAt: new Date().toISOString(), host: hostname(tab?.url), theme: settings.theme, renderer: settings.renderer, corrections: settings.corrections, note: $('note').value, diagnostics: latestStatus };
+  const report = { version: 2, recordedAt: new Date().toISOString(), host: hostname(tab?.url), theme: settings.theme, note: $('note').value, diagnostics: latestStatus };
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = `surface-note-${report.host || 'page'}-${Date.now()}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);

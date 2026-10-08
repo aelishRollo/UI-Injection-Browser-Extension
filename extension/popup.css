@@ -343,10 +343,10 @@ summary {
 summary::-webkit-details-marker {
   display: none;
 }
-.experiment-content {
+.feedback-content {
   padding: 0 0 12px;
 }
-.experiment-content select {
+.feedback-content select {
   margin-top: 7px;
   width: 100%;
   border: 1px solid #d6d9ce;
@@ -371,7 +371,7 @@ summary::-webkit-details-marker {
 .check input {
   accent-color: #41604b;
 }
-.experiment-content textarea {
+.feedback-content textarea {
   display: block;
   width: 100%;
   margin-top: 7px;

@@ -1,14 +1,12 @@
-import { THEME_IDS, RENDERERS } from './themes.js';
+import { THEME_IDS } from './themes.js';
 
-export const DEFAULTS = Object.freeze({ version: 1, enabled: true, theme: 'terminal-vision', renderer: 'simple', corrections: false, disabledHosts: [] });
+export const DEFAULTS = Object.freeze({ version: 2, enabled: true, theme: 'terminal-vision', disabledHosts: [] });
 
 export function normalizeSettings(value = {}) {
   return {
     ...DEFAULTS,
     enabled: typeof value.enabled === 'boolean' ? value.enabled : DEFAULTS.enabled,
     theme: THEME_IDS.includes(value.theme) ? value.theme : DEFAULTS.theme,
-    renderer: RENDERERS.includes(value.renderer) ? value.renderer : DEFAULTS.renderer,
-    corrections: typeof value.corrections === 'boolean' ? value.corrections : DEFAULTS.corrections,
     disabledHosts: Array.isArray(value.disabledHosts) ? [...new Set(value.disabledHosts.filter(h => typeof h === 'string' && /^[a-z0-9.:[\]-]+$/i.test(h)).map(h => h.toLowerCase()))] : []
   };
 }
@@ -24,7 +22,7 @@ export function isEnabled(settings, host) {
 
 export function updateSettings(current, patch) {
   const allowed = {};
-  for (const key of ['enabled', 'theme', 'renderer', 'corrections']) {
+  for (const key of ['enabled', 'theme']) {
     if (key in patch) allowed[key] = patch[key];
   }
   if (typeof patch.siteHost === 'string' && typeof patch.siteEnabled === 'boolean') {

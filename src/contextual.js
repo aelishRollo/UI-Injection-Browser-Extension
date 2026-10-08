@@ -1,7 +1,7 @@
 import { parseColor, compositeLayers, contrastRatio, minimumContrast, readableColor } from './contrast.js';
 
-// Renderer C is a bounded experiment: annotate understood regions, keep uncertain
-// regions unchanged, and remove every annotation/custom property on teardown.
+// Surface's unified renderer annotates understood regions, keeps uncertain
+// regions unchanged, and removes every annotation/custom property on teardown.
 const ATTR_CONTEXT = 'data-surface-context-v1';
 const ATTR_TEXT = 'data-surface-text-v1';
 const ATTR_TONE = 'data-surface-tone-v1';
@@ -19,6 +19,7 @@ let observer;
 let readinessListener;
 let scanScheduled = false;
 let queuedRoots = new Set();
+let queuedRemovedRoots = new Set();
 let running = false;
 let activeTheme = '';
 let palette;
@@ -47,17 +48,28 @@ function setProperty(element, name, value) {
   element.style.setProperty(name, value);
 }
 
-function restoreAll() {
-  for (const [element, state] of touched) {
-    for (const [name, value] of state.attrs) {
-      if (value === null) element.removeAttribute(name);
-      else element.setAttribute(name, value);
-    }
-    for (const [name, original] of state.properties) {
-      if (original.value) element.style.setProperty(name, original.value, original.priority);
-      else element.style.removeProperty(name);
-    }
+function restoreElement(element) {
+  const state = touched.get(element);
+  if (!state) return;
+  for (const [name, value] of state.attrs) {
+    if (value === null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
   }
+  for (const [name, original] of state.properties) {
+    if (original.value) element.style.setProperty(name, original.value, original.priority);
+    else element.style.removeProperty(name);
+  }
+  touched.delete(element);
+}
+
+function restoreSubtree(root) {
+  if (!(root instanceof Element)) return;
+  restoreElement(root);
+  for (const element of root.querySelectorAll('*')) restoreElement(element);
+}
+
+function restoreAll() {
+  for (const element of [...touched.keys()]) restoreElement(element);
   touched.clear();
 }
 
@@ -225,6 +237,14 @@ function markPurposes(root) {
     const backing = backingFor(element);
     if (backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE)) continue;
     const title = element.matches('h1,[aria-level="1"]');
+    const backingColor = parseColor(backing?.color);
+    const authoredColoredBacking = backingColor?.[3] === 1 &&
+      Math.max(...backingColor.slice(0, 3)) - Math.min(...backingColor.slice(0, 3)) > 35 &&
+      !backing.element.matches('html,body') &&
+      !backing.element.hasAttribute(ATTR_CONTEXT) && !backing.element.hasAttribute(ATTR_PURPOSE);
+    // A level-one heading on an authored promo/status card is not a page title.
+    // Preserve that foreground/background pair instead of painting a title band.
+    if (title && authoredColoredBacking) continue;
     if (!title && !element.closest(reading)) continue;
     const parent = element.parentElement;
     const group = !title && parent?.matches('div,header') &&
@@ -418,7 +438,10 @@ function markControls(root, media) {
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
     const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE);
-    if (forcedOverlay || authoredImage || overlapsMedia(element, media)) {
+    const style = getComputedStyle(element);
+    const ownBackground = parseColor(style.backgroundColor);
+    const ownsSolidPaint = ownBackground?.[3] > .9 && style.backgroundImage === 'none' && !hasUncertainPaint(style);
+    if (forcedOverlay || authoredImage || (overlapsMedia(element, media) && !ownsSolidPaint)) {
       setAttribute(element, ATTR_CONTEXT, 'overlay');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setProperty(element, ORIGINAL_COLOR, getComputedStyle(element).color);
@@ -537,7 +560,7 @@ function markText(root, media) {
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
-    if (control && !mediaBacked) {
+    if (control) {
       if (element !== control) {
         setAttribute(element, ATTR_TEXT, role);
         setAttribute(element, ATTR_TONE, 'control');
@@ -579,6 +602,7 @@ function markText(root, media) {
 
 function scan(root = document, media = mediaRects()) {
   if (!running || !document.body) return;
+  if (root === document || root === document.documentElement || root === document.body) markPage();
   markBrands(root);
   markSurfaces(root);
   markControls(root, media);
@@ -593,31 +617,50 @@ function scan(root = document, media = mediaRects()) {
 
 function scheduleScans(records) {
   for (const record of records) {
-    for (const node of record.addedNodes) if (node instanceof Element) queuedRoots.add(node);
+    if (record.type === 'childList') {
+      for (const node of record.addedNodes) if (node instanceof Element) queuedRoots.add(node);
+      for (const node of record.removedNodes) if (node instanceof Element) queuedRemovedRoots.add(node);
+    } else {
+      const target = record.target.nodeType === Node.TEXT_NODE ? record.target.parentElement : record.target;
+      if (target instanceof Element) queuedRoots.add(target);
+    }
   }
-  if (!queuedRoots.size || scanScheduled) return;
+  if ((!queuedRoots.size && !queuedRemovedRoots.size) || scanScheduled) return;
   scanScheduled = true;
   queueMicrotask(() => {
     scanScheduled = false;
     if (!running) {
       queuedRoots.clear();
+      queuedRemovedRoots.clear();
       return;
     }
+    for (const root of queuedRemovedRoots) if (!root.isConnected) restoreSubtree(root);
+    queuedRemovedRoots.clear();
     const roots = [...queuedRoots].filter(root => root.isConnected);
     queuedRoots.clear();
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
     if (!outermost.length) return;
     const media = mediaRects();
-    for (const root of outermost) scan(root, media);
+    for (const root of outermost) {
+      // Recompute the affected subtree from authored state. This covers common
+      // SPA class/state/text updates without repeatedly rescanning the document.
+      restoreSubtree(root);
+      scan(root, media);
+    }
   });
 }
 
 function initialize() {
   if (!running || !document.body || observer) return;
-  markPage();
   scan(document);
   observer = new MutationObserver(scheduleScans);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'hidden', 'role', 'aria-label', 'aria-labelledby', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid', 'data-level']
+  });
 }
 
 export function start(theme, corrections) {
@@ -638,6 +681,7 @@ export function stop() {
   observer?.disconnect();
   observer = undefined;
   queuedRoots.clear();
+  queuedRemovedRoots.clear();
   scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);
   readinessListener = undefined;
@@ -648,7 +692,8 @@ export function stop() {
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
-    adapter: 'contextual-v8', enabled: running,
+    adapter: 'unified-v1', enabled: running,
+    trackedElements: touched.size,
     regions: { page: count('page'), shells: count('shell'), content: count('content'), visualizations: count('visualization'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
     pairs: Object.fromEntries(['theme', 'control', 'retained', 'adjusted', 'image', 'media', 'effects', 'pseudo', 'color-space', 'canvas'].map(value => [value, document.querySelectorAll(`[${ATTR_PAIR}="${value}"]`).length])),

@@ -242,7 +242,7 @@ export function createThemePicker({ selectTheme, setEnabled }) {
 
   const shadow = host.attachShadow({ mode: 'open' });
   shadow.innerHTML = `
-    <style class="darkreader surface-picker-style-v1">${pickerStyles}</style>
+    <style class="surface-picker-style-v1">${pickerStyles}</style>
     <aside class="picker" data-surface-picker-v1 aria-label="Theme controls">
       <button class="toggle" type="button" aria-expanded="false" aria-controls="surface-theme-panel-v1">
         <span class="toggle-icon" aria-hidden="true">✦</span>

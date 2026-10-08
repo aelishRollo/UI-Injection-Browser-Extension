@@ -12,10 +12,7 @@ const out = resolve(process.env.SURFACE_PERF_OUTPUT || 'test-results/performance
 await mkdir(out, { recursive: true });
 let context;
 const samples = [];
-const allModes = [{ renderer: 'off', theme: null }, ...['simple', 'adaptive', 'contextual'].flatMap(renderer => ['terminal-vision', 'browser-archeology', 'liquid-dream'].map(theme => ({ renderer, theme })))];
-const requestedRenderers = new Set((process.env.SURFACE_PERF_RENDERERS || '').split(',').filter(Boolean));
-const filteredModes = requestedRenderers.size ? allModes.filter(mode => requestedRenderers.has(mode.renderer)) : allModes;
-const modes = filteredModes.length ? filteredModes : allModes;
+const modes = [{ enabled: false, theme: null }, ...['terminal-vision', 'browser-archeology', 'liquid-dream'].map(theme => ({ enabled: true, theme }))];
 const repeatCount = Math.max(1, Math.min(20, Number.parseInt(process.env.SURFACE_PERF_REPEATS || '5', 10) || 5));
 const percentile = (values, p) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * p))];
 try {
@@ -31,15 +28,15 @@ try {
   await cdp.send('Profiler.enable');
   await cdp.send('Profiler.setSamplingInterval', { interval: 1000 });
   for (let repeat = 0; repeat < repeatCount; repeat++) {
-    // Rotate order so later runs do not systematically favor one renderer.
+    // Rotate order so later runs do not systematically favor one theme.
     const offset = repeat % modes.length;
     const ordered = [...modes.slice(offset), ...modes.slice(0, offset)];
     for (const mode of ordered) {
       await worker.evaluate(async mode => {
-        await chrome.storage.local.set({ settings: { version: 1, enabled: mode.renderer !== 'off', theme: mode.theme || 'terminal-vision', renderer: mode.renderer === 'off' ? 'simple' : mode.renderer, corrections: false, disabledHosts: [] } });
+        await chrome.storage.local.set({ settings: { version: 2, enabled: mode.enabled, theme: mode.theme || 'terminal-vision', disabledHosts: [] } });
       }, mode);
       const loadStarted = Date.now();
-      console.log(`Starting ${repeat + 1}/${repeatCount} ${mode.renderer}/${mode.theme || 'original'}`);
+      console.log(`Starting ${repeat + 1}/${repeatCount} ${mode.theme || 'original'}`);
       await page.goto(fixture.url, { waitUntil: 'load' });
       let active;
       for (let i = 0; i < 100; i++) {
@@ -48,7 +45,7 @@ try {
           return chrome.tabs.sendMessage(tab.id, { type: 'status:get' }, { frameId: 0 });
         }).catch(() => null);
         if (active?.state === 'error') throw new Error(active.error);
-        if (active?.state === (mode.renderer === 'off' ? 'disabled' : 'active')) break;
+        if (active?.state === (mode.enabled ? 'active' : 'disabled')) break;
         await page.waitForTimeout(50);
       }
       if (!active || !['active', 'disabled'].includes(active.state)) throw new Error('Renderer did not settle');
@@ -94,7 +91,7 @@ try {
       const parents = new Map(profile.nodes.flatMap(n => (n.children || []).map(id => [id, n.id])));
       const isEngine = id => {
         for (let current = id; current; current = parents.get(current)) {
-          if (/^chrome-extension:\/\/[^/]+\/(content|adaptive|contextual)\.js/.test(nodes.get(current)?.callFrame.url || '')) return true;
+          if (/^chrome-extension:\/\/[^/]+\/(content|contextual)\.js/.test(nodes.get(current)?.callFrame.url || '')) return true;
         }
         return false;
       };
@@ -104,7 +101,7 @@ try {
       const frameMeasurementValid = workload.completedFrames === 100 && workload.stalledFrames === 0;
       samples.push({ ...mode, repeat, loadToAppliedMs, applyMs: active.applyMs, metrics, sampledContentEngineMs: Math.round(sampledEngineMs * 100) / 100, frameMeasurementValid, p95FrameIntervalMs: frameMeasurementValid ? percentile(workload.intervals, .95) : null, p95SyntheticInteractionMs: frameMeasurementValid ? percentile(workload.interactionToTwoFrames, .95) : null, ...workload });
       await writeFile(join(out, 'partial-results.json'), JSON.stringify({ configuration: { repeatCount, modes }, samples }, null, 2));
-      console.log(`${repeat + 1}/${repeatCount} ${mode.renderer}/${mode.theme || 'original'}: ${metrics.TaskDurationMs} ms main-thread tasks, ${sampledEngineMs.toFixed(1)} ms sampled engine`);
+      console.log(`${repeat + 1}/${repeatCount} ${mode.theme || 'original'}: ${metrics.TaskDurationMs} ms main-thread tasks, ${sampledEngineMs.toFixed(1)} ms sampled engine`);
     }
   }
   await writeFile(join(out, 'results.json'), JSON.stringify({ recordedAt: new Date().toISOString(), browser: context.browser()?.version(), configuration: { repeatCount, modes }, samples, limitations: ['Local fixture and headless browser; no product performance pass implied.', 'Playwright dispatches trusted click input, but click-to-two-rAF remains a laboratory rendering-opportunity measure rather than field INP.', 'CPU sampling covers page content engines, not extension worker CPU or all native rendering work.', 'Frame intervals and task duration include theme effects. Theme cost is not isolated by subtracting sampled engine values.', 'Navigations are warm-cache after the first run; loadToApplied includes automation and scheduling.', 'A verified equivalent-output frozen-style control, paint/composite traces, foreground runs, and real-site traces remain necessary for complete attribution.'] }, null, 2));
