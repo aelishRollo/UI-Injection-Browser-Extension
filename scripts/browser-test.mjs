@@ -190,6 +190,54 @@ try {
       });
   }
 
+  await check('in-page theme changes never reveal authored styles between themes', async () => {
+    await set({ enabled: true, theme: 'terminal-vision' });
+    await waitStatus({ state: 'active', theme: 'terminal-vision' });
+    const canvases = {
+      'browser-archeology': 'rgb(0, 128, 128)',
+      'liquid-dream': 'rgb(248, 241, 231)',
+      'terminal-vision': 'rgb(6, 17, 11)'
+    };
+    let previous = 'terminal-vision';
+    for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
+      await page.evaluate(() => {
+        window.__surfaceSwitchFrames = [];
+        window.__surfaceSamplingSwitch = true;
+        const sample = () => {
+          const root = document.documentElement;
+          const body = document.body;
+          window.__surfaceSwitchFrames.push({
+            bodyOpacity: getComputedStyle(body).opacity,
+            rootBackground: getComputedStyle(root).backgroundColor,
+            switching: root.getAttribute('data-surface-switching-v2'),
+            theme: root.getAttribute('data-surface-theme-v2'),
+            pageContext: root.getAttribute('data-surface-context-v1')
+          });
+          if (window.__surfaceSamplingSwitch) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      await set({ theme });
+      await waitStatus({ state: 'active', theme });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+        window.__surfaceSamplingSwitch = false;
+        requestAnimationFrame(resolve);
+      })));
+      const frames = await page.evaluate(() => window.__surfaceSwitchFrames);
+      assert.ok(frames.length >= 2, `${theme} switch sampling was incomplete: ${JSON.stringify(frames)}`);
+      assert.equal(frames.every(frame => frame.bodyOpacity === '0' ||
+        (frame.pageContext === 'page' && [previous, theme].includes(frame.theme))), true,
+      `${theme} switch exposed authored styles: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => frame.switching).every(frame =>
+        frame.bodyOpacity === '0' && frame.rootBackground === canvases[theme]), true,
+      `${theme} switch guard did not use the destination canvas: ${JSON.stringify(frames)}`);
+      assert.equal(frames.at(-1).bodyOpacity, '1');
+      assert.equal(frames.at(-1).theme, theme);
+      assert.equal(frames.at(-1).pageContext, 'page');
+      previous = theme;
+    }
+  });
+
   await check('unified renderer pairs known surfaces and preserves uncertain regions', async () => {
     await set({ enabled: true, theme: 'terminal-vision' });
     const active = await waitStatus({ state: 'active', theme: 'terminal-vision' });

@@ -9,6 +9,9 @@ import * as unifiedRenderer from './contextual.js';
 if (!globalThis.__surfaceUnifiedV2) {
   globalThis.__surfaceUnifiedV2 = true;
   const READY_ATTRIBUTE = 'data-surface-ready-v2';
+  const SWITCHING_ATTRIBUTE = 'data-surface-switching-v2';
+  const SWITCH_BACKGROUND = '--surface-switch-background-v2';
+  const SWITCH_COLOR_SCHEME = '--surface-switch-color-scheme-v2';
   let currentCSS = '';
   const renderer = unifiedRenderer;
   const registeredTheme = window === top && document.documentElement
@@ -22,6 +25,7 @@ if (!globalThis.__surfaceUnifiedV2) {
   let pending = false;
   let applying = false;
   let lastSignature = '';
+  let switchGuardState;
   let status = { state: 'starting', theme: null, error: null, corrections: [], applyCount: 0, applyMs: 0 };
   const sendMessage = chrome.runtime.sendMessage.bind(chrome.runtime);
   const elapsed = started => Math.round((performance.now() - started) * 100) / 100;
@@ -63,6 +67,31 @@ if (!globalThis.__surfaceUnifiedV2) {
     }
     document.documentElement.setAttribute(READY_ATTRIBUTE, '');
   }
+  function beginThemeSwitch(theme) {
+    const root = document.documentElement;
+    if (!root || switchGuardState) return;
+    switchGuardState = {
+      attribute: root.hasAttribute(SWITCHING_ATTRIBUTE) ? root.getAttribute(SWITCHING_ATTRIBUTE) : null,
+      background: { value: root.style.getPropertyValue(SWITCH_BACKGROUND), priority: root.style.getPropertyPriority(SWITCH_BACKGROUND) },
+      colorScheme: { value: root.style.getPropertyValue(SWITCH_COLOR_SCHEME), priority: root.style.getPropertyPriority(SWITCH_COLOR_SCHEME) }
+    };
+    root.style.setProperty(SWITCH_BACKGROUND, theme.colors.background);
+    root.style.setProperty(SWITCH_COLOR_SCHEME, theme.scheme);
+    root.setAttribute(SWITCHING_ATTRIBUTE, theme.id);
+  }
+  function finishThemeSwitch() {
+    const root = document.documentElement;
+    if (!root || !switchGuardState) return;
+    const restoreProperty = (name, original) => {
+      if (original.value) root.style.setProperty(name, original.value, original.priority);
+      else root.style.removeProperty(name);
+    };
+    if (switchGuardState.attribute === null) root.removeAttribute(SWITCHING_ATTRIBUTE);
+    else root.setAttribute(SWITCHING_ATTRIBUTE, switchGuardState.attribute);
+    restoreProperty(SWITCH_BACKGROUND, switchGuardState.background);
+    restoreProperty(SWITCH_COLOR_SCHEME, switchGuardState.colorScheme);
+    switchGuardState = undefined;
+  }
   async function reconcile() {
     pending = true;
     if (applying) return;
@@ -79,6 +108,9 @@ if (!globalThis.__surfaceUnifiedV2) {
         themePicker.render(settings, Boolean(topHost || frameHost));
         const signature = JSON.stringify([enabled, settings.theme, frameHost]);
         if (signature === lastSignature) continue;
+        const theme = THEMES[settings.theme];
+        const switchingTheme = Boolean(enabled && theme && status.state === 'active' && status.theme !== settings.theme);
+        if (switchingTheme) beginThemeSwitch(theme);
         status = { ...status, state: 'applying', error: null, theme: settings.theme, topHost, frameHost, timings };
         const reuseBootstrap = Boolean(bootstrapStart && enabled && settings.theme === bootstrapTheme && window === top);
         if (!reuseBootstrap) {
@@ -90,7 +122,6 @@ if (!globalThis.__surfaceUnifiedV2) {
           await replaceCSS('');
           status = { ...status, state: 'disabled', corrections: [] };
         } else {
-          const theme = THEMES[settings.theme];
           const corrections = getCorrections(frameHost);
           // Classification inspects the author's treatment before expressive CSS.
           await replaceCSS('');
@@ -110,6 +141,7 @@ if (!globalThis.__surfaceUnifiedV2) {
             (reuseBootstrap ? bootstrapTreatment : renderer.prepareReveal()).then(() => { timings.recognitionReadyMs = elapsed(started); })
           ]);
           await revealDocument();
+          finishThemeSwitch();
           bootstrapStart = null;
           bootstrapTheme = '';
           bootstrapTreatment = null;
@@ -126,6 +158,7 @@ if (!globalThis.__surfaceUnifiedV2) {
         await renderer.stop();
         await replaceCSS('').catch(() => {});
         await revealDocument().catch(() => {});
+        finishThemeSwitch();
         lastSignature = '';
         status = { ...status, state: 'error', error: error.message };
       }
