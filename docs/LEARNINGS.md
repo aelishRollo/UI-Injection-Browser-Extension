@@ -68,7 +68,7 @@ Latest owner observation: **navigating between pages has significant latency.** 
 
 Large insertion batches now establish the semantic route owner and fully classify only near-viewport children before the next paint. Offscreen roots use an `IntersectionObserver` to enter the same normal incremental classifier within one viewport margin; large deferred roots remain bounded, and detached roots are unobserved during cleanup. This is scheduling inside the unified renderer, not a second renderer or a reduced semantic mode.
 
-Repeated final and exact-snapshot runs measured 132.4–137.9 ms click-to-frame. The regression also requires the 800th section to receive content treatment after scrolling into view. Twelve unit checks, the build, and all 13 browser checks pass. The five-repeat workload completed 2,000 frames with zero stalls, no recorded long tasks, and 16.7–16.8 ms median p95 frame intervals. These are local regression measurements, not universal navigation guarantees.
+Repeated final and exact-snapshot runs measured 132.4–137.9 ms click-to-frame. The regression also requires the 800th section to receive content treatment after scrolling into view. Twelve unit checks, the build, and all 13 browser checks pass. The exact-snapshot five-repeat workload completed 2,000 frames with zero stalls, no recorded long tasks, and 16.8 ms median p95 frame intervals for every mode. These are local regression measurements, not universal navigation guarantees.
 
 Next experiment: measure a real application that replaces one deeply nested route container, separating application DOM-construction time from Surface time before changing classifier evidence or deferring more work.
 

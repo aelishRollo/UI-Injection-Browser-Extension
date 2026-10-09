@@ -30,7 +30,7 @@ The dedicated navigation check requires the first destination region to be theme
 
 The full 13-check browser suite passed, including first-paint navigation, dynamic DOM, SPA navigation, restoration, frames, theme switching, and the extension controls. Twelve unit checks and the build passed.
 
-The five-repeat standard workload produced 20 valid samples and 2,000 completed frame callbacks with zero stalls and no recorded long tasks. Median p95 frame intervals were 16.7 ms for Terminal Vision and Browser Archeology and 16.8 ms for the original page and Liquid Dream. Median sampled engine time was 130.76 ms Terminal Vision, 139.14 ms Browser Archeology, and 132.74 ms Liquid Dream. This fixture evidence checks for regression under the existing workload; it does not isolate all page or browser costs.
+The exact-snapshot five-repeat standard workload produced 20 valid samples and 2,000 completed frame callbacks with zero stalls and no recorded long tasks. Median p95 frame intervals were 16.8 ms for the original page and all three themes. Median sampled engine time was 24.64 ms Terminal Vision, 31.00 ms Browser Archeology, and 29.65 ms Liquid Dream. This fixture evidence checks for regression under the existing workload; it does not isolate all page or browser costs.
 
 ## Next bounded iteration
 
