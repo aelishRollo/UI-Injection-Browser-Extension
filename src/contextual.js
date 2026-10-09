@@ -16,6 +16,7 @@ const ATTR_THEME = 'data-surface-theme-v2';
 const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
 const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
+const ATTR_DEFERRED_READING = 'data-surface-deferred-reading-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -942,8 +943,7 @@ function scan(root = document, media = mediaRects()) {
 
 const LARGE_ADDITION_LIMIT = 80;
 
-function nearViewport(element) {
-  const rect = element.getBoundingClientRect();
+function nearViewport(rect) {
   const margin = Math.min(innerHeight, 960);
   return rect.width > 0 && rect.height > 0 && rect.bottom >= -margin && rect.top <= innerHeight + margin;
 }
@@ -1013,7 +1013,8 @@ function classifyLargeSemanticRoot(root) {
 
 function scanLargeAddition(root, media) {
   const largeSubtree = root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT;
-  if (!nearViewport(root)) {
+  const rect = root.getBoundingClientRect();
+  if (!nearViewport(rect)) {
     if (!deferMutationRoot(root, largeSubtree)) scan(root, media);
     return;
   }
@@ -1022,6 +1023,11 @@ function scanLargeAddition(root, media) {
     return;
   }
   classifyLargeSemanticRoot(root);
+  // Full foreground and descendant classification stays viewport-bounded, but
+  // a recognized reading route must not expose alternating authored surface
+  // bands below the fold. One owner marker supplies temporary paint continuity
+  // without synchronously styling every deferred child.
+  if (root.getAttribute(ATTR_PURPOSE) === 'reading') setAttribute(root, ATTR_DEFERRED_READING, '');
   for (const child of root.children) scanLargeAddition(child, media);
 }
 

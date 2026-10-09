@@ -31,9 +31,16 @@ try {
   assert.ok(routeFrameMs < 200, `large route navigation blocked the next frame for ${routeFrameMs.toFixed(1)} ms`);
   assert.equal(await page.locator('#route-section-0').getAttribute('data-surface-context-v1'), 'content');
 
-  await page.locator('#route-section-799').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#route-section-799')?.getAttribute('data-surface-context-v1') === 'content');
-  console.log(`PASS large route navigation reached the next frame in ${routeFrameMs.toFixed(1)} ms and themed deferred content on entry`);
+  const deferred = page.locator('#route-section-799');
+  assert.equal(await page.locator('#page').getAttribute('data-surface-deferred-reading-v1'), '', 'a deferred reading route must establish provisional paint continuity');
+  assert.equal(await deferred.getAttribute('data-surface-context-v1'), null, 'offscreen ownership work should remain deferred');
+  assert.equal(await deferred.getAttribute('data-surface-purpose-v1'), null, 'offscreen purpose work should remain deferred');
+  assert.equal(await deferred.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)', 'deferred route regions must not retain an authored light band');
+  assert.equal(await deferred.locator('h2').getAttribute('data-surface-tone-v1'), null, 'offscreen foreground work should remain deferred');
+
+  await deferred.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('#route-section-799 h2')?.hasAttribute('data-surface-tone-v1'));
+  console.log(`PASS large route navigation reached the next frame in ${routeFrameMs.toFixed(1)} ms, kept deferred paint coherent, and themed deferred foregrounds on entry`);
 } finally {
   await context?.close().catch(() => {});
   await fixture.close().catch(() => {});

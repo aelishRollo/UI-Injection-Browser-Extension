@@ -65,6 +65,8 @@ Iteration 14 passes eight unit checks, the build, and all 13 isolated Chromium c
 
 [Iteration 18](EXPERIMENT-18.md) curates an uncommitted recognition prototype rather than accepting it wholesale. The unified path now recognizes substantial neutral linked cards and restrained near-white gradient sections, scopes logo-like marks inside large cards, stabilizes brand paint across incremental rescans, and reuses foreground snapshots. An all-translucent gradient remains authored. A broader deferred-region observer and 20-poll effect lifecycle was rejected after it raised median sampled engine work to 130.76–139.14 ms; the existing bounded six-read settlement remains. The final build, 12 unit checks, all 13 browser checks, and the 149.2 ms large-route regression pass. Median sampled engine work returned to 22.46–25.20 ms with 16.7–16.8 ms median p95 frame intervals in the five-repeat fixture.
 
+[Iteration 19](EXPERIMENT-19.md) removes alternating authored/theme color bands from large SPA destinations without restoring synchronous offscreen classification. A recognized reading route now carries one temporary continuity marker whose theme rule makes direct semantic child regions inherit the reading canvas until the existing intersection schedule performs their complete unified scan. Per-section provisional annotation was rejected after producing a 700.7 ms navigation frame. Five final marker-based runs measured 138.5–198.2 ms, kept the last offscreen foreground unclassified, and replaced its authored white fallback continuously. The build, 12 unit checks, all 13 browser checks, and the standard five-repeat workload pass with zero stalls or long tasks and 16.8 ms median p95 frame intervals.
+
 ## Documentation precedence
 
 Use documentation in this order:

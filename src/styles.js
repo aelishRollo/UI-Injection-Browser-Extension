@@ -35,6 +35,11 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
 
   css.push(rule(':root', { 'color-scheme': theme.scheme, 'accent-color': c.accent, ...(startup ? { '--surface-startup-styles-resident': '1' } : {}) }));
   css.push(rule(`${context('page')}`, { 'background-color': c.background }));
+  // Large SPA routes keep expensive offscreen classification deferred. Their
+  // semantic reading children inherit one continuous canvas in the meantime;
+  // authored background images remain intact, and normal recognized purpose
+  // rules below replace this provisional color when each region is scanned.
+  css.push(rule('[data-surface-deferred-reading-v1] > :where(section,article,[role="region"])', { 'background-color': 'transparent' }));
   css.push(rule(`${context('content')}`, { 'background-color': c.surface, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius }));
   css.push(rule(`${context('chrome')}`, { 'background-color': c.surface, 'border-color': c.line }));
   css.push(rule(`${context('control')}`, { 'background-color': c.control || c.surface, color: c.text, '-webkit-text-fill-color': 'currentColor', '--surface-control-ink-v1': c.text, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius, 'font-family': theme.font }));

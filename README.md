@@ -45,7 +45,7 @@ The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performa
 - Structural and semantic evidence establish paint ownership before visual decoration is applied, including substantial neutral, heading-led panels on composite landing pages.
 - Solid and translucent sRGB layers are composited to resolve readable text; authored pairs that already pass are retained.
 - Brand marks, media relationships, background images, complex effects, and labelled chart units use conservative preservation paths.
-- New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Detached themed nodes are restored and released.
+- New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Large SPA reading routes keep direct semantic child paint continuous while offscreen foreground work remains deferred; detached themed nodes are restored and released.
 - On full navigation, a compact selected-theme first-paint sheet and the unified renderer are already resident at `document_start`. It contains the real theme's surfaces, typography, hierarchy, and primary motifs; interaction and secondary state rules arrive in the full USER-origin sheet. The renderer follows parser mutations before paint, and a short guard releases after the first parser-time treatment. USER-origin handoff and the final document pass do not control first visibility.
 - Expressive CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints were removed after measured frame stalls.
 - Verified role corrections apply automatically only where general semantics are unavailable.
