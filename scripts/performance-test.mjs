@@ -106,7 +106,7 @@ try {
       profile.samples?.forEach((id, i) => { if (isEngine(id)) sampledEngineMs += (profile.timeDeltas[i] || 0) / 1000; });
       const metrics = Object.fromEntries(['TaskDuration', 'ScriptDuration', 'RecalcStyleDuration', 'LayoutDuration'].map(name => [name + 'Ms', Math.round((after[name] - before[name]) * 100000) / 100]));
       const frameMeasurementValid = workload.completedFrames === 100 && workload.stalledFrames === 0;
-      samples.push({ ...mode, repeat, loadToAppliedMs, applyMs: active.applyMs, metrics, sampledContentEngineMs: Math.round(sampledEngineMs * 100) / 100, frameMeasurementValid, p95FrameIntervalMs: frameMeasurementValid ? percentile(workload.intervals, .95) : null, p95SyntheticInteractionMs: frameMeasurementValid ? percentile(workload.interactionToTwoFrames, .95) : null, ...workload });
+      samples.push({ ...mode, repeat, loadToAppliedMs, applyMs: active.applyMs, styleHandoff: active.renderer?.styleHandoff, metrics, sampledContentEngineMs: Math.round(sampledEngineMs * 100) / 100, frameMeasurementValid, p95FrameIntervalMs: frameMeasurementValid ? percentile(workload.intervals, .95) : null, p95SyntheticInteractionMs: frameMeasurementValid ? percentile(workload.interactionToTwoFrames, .95) : null, ...workload });
       await writeFile(join(out, 'partial-results.json'), JSON.stringify({ configuration: { repeatCount, modes }, samples }, null, 2));
       console.log(`${repeat + 1}/${repeatCount} ${mode.theme || 'original'}: ${metrics.TaskDurationMs} ms main-thread tasks, ${sampledEngineMs.toFixed(1)} ms sampled engine`);
     }

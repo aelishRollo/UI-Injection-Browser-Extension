@@ -20,7 +20,7 @@ await mkdir(out, { recursive: true });
 const profile = await mkdtemp(join(tmpdir(), 'surface-live-'));
 let context;
 const results = [];
-const hashes = Object.fromEntries(await Promise.all(['content.js', 'contextual.js', 'background.js'].map(async name => [name, createHash('sha256').update(await readFile(`dist/${name}`)).digest('hex')])));
+const hashes = Object.fromEntries(await Promise.all(['content.js', 'background.js'].map(async name => [name, createHash('sha256').update(await readFile(`dist/${name}`)).digest('hex')])));
 try {
   context = await chromium.launchPersistentContext(profile, {
     executablePath: await chromiumPath(), headless: true, viewport: { width: 1440, height: 1000 },

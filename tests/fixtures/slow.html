@@ -6,6 +6,6 @@
   <link rel="stylesheet" href="fixture.css">
   <style>#startup-shell{min-height:100vh;background:#fff}</style>
 </head><body>
-  <div id="startup-shell"><main><article><h1>Theme before first view</h1><p>This document pauses parsing long enough to exercise visible startup frames.</p><p>The authored page must stay hidden until Surface has classified it.</p><p>The first visible frame should already use the selected theme.</p></article></main></div>
+  <div id="startup-shell"><main><article><h1>Theme before first view</h1><p>This document pauses parsing long enough to exercise visible startup frames.</p><p>The selected theme must be resident while the parser builds the page.</p><p>The first visible frame should already use the selected theme.</p></article></main></div>
   <script src="/slow-script.js"></script>
 </body></html>

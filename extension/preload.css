@@ -1,11 +1,15 @@
-/* Keep authored content out of the first frame while preserving an opaque
-   browser canvas. A persisted document_start stylesheet supplies the active
-   theme variables before content.js performs any asynchronous work. */
+/* A persisted document_start stylesheet supplies the exact selected canvas
+   before content.js runs. The unified renderer and complete theme stylesheet
+   are resident at the same lifecycle point, so authored content does not need
+   to wait behind a visibility guard. */
 :root:not([data-surface-ready-v2]) {
   background-color: var(--surface-startup-background, Canvas) !important;
   color-scheme: var(--surface-startup-color-scheme, normal) !important;
 }
 
+/* The parser-time renderer releases this at its first rendering opportunity.
+   It prevents a partially classified content paint without waiting for the
+   later full-document pass. */
 :root:not([data-surface-ready-v2]) > body {
   opacity: 0 !important;
 }

@@ -12,6 +12,8 @@ const ATTR_PAIR = 'data-surface-pair-v1';
 const ATTR_WINDOW = 'data-surface-window-v1';
 const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
 const ATTR_STARTING = 'data-surface-starting-v2';
+const ATTR_THEME = 'data-surface-theme-v2';
+const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
 const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
@@ -24,9 +26,12 @@ let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
 let running = false;
 let activeTheme = '';
+let userStylesReady = false;
 let scanViewportBottom = 0;
 let scanViewportMembership;
 let initialViewportScanMs = 0;
+let parserScanCompleted = false;
+let initialStageMs = {};
 let palette;
 let activeCorrections = { roles: {}, preserve: [] };
 let touched = new Map();
@@ -430,10 +435,26 @@ export async function prepareReveal() {
   // body is still guarded. The timeout keeps background tabs from waiting on
   // a throttled animation frame.
   await layoutOpportunity();
-  // Classify everything parsed so far before the first visible content frame.
-  // Parser additions are observed immediately, and DOMContentLoaded still gets
-  // one complete authoritative pass for relationships that arrived later.
-  if (document.documentElement.hasAttribute(ATTR_STARTING)) finishInitialViewportScan();
+  if (!document.documentElement.hasAttribute(ATTR_STARTING)) return;
+  // Usually the parser observer has already run the unified recognizers over
+  // every node that can paint in this frame. Avoid repeating that work over a
+  // large document. executeScript on an already-loaded page has no parser
+  // mutations to observe, so it retains the bounded viewport fallback.
+  if (parserScanCompleted && initialViewportHasTheme()) markInitialCanvas();
+  else finishInitialViewportScan();
+}
+
+function initialViewportHasTheme() {
+  if (document.documentElement.getAttribute(ATTR_CONTEXT) !== 'page') return false;
+  const inViewport = element => {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && rect.bottom >= 0 && rect.top <= innerHeight;
+  };
+  const landmarks = [...document.querySelectorAll('main,[role="main"],article')].filter(inViewport);
+  if (landmarks.some(element => !element.hasAttribute(ATTR_CONTEXT) && !element.hasAttribute(ATTR_PURPOSE))) return false;
+  const titles = [...document.querySelectorAll('h1,[role="heading"][aria-level="1"]')].filter(inViewport);
+  return titles.every(element => element.hasAttribute(ATTR_PURPOSE) &&
+    (element.hasAttribute(ATTR_TONE) || element.querySelector(`[${ATTR_TONE}]`)));
 }
 
 function markUtilityPanels(root) {
@@ -569,6 +590,18 @@ function markPage() {
     setAttribute(element, ATTR_CONTEXT, 'page');
     setAttribute(element, ATTR_CONFIDENCE, 'high');
   }
+}
+
+function markTheme() {
+  if (!document.documentElement) return;
+  setAttribute(document.documentElement, ATTR_THEME, activeTheme);
+  if (userStylesReady) setAttribute(document.documentElement, ATTR_USER_STYLES, '');
+}
+
+export function confirmUserStyles() {
+  if (!running || !document.documentElement) return;
+  userStylesReady = true;
+  markTheme();
 }
 
 function markControls(root, media) {
@@ -755,18 +788,30 @@ function markText(root, media) {
 
 function scan(root = document, media = mediaRects()) {
   if (!running || !document.body) return;
-  if (root === document || root === document.documentElement || root === document.body) markPage();
-  markBrands(root);
-  markSurfaces(root);
-  markControls(root, media);
-  markPurposes(root);
-  markVisualizations(root);
-  markShells(root);
-  markUtilityPanels(root);
-  markNavigationFades(root);
-  markWindows(root);
-  markGlyphs(root);
-  markText(root, media);
+  const run = (name, operation) => {
+    if (!scanViewportBottom) return operation();
+    const started = performance.now();
+    operation();
+    initialStageMs[name] = Math.round(((initialStageMs[name] || 0) + performance.now() - started) * 100) / 100;
+  };
+  if (root === document || root === document.documentElement || root === document.body) {
+    // A parser mutation rooted at <html> can restore the entire tracked
+    // subtree before reclassification. Reassert theme activation in that same
+    // task so the resident stylesheet never becomes inert for a paint.
+    markTheme();
+    run('page', markPage);
+  }
+  run('brands', () => markBrands(root));
+  run('surfaces', () => markSurfaces(root));
+  run('controls', () => markControls(root, media));
+  run('purposes', () => markPurposes(root));
+  run('visualizations', () => markVisualizations(root));
+  run('shells', () => markShells(root));
+  run('utilityPanels', () => markUtilityPanels(root));
+  run('navigationFades', () => markNavigationFades(root));
+  run('windows', () => markWindows(root));
+  run('glyphs', () => markGlyphs(root));
+  run('text', () => markText(root, media));
 }
 
 function scheduleScans(records) {
@@ -801,6 +846,7 @@ function scheduleScans(records) {
       restoreSubtree(root);
       scan(root, media);
     }
+    if (document.documentElement.hasAttribute(ATTR_STARTING)) parserScanCompleted = true;
     // Parser-driven growth can turn an initially short neutral wrapper into the
     // viewport canvas. Refresh this bounded evidence in the same pre-paint
     // mutation batch while startup treatment is active.
@@ -826,6 +872,7 @@ function finishInitialScan() {
   // task, so the temporary canvas treatment is replaced without an in-between
   // authored paint.
   restoreAll();
+  markTheme();
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
   scan(document);
   observe();
@@ -835,11 +882,13 @@ function finishInitialViewportScan() {
   if (!running || !document.body) return;
   const started = performance.now();
   restoreAll();
+  markTheme();
   // Use the authoritative recognizers on only the content that can contribute
   // to the first frame. This bounds startup cost on long documents without a
   // separate renderer or a broad temporary recoloring rule.
   scanViewportBottom = innerHeight + Math.min(240, innerHeight * .25);
   scanViewportMembership = new WeakMap();
+  initialStageMs = {};
   try {
     scan(document);
   } finally {
@@ -861,6 +910,10 @@ function initialize() {
   if (!running || !document.body || observer || readinessListener) return;
   setAttribute(document.documentElement, ATTR_STARTING, '');
   markInitialCanvas();
+  // Start the same mutation pipeline while the parser is building the page.
+  // Parser additions are classified in microtasks before a rendering
+  // opportunity instead of appearing under a temporary generic treatment.
+  observe();
   let resolveCompletion;
   let rejectCompletion;
   const completion = new Promise((resolve, reject) => {
@@ -891,10 +944,14 @@ export async function start(theme, corrections) {
   if (running) stop();
   running = true;
   activeTheme = theme.id;
+  userStylesReady = false;
   palette = theme.colors;
   activeCorrections = corrections;
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
   initialViewportScanMs = 0;
+  parserScanCompleted = false;
+  initialStageMs = {};
+  markTheme();
   if (!document.body) {
     await new Promise(resolve => {
       const bodyObserver = new MutationObserver(() => {
@@ -918,12 +975,17 @@ export function stop() {
   readinessListener = undefined;
   running = false;
   restoreAll();
+  userStylesReady = false;
 }
 
 export function diagnostics() {
   const count = value => document.querySelectorAll(`[${ATTR_CONTEXT}="${value}"]`).length;
   return {
     adapter: 'unified-v1', enabled: running,
+    styleHandoff: {
+      residentTheme: document.documentElement?.getAttribute(ATTR_THEME) || null,
+      userStyles: document.documentElement?.hasAttribute(ATTR_USER_STYLES) || false
+    },
     trackedElements: touched.size,
     regions: { page: count('page'), shells: count('shell'), content: count('content'), visualizations: count('visualization'), chrome: count('chrome'), controls: count('control'), overlays: count('overlay'), brands: count('brand') },
     text: { themed: document.querySelectorAll(`[${ATTR_TONE}="theme"]`).length, preserved: document.querySelectorAll(`[${ATTR_TONE}="preserve"]`).length },
@@ -932,6 +994,7 @@ export function diagnostics() {
     icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length, navigationFades: document.querySelectorAll(`[${ATTR_NAVIGATION_FADE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     initialViewportScanMs,
+    initialStageMs: { ...initialStageMs },
     uncertainty: { ...uncertainty }
   };
 }

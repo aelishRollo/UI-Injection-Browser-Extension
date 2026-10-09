@@ -29,6 +29,7 @@ try {
   const extensionId = new URL(worker.url()).host;
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(e.message));
+  page.on('crash', () => console.error('Chromium renderer crashed during browser test'));
   const set = patch => worker.evaluate(async patch => {
     const { settings = {} } = await chrome.storage.local.get('settings');
     await chrome.storage.local.set({ settings: { ...settings, ...patch } });
@@ -74,7 +75,7 @@ try {
   const original = await appearance();
   await page.screenshot({ path: join(out, 'original.png') });
 
-  await check('full navigation starts with the selected complete theme', async () => {
+  await check('full navigation starts with the selected theme treatment', async () => {
     await page.addInitScript(() => {
       window.__surfaceStartupFrames = [];
       const sample = () => {
@@ -88,10 +89,16 @@ try {
           rootBackground: getComputedStyle(root).backgroundColor,
           bodyOpacity: body ? getComputedStyle(body).opacity : null,
           ready: root.hasAttribute('data-surface-ready-v2'),
+          residentTheme: getComputedStyle(root).getPropertyValue('--surface-startup-theme').trim(),
+          residentStyles: getComputedStyle(root).getPropertyValue('--surface-startup-styles-resident').trim(),
+          activeTheme: root.getAttribute('data-surface-theme-v2'),
+          userStyles: root.hasAttribute('data-surface-user-styles-v2'),
           themed: root.getAttribute('data-surface-context-v1') === 'page',
           shell: document.querySelector('#startup-shell')?.getAttribute('data-surface-context-v1') || null,
           shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null,
           articleContext: article?.getAttribute('data-surface-context-v1') || null,
+          articlePresent: Boolean(article),
+          titlePresent: Boolean(title),
           titlePurpose: title?.getAttribute('data-surface-purpose-v1') || null,
           titleTone: title?.getAttribute('data-surface-tone-v1') || null,
           titleBackground: title ? getComputedStyle(title).backgroundColor : null,
@@ -109,11 +116,15 @@ try {
     for (const [theme, colors] of Object.entries(expected)) {
       await set({ enabled: true, theme });
       await waitStartupStyle(theme);
-      const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
+      let navigationError;
+      const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' }).catch(error => { navigationError = error; });
       await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
       const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
       assert.equal(await page.evaluate(() => document.readyState), 'loading', `${theme} should reveal before a parser-blocking script finishes`);
       assert.equal(firstVisible.themed, true, `${theme} page context missing at reveal`);
+      assert.equal(firstVisible.residentTheme, theme, `${theme} startup treatment was not resident at document_start`);
+      assert.equal(firstVisible.residentStyles === '1' || firstVisible.userStyles, true, `${theme} had neither first-paint styles nor USER-origin styles at reveal`);
+      assert.equal(firstVisible.activeTheme === theme || firstVisible.userStyles, true, `${theme} had neither its resident stylesheet nor USER-origin handoff active at reveal`);
       assert.equal(firstVisible.shell, 'shell', `${theme} shell context missing at reveal`);
       assert.equal(firstVisible.shellBackground, colors.canvas, `${theme} shell paint missing at reveal`);
       assert.equal(firstVisible.articleContext, 'content', `${theme} content classification missing at reveal`);
@@ -122,11 +133,15 @@ try {
       if (colors.title) assert.equal(firstVisible.titleBackground, colors.title, `${theme} title motif missing at reveal`);
       if (colors.liquidTitle) assert.notEqual(firstVisible.titleBackgroundImage, 'none', `${theme} title motif missing at reveal`);
       await navigation;
+      if (navigationError) throw navigationError;
       await waitStatus({ state: 'active', theme });
       const frames = await page.evaluate(() => window.__surfaceStartupFrames);
-      assert.ok(frames.some(frame => frame.bodyOpacity === '0' && !frame.ready), `${theme} expected a guarded startup frame: ${JSON.stringify(frames)}`);
-      assert.equal(frames.some(frame => frame.bodyOpacity !== null && frame.bodyOpacity !== '0' && !frame.ready), false, `${theme} exposed authored content before classification: ${JSON.stringify(frames)}`);
-      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.rootBackground === colors.canvas), true, `${theme} used the wrong guarded canvas: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.residentTheme === theme), true, `${theme} selected startup token was not resident throughout startup: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => frame.bodyOpacity !== '0').every(frame => frame.residentStyles === '1' || frame.userStyles), true, `${theme} exposed content without active theme styles: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.rootBackground === colors.canvas), true, `${theme} used the wrong startup canvas: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => (frame.titlePresent || frame.articlePresent) && frame.bodyOpacity !== '0').some(frame =>
+        !frame.themed || !frame.articleContext || !frame.titlePurpose || !frame.titleTone
+      ), false, `${theme} exposed a placeholder or unclassified content frame: ${JSON.stringify(frames)}`);
       assert.equal(frames.at(-1).ready, true);
       assert.equal(frames.at(-1).themed, true);
     }
