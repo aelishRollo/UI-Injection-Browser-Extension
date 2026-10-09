@@ -5,6 +5,8 @@
 Source: the three corresponding files under the user's reference project `assets/css/skins/`.
 This is internal authoring v1, not an XML/JSON interoperability standard.
 
+The current adaptation boundary is a validated declarative treatment contract. `src/themes.js` is the registry, and each definition lives independently under `src/theme-definitions/`. A theme supplies palette and typography tokens, icon style, optional packaged assets, stable context/state treatments, purpose treatments, a compact startup-compatible subset, and bounded responsive rules. `src/styles.js` compiles those declarations against the unified renderer's annotations. Theme definitions do not classify the page, contain host selectors, or create another renderer path. The build rejects incomplete tokens, unknown treatment targets, remote asset paths, missing declared assets, and malformed responsive or scalar-grid definitions; unit checks also enforce base-pair contrast, stylesheet size budgets, and the absence of keyframes, animation declarations, and fixed paint.
+
 | Theme | Recognizable traits carried over | Style-only adaptation |
 |---|---|---|
 | Browser Archeology | Teal desktop, white document surfaces, gray system chrome, navy accents, blue underlined links, beveled controls, serif body and sans-serif headings | Based on `browser-archaeology.css`. A narrow navy inset rule suggests window chrome without inserting fake toolbars, labels, or title-bar buttons. Existing content and icons stay in place. |

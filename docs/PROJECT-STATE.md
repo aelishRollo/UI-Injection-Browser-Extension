@@ -2,11 +2,12 @@
 
 > **Authoritative architecture record.** Read this before changing Surface. If an older experiment, finding, screenshot note, or next-step recommendation conflicts with this file, this file wins.
 
-Last confirmed October 8, 2026. Surface is version 0.2.0 and has one product rendering path.
+Last confirmed October 9, 2026. Surface is version 0.2.0 and has one product rendering path.
 
 ## Current architecture
 
 - One purpose-aware renderer serves Browser Archeology, Liquid Dream, and Terminal Vision.
+- Each theme is a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. `src/styles.js` compiles that contract; it does not select theme-specific renderer branches.
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
 - Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.
 - Short pointer-transparent bottom fades attached to recognized sticky navigation rails receive theme-native terminal paint instead of retaining a light-site strip.
@@ -57,6 +58,8 @@ The follow-up [Iteration 13](EXPERIMENT-13.md) corrects Iteration 12's unaccepta
 Iteration 14 passes eight unit checks, the build, and all 13 isolated Chromium checks. Its five-repeat workload completed 2,000 frame callbacks with zero stalls and 16.8 ms median p95 frame intervals for the original and every theme.
 
 [Iteration 15](EXPERIMENT-15.md) corrects the remaining distinction between an exact loading canvas and the actual expressive theme. A compact theme-native first-paint sheet and the single renderer are now resident at `document_start`; parser mutations receive unified recognition before their rendering opportunity, and the root theme activation is reasserted by every document-root scan. The three-theme startup regression rejects visible unclassified content, not merely the wrong canvas. A final first-released-state capture of the reported Wikipedia article showed the full Terminal treatment and green viewport edges with no white or generic-dark intermediate state; its viewport fallback took 82.6 ms. The final repeated workload completed 2,000 frames with zero stalls and 16.7–16.8 ms median p95 intervals across original and all themes.
+
+[Iteration 16](EXPERIMENT-16.md) integrates the scalable theme-package lesson from the rollison.dev implementations without importing their known-DOM selectors, animation, randomization, or transition system. Theme-specific treatment branches moved from the stylesheet compiler into validated theme definitions. The compiler output for all three full sheets and all three startup sheets remained byte-for-byte identical across the refactor. Twelve unit checks, the build, and all 13 isolated Chromium checks pass. The five-repeat workload again completed 2,000 frames with zero stalls and 16.7–16.8 ms median p95 intervals.
 
 ## Documentation precedence
 

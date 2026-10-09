@@ -1,7 +1,13 @@
 import { build } from 'esbuild';
-import { cp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { THEMES } from '../src/themes.js';
+import { assertThemeContract } from '../src/theme-contract.js';
 import { buildStyles } from '../src/styles.js';
+
+for (const theme of Object.values(THEMES)) {
+  assertThemeContract(theme);
+  await Promise.all(theme.assets.map(asset => access(`extension/${asset.path}`)));
+}
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist', { recursive: true });

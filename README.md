@@ -40,6 +40,7 @@ The isolated fixture uses ports 4173 and 4174. Browser and performance commands 
 ## Rendering model
 
 - A single purpose-aware renderer handles every theme.
+- Theme identity is authored as a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. Adding a theme does not add a renderer path.
 - Structural and semantic evidence establish paint ownership before visual decoration is applied, including substantial neutral, heading-led panels on composite landing pages.
 - Solid and translucent sRGB layers are composited to resolve readable text; authored pairs that already pass are retained.
 - Brand marks, media relationships, background images, complex effects, and labelled chart units use conservative preservation paths.
