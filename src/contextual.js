@@ -21,6 +21,7 @@ const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
 
 let observer;
+let deferredMutationObserver;
 let readinessListener;
 let visualEffectListener;
 let effectSettleTimer;
@@ -28,6 +29,9 @@ const pendingEffectOwners = new Map();
 let scanScheduled = false;
 let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
+let queuedAddedElements = 0;
+const deferredMutationRoots = new Set();
+const deferredLargeMutationRoots = new WeakSet();
 let running = false;
 let activeTheme = '';
 let userStylesReady = false;
@@ -861,14 +865,103 @@ function scan(root = document, media = mediaRects()) {
   run('text', () => markText(root, media, originalForegrounds));
 }
 
+const LARGE_ADDITION_LIMIT = 80;
+
+function nearViewport(element) {
+  const rect = element.getBoundingClientRect();
+  const margin = Math.min(innerHeight, 960);
+  return rect.width > 0 && rect.height > 0 && rect.bottom >= -margin && rect.top <= innerHeight + margin;
+}
+
+function deferMutationRoot(root, large = false) {
+  if (!('IntersectionObserver' in window) || !root.isConnected) return false;
+  if (!deferredMutationObserver) {
+    deferredMutationObserver = new IntersectionObserver(entries => {
+      const records = [];
+      for (const entry of entries) {
+        if (!entry.isIntersecting || !entry.target.isConnected) continue;
+        deferredMutationObserver.unobserve(entry.target);
+        deferredMutationRoots.delete(entry.target);
+        const type = deferredLargeMutationRoots.has(entry.target) ? 'deferred-large-mutation' : 'deferred-mutation';
+        deferredLargeMutationRoots.delete(entry.target);
+        records.push({ type, target: entry.target });
+      }
+      if (records.length) scheduleScans(records);
+    }, { rootMargin: '100% 0px' });
+  }
+  deferredMutationObserver.observe(root);
+  deferredMutationRoots.add(root);
+  if (large) deferredLargeMutationRoots.add(root);
+  return true;
+}
+
+function hasTextContent(element, threshold) {
+  let length = 0;
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    length += node.textContent.trim().length;
+    if (length >= threshold) return true;
+  }
+  return false;
+}
+
+function classifyLargeSemanticRoot(root) {
+  if (!isVisible(root) || isProtected(root) || root.closest(`[${ATTR_CONTEXT}="brand"]`)) return;
+  if (root.matches('header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
+    if (getComputedStyle(root).backgroundImage === 'none') {
+      setAttribute(root, ATTR_CONTEXT, 'chrome');
+      setAttribute(root, ATTR_CONFIDENCE, 'high');
+      setAttribute(root, ATTR_PURPOSE, 'navigation');
+      setAttribute(root, 'data-surface-evidence-v1', 'semantic-navigation');
+    }
+    return;
+  }
+  if (!root.matches('main,[role="main"],article,aside,section,[role="region"]')) return;
+  const style = getComputedStyle(root);
+  if (style.backgroundImage !== 'none') return;
+  const controls = root.querySelectorAll('button,input,select,textarea,[role="button"]');
+  const paragraphs = root.querySelectorAll('p').length;
+  if (root.matches('main,[role="main"],article') && paragraphs >= 3 &&
+      controls.length <= Math.max(6, paragraphs * 2) && hasTextContent(root, 300)) {
+    setAttribute(root, ATTR_CONTEXT, 'content');
+    setAttribute(root, ATTR_CONFIDENCE, 'high');
+    setAttribute(root, ATTR_PURPOSE, 'reading');
+    setAttribute(root, 'data-surface-evidence-v1', 'prose-landmark');
+  } else {
+    if (controls.length > 6 || !hasTextContent(root, 40)) return;
+    setAttribute(root, ATTR_CONTEXT, 'content');
+    setAttribute(root, ATTR_CONFIDENCE, 'high');
+    setAttribute(root, ATTR_PURPOSE, root.parentElement?.closest(`[${ATTR_PURPOSE}="reading"]`) ? 'section' : 'panel');
+    setAttribute(root, 'data-surface-evidence-v1', 'content-hierarchy');
+  }
+}
+
+function scanLargeAddition(root, media) {
+  const largeSubtree = root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT;
+  if (!nearViewport(root)) {
+    if (!deferMutationRoot(root, largeSubtree)) scan(root, media);
+    return;
+  }
+  if (!largeSubtree) {
+    scan(root, media);
+    return;
+  }
+  classifyLargeSemanticRoot(root);
+  for (const child of root.children) scanLargeAddition(child, media);
+}
+
 function scheduleScans(records) {
   for (const record of records) {
     if (record.type === 'childList') {
-      for (const node of record.addedNodes) if (node instanceof Element) queuedRoots.add(node);
+      for (const node of record.addedNodes) if (node instanceof Element) {
+        queuedRoots.add(node);
+        queuedAddedElements++;
+      }
       for (const node of record.removedNodes) if (node instanceof Element) queuedRemovedRoots.add(node);
     } else {
       const target = record.target.nodeType === Node.TEXT_NODE ? record.target.parentElement : record.target;
       if (target instanceof Element) queuedRoots.add(target);
+      if (record.type === 'deferred-large-mutation') queuedAddedElements += LARGE_ADDITION_LIMIT;
     }
   }
   if ((!queuedRoots.size && !queuedRemovedRoots.size) || scanScheduled) return;
@@ -878,9 +971,17 @@ function scheduleScans(records) {
     if (!running) {
       queuedRoots.clear();
       queuedRemovedRoots.clear();
+      queuedAddedElements = 0;
       return;
     }
-    for (const root of queuedRemovedRoots) if (!root.isConnected) restoreSubtree(root);
+    for (const root of queuedRemovedRoots) if (!root.isConnected) {
+      for (const deferred of deferredMutationRoots) if (deferred === root || root.contains(deferred)) {
+        deferredMutationObserver?.unobserve(deferred);
+        deferredMutationRoots.delete(deferred);
+        deferredLargeMutationRoots.delete(deferred);
+      }
+      restoreSubtree(root);
+    }
     queuedRemovedRoots.clear();
     const roots = [...queuedRoots].filter(root => root.isConnected).map(root =>
       // A previously themed text ancestor changes the inherited foreground
@@ -890,14 +991,19 @@ function scheduleScans(records) {
       // group rather than turning every mutation into a document rescan.
       root.parentElement?.closest(`[${ATTR_TONE}],[${ATTR_CONTEXT}="control"]`) || root);
     queuedRoots.clear();
+    const addedElements = queuedAddedElements;
+    queuedAddedElements = 0;
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
     if (!outermost.length) return;
+    const largeAddition = addedElements >= LARGE_ADDITION_LIMIT ||
+      (addedElements > 0 && outermost.some(root => root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT));
     const media = mediaRects();
     for (const root of outermost) {
       // Recompute the affected subtree from authored state. This covers common
       // SPA class/state/text updates without repeatedly rescanning the document.
-      restoreSubtree(root);
-      scan(root, media);
+      if (!largeAddition || touched.has(root)) restoreSubtree(root);
+      if (largeAddition) scanLargeAddition(root, media);
+      else scan(root, media);
     }
     if (document.documentElement.hasAttribute(ATTR_STARTING)) parserScanCompleted = true;
     // Parser-driven growth can turn an initially short neutral wrapper into the
@@ -1031,6 +1137,9 @@ export async function start(theme, corrections) {
 export function stop() {
   observer?.disconnect();
   observer = undefined;
+  deferredMutationObserver?.disconnect();
+  deferredMutationObserver = undefined;
+  deferredMutationRoots.clear();
   if (visualEffectListener) for (const type of ['transitionend', 'transitioncancel', 'animationend', 'animationcancel']) {
     document.removeEventListener(type, visualEffectListener, true);
   }
@@ -1040,6 +1149,7 @@ export function stop() {
   pendingEffectOwners.clear();
   queuedRoots.clear();
   queuedRemovedRoots.clear();
+  queuedAddedElements = 0;
   scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);
   readinessListener = undefined;

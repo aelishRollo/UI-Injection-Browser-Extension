@@ -61,6 +61,8 @@ Iteration 14 passes eight unit checks, the build, and all 13 isolated Chromium c
 
 [Iteration 16](EXPERIMENT-16.md) integrates the scalable theme-package lesson from the rollison.dev implementations without importing their known-DOM selectors, animation, randomization, or transition system. Theme-specific treatment branches moved from the stylesheet compiler into validated theme definitions. The compiler output for all three full sheets and all three startup sheets remained byte-for-byte identical across the refactor. Twelve unit checks, the build, and all 13 isolated Chromium checks pass. The five-repeat workload again completed 2,000 frames with zero stalls and 16.7–16.8 ms median p95 intervals.
 
+[Iteration 17](EXPERIMENT-17.md) bounds large incremental route insertions to content near the viewport before the next paint, then sends offscreen roots through the same unified classifier as they approach view. A deterministic 800-region SPA transition fell from 1,244.4 ms to 132.4–137.9 ms click-to-frame in repeated local Chromium runs while the final region was still classified after scrolling into view. Twelve unit checks, the build, and all 13 browser checks pass. The five-repeat workload completed 2,000 frames with zero stalls, no recorded long tasks, and 16.7–16.8 ms median p95 frame intervals.
+
 ## Documentation precedence
 
 Use documentation in this order:

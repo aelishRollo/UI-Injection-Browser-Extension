@@ -28,12 +28,13 @@ npm run build
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:navigation
 npm run test:live
 npm run test:performance
 npm run fixtures
 ```
 
-The isolated fixture uses ports 4173 and 4174. Browser and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
+The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, navigation, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
 
 `npm run test:live` captures the three themes on six public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
 
