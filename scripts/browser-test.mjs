@@ -228,6 +228,41 @@ try {
       }
       assert.equal(await page.locator('#authored-color-title').getAttribute('data-surface-tone-v1'), 'preserve');
       assert.equal(await colorOf('#authored-color-title'), 'rgb(255, 255, 255)', `${theme} must preserve a readable heading on an authored colored card`);
+      assert.equal(await page.locator('#filled-chrome').getAttribute('data-surface-purpose-v1'), 'navigation');
+      for (const selector of ['#filled-chrome-link', '#filled-chrome-copy']) {
+        const pair = await page.locator(selector).evaluate(element => {
+          const style = getComputedStyle(element);
+          return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+        });
+        assert.equal(pair.fill, pair.color, `${theme} ${selector} glyph fill must follow its resolved foreground`);
+        assert.ok(contrastRatio(parseColor(pair.fill), parseColor(pair.background)) >= 4.5, `${theme} ${selector}: ${pair.fill} on ${pair.background}`);
+        assert.equal(await page.locator(selector).getAttribute('data-surface-pair-v1'), 'theme');
+      }
+      await page.locator('#filled-chrome-link').evaluate(element => { element.textContent = 'Updated support'; });
+      await page.waitForTimeout(100);
+      const updatedChromeLink = await page.locator('#filled-chrome-link').evaluate(element => {
+        const style = getComputedStyle(element);
+        return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+      });
+      assert.equal(updatedChromeLink.fill, updatedChromeLink.color, `${theme} incrementally rescanned glyph fill`);
+      assert.ok(contrastRatio(parseColor(updatedChromeLink.fill), parseColor(updatedChromeLink.background)) >= 4.5,
+        `${theme} incrementally rescanned chrome text: ${updatedChromeLink.fill} on ${updatedChromeLink.background}`);
+      assert.equal(await page.locator('#filled-chrome-link').getAttribute('data-surface-pair-v1'), 'theme');
+      await page.locator('#filled-chrome').evaluate(element => {
+        element.style.opacity = '.5';
+        element.querySelector('#filled-chrome-copy').textContent += ' Updated during animation.';
+      });
+      await page.waitForTimeout(100);
+      await page.locator('#filled-chrome').evaluate(element => { element.style.opacity = '1'; });
+      await page.waitForTimeout(350);
+      const settledChromeCopy = await page.locator('#filled-chrome-copy').evaluate(element => {
+        const style = getComputedStyle(element);
+        return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+      });
+      assert.equal(settledChromeCopy.fill, settledChromeCopy.color, `${theme} settled animation glyph fill`);
+      assert.ok(contrastRatio(parseColor(settledChromeCopy.fill), parseColor(settledChromeCopy.background)) >= 4.5,
+        `${theme} settled animation chrome text: ${settledChromeCopy.fill} on ${settledChromeCopy.background}`);
+      assert.equal(await page.locator('#filled-chrome-copy').getAttribute('data-surface-pair-v1'), 'theme');
       const placeholder = await page.locator('#email').evaluate(el => ({ color: getComputedStyle(el, '::placeholder').color, background: getComputedStyle(el).backgroundColor }));
       assert.ok(contrastRatio(parseColor(placeholder.color), parseColor(placeholder.background)) >= 4.5);
       const selectedBackground = await page.locator('#nested-selected').evaluate(el => getComputedStyle(el).backgroundColor);
@@ -251,6 +286,8 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.equal(await colorOf('#low-contrast'), 'rgb(238, 238, 238)');
+      assert.equal(await page.locator('#filled-chrome').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(17, 17, 17)');
+      assert.equal(await page.locator('#filled-chrome-copy').evaluate(el => getComputedStyle(el).webkitTextFillColor), 'rgb(255, 255, 255)');
       assert.equal(await page.locator('[data-surface-pair-v1],[style*="--surface-readable-color-v1"]').count(), 0);
     }
   });

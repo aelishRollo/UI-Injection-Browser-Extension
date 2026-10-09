@@ -2,28 +2,29 @@ import { buildIconStyles, iconImage, windowControlsImage } from './icons.js';
 
 const LIQUID_WASH = 'linear-gradient(90deg,rgba(255,198,226,.58) 0%,rgba(255,229,163,.58) 24%,rgba(255,242,166,.54) 40%,rgba(163,236,218,.56) 60%,rgba(184,217,255,.58) 80%,rgba(223,197,255,.62) 100%)';
 const LIQUID_SURFACE = 'linear-gradient(135deg,#fff1f7 0%,#fffdf8 48%,#f0fff9 100%)';
+const ink = color => ({ color, '-webkit-text-fill-color': color });
 
 // Shared motifs keep all three themes visually consistent without changing site layout.
 function buildThemeMotifs(theme, rule, { page, heading, surface, control, link, chrome }) {
   if (theme.id === 'browser-archeology') return [
     rule(page, { 'background-image': 'repeating-conic-gradient(rgba(255,255,255,.035) 0 25%,rgba(0,0,0,.025) 0 50%)', 'background-size': '4px 4px' }),
-    rule(heading, { color: '#000080', 'letter-spacing': 'normal', 'text-shadow': 'none' }),
+    rule(heading, { ...ink('#000080'), 'letter-spacing': 'normal', 'text-shadow': 'none' }),
     rule(surface, { 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.35)', 'background-image': 'none' }),
     rule(chrome, { 'background-color': '#c0c0c0', 'background-image': 'repeating-linear-gradient(0deg,rgba(255,255,255,.1) 0 1px,transparent 1px 3px)', 'box-shadow': 'inset 0 1px #fff,inset 0 -2px #808080', 'font-family': 'Arial, Helvetica, sans-serif' }),
     rule(control, { 'font-family': 'Arial, Helvetica, sans-serif', 'border-color': '#ffffff #404040 #404040 #ffffff', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080' }),
     rule(`${control}:active`, { 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040,inset -1px -1px #dfdfdf' }),
     rule(link, { 'text-decoration-line': 'underline', 'text-underline-offset': '1px' }),
-    rule(`${link}:hover`, { color: '#ffffff', 'background-color': '#000080', 'text-decoration-color': '#ffffff', 'box-shadow': '0 0 0 1px #000080' }),
+    rule(`${link}:hover`, { ...ink('#ffffff'), 'background-color': '#000080', 'text-decoration-color': '#ffffff', 'box-shadow': '0 0 0 1px #000080' }),
     rule('::selection', { color: '#ffffff', 'background-color': '#000080' })
   ];
   if (theme.id === 'liquid-dream') return [
     rule(page, { 'background-image': 'none' }),
-    rule(heading, { color: '#4b235d', 'letter-spacing': '-0.045em', 'text-shadow': '0 2px 0 rgba(255,255,255,.58)' }),
+    rule(heading, { ...ink('#4b235d'), 'letter-spacing': '-0.045em', 'text-shadow': '0 2px 0 rgba(255,255,255,.58)' }),
     rule(surface, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', 'border-color': '#b9a5c2', 'box-shadow': '0 16px 42px rgba(78,64,104,.13)' }),
     rule(`${surface}:hover`, { 'border-color': '#8f6da0', 'box-shadow': '0 20px 48px rgba(78,64,104,.19)' }),
     rule(control, { 'font-family': 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'border-radius': '999px', 'box-shadow': 'inset 0 1px 0 rgba(255,255,255,.8),0 12px 26px rgba(78,64,104,.12)' }),
     rule(`${control}:hover`, { 'background-image': LIQUID_WASH, 'border-color': '#7d5e8e' }),
-    rule(`${link}:hover`, { color: '#8b245e', 'text-decoration-thickness': '2px', 'text-shadow': '0 2px 12px rgba(255,106,183,.28)' }),
+    rule(`${link}:hover`, { ...ink('#8b245e'), 'text-decoration-thickness': '2px', 'text-shadow': '0 2px 12px rgba(255,106,183,.28)' }),
     rule('::selection', { color: '#201928', 'background-color': '#a3ecda' })
   ];
   return [];
@@ -42,8 +43,8 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
     rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
     rule(panel, { 'background-color': '#ffffff', border: '3px solid #c0c0c0', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,2px 2px 0 rgba(0,0,0,.25)', 'background-image': 'none' }),
     rule(data, { ...reset, 'background-color': '#ffffff', border: '1px solid #808080' }),
-    rule(title, { color: theme.colors.accentText, 'font-family': 'Arial,Helvetica,sans-serif', 'font-size': 'clamp(20px,2.4vw,32px)', 'line-height': '1.15', 'min-height': '22px', 'padding-block': '3px', 'padding-inline': '26px 62px', 'border-bottom': '0', 'text-shadow': 'none', 'background-color': '#000080', 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '4px 3px,calc(100% - 3px) 3px,0 0', 'background-size': '18px 18px,54px 18px,100% 100%', 'background-repeat': 'no-repeat' }),
-    rule(`${title} :where(span,strong,em,small)`, { color: theme.colors.accentText }),
+    rule(title, { ...ink(theme.colors.accentText), 'font-family': 'Arial,Helvetica,sans-serif', 'font-size': 'clamp(20px,2.4vw,32px)', 'line-height': '1.15', 'min-height': '22px', 'padding-block': '3px', 'padding-inline': '26px 62px', 'border-bottom': '0', 'text-shadow': 'none', 'background-color': '#000080', 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '4px 3px,calc(100% - 3px) 3px,0 0', 'background-size': '18px 18px,54px 18px,100% 100%', 'background-repeat': 'no-repeat' }),
+    rule(`${title} :where(span,strong,em,small)`, ink(theme.colors.accentText)),
     rule(sectionHeading, { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '1px solid #808080', 'text-shadow': 'none' }),
     rule(navigation, { 'background-color': '#d4d0c8', 'box-shadow': 'inset 0 1px #fff,inset 0 -1px #808080', 'font-family': 'Arial,Helvetica,sans-serif' }),
     rule(field, { 'background-color': '#ffffff', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' }),
@@ -54,7 +55,7 @@ function buildPurposeMotifs(theme, rule, { reading, section, panel, data, title,
     rule(section, { ...reset, 'background-color': 'transparent', border: '0' }),
     rule(panel, { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #a98bb5', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' }),
     rule(data, { ...reset, 'background-color': '#fff9f1', border: '1px solid #9b859e' }),
-    rule(`${title},${sectionHeading}`, { color: '#4b235d', 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'border-bottom': '2px solid #8f6da0', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
+    rule(`${title},${sectionHeading}`, { ...ink('#4b235d'), 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'border-bottom': '2px solid #8f6da0', 'border-radius': '8px', 'letter-spacing': '-0.025em' }),
     rule(navigation, { 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.36)' }),
     rule(field, { 'background-color': '#fff9f1', 'background-image': 'none', 'box-shadow': 'inset 0 1px 3px rgba(78,64,104,.18)' })
   ];
@@ -91,9 +92,12 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
   css.push(rule(`${context('control')}:hover`, { 'background-color': c.raised, color: c.text, '-webkit-text-fill-color': 'currentColor', '--surface-control-ink-v1': c.text, 'border-color': c.accent }));
   css.push(rule(`${text('heading')}${highOrMedium}`, { 'font-family': theme.headingFont, 'font-weight': theme.weight, 'letter-spacing': '-0.035em' }));
   css.push(rule(`:where(${text('text')},${text('link')},${text('code')})${highOrMedium}`, { 'font-family': theme.font }));
-  css.push(rule(`${tone('theme')}:where(${text('heading')},${text('text')})`, { color: `var(--surface-readable-color-v1,${c.text})` }));
-  css.push(rule(`${tone('theme')}${text('link')}`, { color: `var(--surface-readable-color-v1,${c.link})`, 'text-decoration-color': 'currentColor', 'text-underline-offset': '0.18em' }));
-  css.push(rule(`${tone('theme')}${text('code')}`, { color: `var(--surface-readable-color-v1,${c.text})`, 'background-color': c.raised }));
+  // Once Surface owns a foreground/background pair, each declaration owns
+  // both CSS color channels. An authored fill that originally matched color
+  // must not stay stale after the surrounding surface changes.
+  css.push(rule(`${tone('theme')}:where(${text('heading')},${text('text')})`, ink(`var(--surface-readable-color-v1,${c.text})`)));
+  css.push(rule(`${tone('theme')}${text('link')}`, { ...ink(`var(--surface-readable-color-v1,${c.link})`), 'text-decoration-color': 'currentColor', 'text-underline-offset': '0.18em' }));
+  css.push(rule(`${tone('theme')}${text('code')}`, { ...ink(`var(--surface-readable-color-v1,${c.text})`), 'background-color': c.raised }));
   css.push(rule(`${context('control')}::placeholder`, { color: 'currentColor', opacity: '1' }));
   css.push(rule(`${tone('control')}`, { color: 'var(--surface-control-ink-v1)', '-webkit-text-fill-color': 'currentColor' }));
   css.push(rule(`${tone('preserve')}`, { color: 'var(--surface-original-color-v1)' }));
@@ -132,13 +136,13 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
     const windowOwner = '[data-surface-window-v1]';
     const windowTitle = '[data-surface-window-title-v1]';
     css.push(rule(windowOwner, { 'border-width': '3px', 'border-style': 'solid', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,3px 3px 0 rgba(0,0,0,.28)' }));
-    css.push(rule(windowTitle, { 'min-height': '20px', 'margin-block': '0', 'padding-inline': '24px 60px', color: c.accentText, 'font-family': 'Arial,Helvetica,sans-serif', 'font-weight': '700', 'text-shadow': 'none', 'background-color': c.accent, 'background-image': `${iconImage(theme.id, 'panel')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '3px 2px,calc(100% - 2px) 2px,0 0', 'background-size': '17px 17px,54px 18px,100% 100%', 'background-repeat': 'no-repeat', 'border-color': '#000080' }));
+    css.push(rule(windowTitle, { 'min-height': '20px', 'margin-block': '0', 'padding-inline': '24px 60px', ...ink(c.accentText), 'font-family': 'Arial,Helvetica,sans-serif', 'font-weight': '700', 'text-shadow': 'none', 'background-color': c.accent, 'background-image': `${iconImage(theme.id, 'panel')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '3px 2px,calc(100% - 2px) 2px,0 0', 'background-size': '17px 17px,54px 18px,100% 100%', 'background-repeat': 'no-repeat', 'border-color': '#000080' }));
     css.push(rule(`${windowTitle}[data-surface-window-title-v1="reading"]`, { 'background-image': `${iconImage(theme.id, 'document')},${windowControlsImage()},linear-gradient(90deg,#000080,#1084d0)` }));
-    css.push(rule(`${windowTitle},${windowTitle} *`, { color: c.accentText }));
-    css.push(rule(purpose('title'), { color: c.accentText, 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' }));
+    css.push(rule(`${windowTitle},${windowTitle} *`, ink(c.accentText)));
+    css.push(rule(purpose('title'), { ...ink(c.accentText), 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' }));
     css.push(rule(`${windowOwner}[data-surface-window-v1="frame"]`, { 'padding-top': '25px', 'background-color': '#ffffff', 'background-image': `${windowControlsImage()},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '54px 18px,calc(100% - 8px) 18px', 'background-repeat': 'no-repeat' }));
-    css.push(rule(`${tone('theme')}${text('link')}:visited`, { color: '#551a8b', 'text-decoration-color': '#551a8b' }));
-    css.push(rule(`${tone('theme')}${text('link')}:hover,${tone('theme')}${text('link')}:focus-visible`, { color: '#ff0000', 'background-color': 'transparent', 'text-decoration-color': '#ff0000', 'box-shadow': 'none' }));
+    css.push(rule(`${tone('theme')}${text('link')}:visited`, { ...ink('#551a8b'), 'text-decoration-color': '#551a8b' }));
+    css.push(rule(`${tone('theme')}${text('link')}:hover,${tone('theme')}${text('link')}:focus-visible`, { ...ink('#ff0000'), 'background-color': 'transparent', 'text-decoration-color': '#ff0000', 'box-shadow': 'none' }));
     css.push(rule(`${context('control')}:where(:disabled,[aria-disabled="true"])`, { color: '#808080', '--surface-control-ink-v1': '#808080', 'border-style': 'solid', opacity: '1', 'text-shadow': '1px 1px #ffffff' }));
     css.push(rule('blockquote,[role="note"]', { 'background-color': '#ffffcc', border: '2px solid', 'border-color': '#808080 #ffffff #ffffff #808080', 'box-shadow': 'inset 1px 1px #404040', 'border-radius': '0' }));
     css.push(rule('hr', { height: '0', border: '0', 'border-top': '1px solid #808080', 'border-bottom': '1px solid #ffffff' }));

@@ -15,12 +15,16 @@ const ATTR_STARTING = 'data-surface-starting-v2';
 const ATTR_THEME = 'data-surface-theme-v2';
 const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
 const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
+const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
 
 let observer;
 let readinessListener;
+let visualEffectListener;
+let effectSettleTimer;
+const pendingEffectOwners = new Map();
 let scanScheduled = false;
 let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
@@ -685,7 +689,7 @@ function backgroundForText(element) {
     // authored opacity and force every text pair down the preservation path.
     const guardedElement = (current === document.documentElement || current === document.body) &&
       !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
-    if (!guardedElement && hasUncertainPaint(style)) return { reason: 'effects' };
+    if (!guardedElement && hasUncertainPaint(style)) return { reason: 'effects', owner: current };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
@@ -728,19 +732,54 @@ function backgroundForText(element) {
   return color ? { color, owner, themed } : { reason: 'canvas' };
 }
 
-function markText(root, media) {
-  const candidates = collect(root, '*').filter(element =>
+function textCandidates(root) {
+  return collect(root, '*').filter(element =>
     element instanceof HTMLElement && isVisible(element) && directText(element) &&
     !element.matches('script,style,noscript,option') && !isProtected(element) &&
     !element.closest(`[${ATTR_CONTEXT}="brand"]`));
-  // Snapshot all foregrounds before applying annotations: parent overrides must
-  // not become a child's supposed original color during incremental scans.
-  const originals = new Map(candidates.map(element => [element, getComputedStyle(element).color]));
+}
+
+function snapshotForegrounds(root) {
+  return new Map(textCandidates(root).map(element => {
+    const style = getComputedStyle(element);
+    return [element, { color: style.color, fill: style.webkitTextFillColor }];
+  }));
+}
+
+function scheduleEffectSettlement(owner) {
+  if (!pendingEffectOwners.has(owner)) pendingEffectOwners.set(owner, 0);
+  if (effectSettleTimer) return;
+  effectSettleTimer = setTimeout(function checkSettledEffects() {
+    effectSettleTimer = undefined;
+    if (!running) return pendingEffectOwners.clear();
+    for (const [element, attempts] of pendingEffectOwners) {
+      if (!element.isConnected || attempts >= 5) {
+        pendingEffectOwners.delete(element);
+      } else if (!hasUncertainPaint(getComputedStyle(element))) {
+        pendingEffectOwners.delete(element);
+        scheduleScans([{ type: 'visual-effect', target: element }]);
+      } else {
+        pendingEffectOwners.set(element, attempts + 1);
+      }
+    }
+    if (pendingEffectOwners.size) effectSettleTimer = setTimeout(checkSettledEffects, 250);
+  }, 250);
+}
+
+function markText(root, media, originals) {
+  const candidates = textCandidates(root);
   for (const element of candidates) {
     const role = textRole(element);
-    const original = originals.get(element);
+    const original = originals.get(element) || (() => {
+      const style = getComputedStyle(element);
+      return { color: style.color, fill: style.webkitTextFillColor };
+    })();
     const style = getComputedStyle(element);
-    const backing = style.webkitTextFillColor && style.webkitTextFillColor !== style.color
+    // Compare the authored foreground pair from the shared snapshot. An
+    // earlier candidate can theme an ancestor and change this element's live
+    // inherited color before its turn, creating a mismatch that the page did
+    // not author.
+    const backing = original.fill && original.fill !== original.color
       ? { reason: 'effects' } : backgroundForText(element);
     const mediaBacked = overlapsMedia(element, media);
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
@@ -756,8 +795,12 @@ function markText(root, media) {
       continue;
     }
     setAttribute(element, ATTR_TEXT, role);
-    setProperty(element, ORIGINAL_COLOR, original);
+    setProperty(element, ORIGINAL_COLOR, original.color);
     if (backing.reason || mediaBacked) {
+      if (backing.reason === 'effects' && backing.owner) {
+        setAttribute(backing.owner, ATTR_EFFECT_OWNER, '');
+        scheduleEffectSettlement(backing.owner);
+      }
       setAttribute(element, ATTR_TONE, 'preserve');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setAttribute(element, ATTR_PAIR, backing.reason || 'media');
@@ -765,7 +808,7 @@ function markText(root, media) {
       continue;
     }
     const minimum = minimumContrast(parseFloat(style.fontSize), Number(style.fontWeight));
-    const originalColor = parseColor(original);
+    const originalColor = parseColor(original.color);
     // Keep successful authored pairs on retained surfaces, including status ink.
     if (!backing.themed && originalColor && contrastRatio(originalColor, backing.color) >= minimum) {
       setAttribute(element, ATTR_TONE, 'preserve');
@@ -788,6 +831,10 @@ function markText(root, media) {
 
 function scan(root = document, media = mediaRects()) {
   if (!running || !document.body) return;
+  // Capture authored foreground pairs before surface and purpose annotations
+  // activate their CSS. A later parent annotation must not become a child's
+  // supposed original foreground within this same scan.
+  const originalForegrounds = snapshotForegrounds(root);
   const run = (name, operation) => {
     if (!scanViewportBottom) return operation();
     const started = performance.now();
@@ -811,7 +858,7 @@ function scan(root = document, media = mediaRects()) {
   run('navigationFades', () => markNavigationFades(root));
   run('windows', () => markWindows(root));
   run('glyphs', () => markGlyphs(root));
-  run('text', () => markText(root, media));
+  run('text', () => markText(root, media, originalForegrounds));
 }
 
 function scheduleScans(records) {
@@ -835,7 +882,13 @@ function scheduleScans(records) {
     }
     for (const root of queuedRemovedRoots) if (!root.isConnected) restoreSubtree(root);
     queuedRemovedRoots.clear();
-    const roots = [...queuedRoots].filter(root => root.isConnected);
+    const roots = [...queuedRoots].filter(root => root.isConnected).map(root =>
+      // A previously themed text ancestor changes the inherited foreground
+      // seen by a child. Restore from that nearest owner so an incremental
+      // scan compares the child with authored color/fill, not with our own
+      // surviving ancestor treatment. This stays bounded to the affected text
+      // group rather than turning every mutation into a document rescan.
+      root.parentElement?.closest(`[${ATTR_TONE}],[${ATTR_CONTEXT}="control"]`) || root);
     queuedRoots.clear();
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
     if (!outermost.length) return;
@@ -864,6 +917,16 @@ function observe() {
     attributes: true,
     attributeFilter: ['class', 'hidden', 'role', 'aria-label', 'aria-labelledby', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid', 'data-level']
   });
+  visualEffectListener = event => {
+    const target = event.target;
+    if (!(target instanceof Element) || !target.hasAttribute(ATTR_EFFECT_OWNER) || hasUncertainPaint(getComputedStyle(target))) return;
+    if (event.type === 'transitionend' && !['opacity', 'filter', 'backdrop-filter', '-webkit-backdrop-filter', 'mask-image', '-webkit-mask-image'].includes(event.propertyName)) return;
+    scheduleScans([{ type: 'visual-effect', target }]);
+    pendingEffectOwners.delete(target);
+  };
+  for (const type of ['transitionend', 'transitioncancel', 'animationend', 'animationcancel']) {
+    document.addEventListener(type, visualEffectListener, true);
+  }
 }
 
 function finishInitialScan() {
@@ -968,6 +1031,13 @@ export async function start(theme, corrections) {
 export function stop() {
   observer?.disconnect();
   observer = undefined;
+  if (visualEffectListener) for (const type of ['transitionend', 'transitioncancel', 'animationend', 'animationcancel']) {
+    document.removeEventListener(type, visualEffectListener, true);
+  }
+  visualEffectListener = undefined;
+  if (effectSettleTimer) clearTimeout(effectSettleTimer);
+  effectSettleTimer = undefined;
+  pendingEffectOwners.clear();
   queuedRoots.clear();
   queuedRemovedRoots.clear();
   scanScheduled = false;
