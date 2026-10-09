@@ -44,7 +44,7 @@ The isolated fixture uses ports 4173 and 4174. Browser and performance commands 
 - Solid and translucent sRGB layers are composited to resolve readable text; authored pairs that already pass are retained.
 - Brand marks, media relationships, background images, complex effects, and labelled chart units use conservative preservation paths.
 - New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Detached themed nodes are restored and released.
-- On full navigation, a pre-paint guard stays only through a fast canvas pass and theme stylesheet installation. The page then becomes visible with themed roots, readable base ink, and any recognized viewport shell while full purpose and contrast classification completes after the first paint.
+- On full navigation, a persisted theme-specific `document_start` canvas is already present before asynchronous extension work. Authored content stays guarded through a bounded initial-viewport pass using the same purpose-and-paint recognizers; the first visible content frame therefore has theme hierarchy rather than a generic light/dark intermediate, while parser mutations and the final document pass complete the rest.
 - Expressive CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints were removed after measured frame stalls.
 - Verified role corrections apply automatically only where general semantics are unavailable.
 - Disable and theme switching restore the author's prior attributes, inline properties, and computed appearance without a reload.

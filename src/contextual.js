@@ -24,6 +24,9 @@ let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
 let running = false;
 let activeTheme = '';
+let scanViewportBottom = 0;
+let scanViewportMembership;
+let initialViewportScanMs = 0;
 let palette;
 let activeCorrections = { roles: {}, preserve: [] };
 let touched = new Map();
@@ -79,7 +82,34 @@ function collect(root, selector) {
   const result = [];
   if (root instanceof Element && root.matches(selector)) result.push(root);
   result.push(...root.querySelectorAll(selector));
-  return result;
+  if (!scanViewportBottom) return result;
+  return result.filter(element => {
+    if (element === document.documentElement || element === document.body) return true;
+    if (scanViewportMembership?.has(element)) return scanViewportMembership.get(element);
+    const rect = element.getBoundingClientRect();
+    const included = rect.width > 0 && rect.height > 0 && rect.bottom >= -64 && rect.top <= scanViewportBottom &&
+      rect.right >= -64 && rect.left <= innerWidth + 64;
+    scanViewportMembership?.set(element, included);
+    return included;
+  });
+}
+
+function descendantCount(element, selector) {
+  if (!scanViewportBottom) return element.querySelectorAll(selector).length;
+  return collect(element, selector).filter(candidate => candidate !== element).length;
+}
+
+function scopedTextLength(element, threshold) {
+  if (!scanViewportBottom) return (element.innerText || '').trim().length;
+  let length = 0;
+  for (const candidate of [element, ...collect(element, '*')]) {
+    for (const node of candidate.childNodes) {
+      if (node.nodeType !== Node.TEXT_NODE) continue;
+      length += node.textContent.trim().length;
+      if (length >= threshold) return length;
+    }
+  }
+  return length;
 }
 
 function isVisible(element) {
@@ -112,7 +142,7 @@ function backingFor(element) {
 }
 
 function mediaRects() {
-  return [...document.querySelectorAll('img,picture,video,canvas,object,embed,svg[role="img"],svg[aria-label]')]
+  return collect(document, 'img,picture,video,canvas,object,embed,svg[role="img"],svg[aria-label]')
     .filter(isVisible)
     .map(element => ({ element, rect: element.getBoundingClientRect() }));
 }
@@ -167,10 +197,10 @@ function markBrands(root) {
 function canOwnSurface(element) {
   if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
   const style = getComputedStyle(element);
-  const controlCount = element.querySelectorAll('button,input,select,textarea,[role="button"]:not([aria-hidden="true"])').length;
+  const controlCount = descendantCount(element, 'button,input,select,textarea,[role="button"]:not([aria-hidden="true"])');
   // A large composite application region is not one coherent reading surface.
   // Its smaller, understood descendants can still be classified independently.
-  return style.backgroundImage === 'none' && controlCount <= 6 && (element.innerText || '').trim().length >= 40;
+  return style.backgroundImage === 'none' && controlCount <= 6 && scopedTextLength(element, 40) >= 40;
 }
 
 function markSurface(element, context) {
@@ -199,9 +229,9 @@ function markSurfaces(root) {
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
     const heading = element.querySelector('h1,h2,h3,[role="heading"]');
-    const controls = element.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+    const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
     return isNeutralSolidSurface(style) && heading && rect.width >= 180 && rect.height >= 80 &&
-      (element.innerText || '').trim().length >= 100 && controls <= 6;
+      scopedTextLength(element, 100) >= 100 && controls <= 6;
   });
   for (const element of neutralPanels.filter(candidate => !neutralPanels.some(other => other !== candidate && other.contains(candidate)))) {
     setAttribute(element, ATTR_CONTEXT, 'content');
@@ -240,10 +270,10 @@ function markPurposes(root) {
     ? [...element.children].filter(child => child.matches('div,section,article') && child.querySelector('h1,h2,[role="heading"]'))
     : [element]);
   for (const element of candidates) {
-    const paragraphs = element.querySelectorAll('p').length;
-    const controls = element.querySelectorAll('button,input,select,textarea,[role="button"]').length;
+    const paragraphs = descendantCount(element, 'p');
+    const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
     if (paragraphs >= 3 && controls <= Math.max(6, paragraphs * 2) &&
-        (element.innerText || '').length >= 300 && !element.parentElement?.closest(reading)) {
+        scopedTextLength(element, 300) >= 300 && !element.parentElement?.closest(reading)) {
       assign(element, 'reading', 'content', landmarks.includes(element) ? 'prose-landmark' : 'boxless-landmark-prose');
     }
   }
@@ -316,7 +346,7 @@ function markVisualizations(root) {
     const style = getComputedStyle(owner);
     const ownerRect = owner.getBoundingClientRect();
     if (!isOpaque(style.backgroundColor) || style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
-        ownerRect.width < 160 || ownerRect.height < 100 || owner.querySelectorAll('button,input,select,textarea,[role="button"]').length > 6) continue;
+        ownerRect.width < 160 || ownerRect.height < 100 || descendantCount(owner, 'button,input,select,textarea,[role="button"]') > 6) continue;
     setAttribute(owner, ATTR_CONTEXT, 'visualization');
     setAttribute(owner, ATTR_PURPOSE, 'visualization');
     setAttribute(owner, ATTR_CONFIDENCE, 'high');
@@ -330,7 +360,7 @@ function markVisualizations(root) {
 function markShells(root) {
   const sources = collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_CONTEXT}="content"]`).filter(element => {
     const rect = element.getBoundingClientRect();
-    return rect.width >= innerWidth * .5 && rect.height >= 240 && (element.innerText || '').trim().length >= 300;
+    return rect.width >= innerWidth * .5 && rect.height >= 240 && scopedTextLength(element, 300) >= 300;
   });
   for (const source of sources) {
     for (let element = source.parentElement; element && element !== document.body; element = element.parentElement) {
@@ -354,8 +384,12 @@ function markShells(root) {
 function markInitialCanvas() {
   markPage();
   const candidates = new Set();
+  const landmarkAncestors = new Set();
   const landmark = document.querySelector('main,[role="main"],article');
-  for (let element = landmark?.parentElement; element && element !== document.body; element = element.parentElement) candidates.add(element);
+  for (let element = landmark?.parentElement; element && element !== document.body; element = element.parentElement) {
+    candidates.add(element);
+    landmarkAncestors.add(element);
+  }
   const edgeAncestors = x => {
     const result = new Set();
     for (let element = document.elementFromPoint(x, innerHeight / 2); element && element !== document.body; element = element.parentElement) result.add(element);
@@ -367,19 +401,18 @@ function markInitialCanvas() {
   for (const element of candidates) {
     if (!element.matches('div,main') || isProtected(element)) continue;
     const rect = element.getBoundingClientRect();
-    if (rect.width < innerWidth * .8 || rect.height < Math.min(320, innerHeight * .5) || !isNeutralSolidSurface(getComputedStyle(element))) continue;
+    // During parsing a viewport shell may not have reached its final height
+    // yet. Full-width neutral ownership plus landmark/edge evidence is enough;
+    // the authoritative pass will re-evaluate it after parsing completes.
+    if ((rect.width < innerWidth * .8 && !landmarkAncestors.has(element)) || !isNeutralSolidSurface(getComputedStyle(element))) continue;
     setAttribute(element, ATTR_CONTEXT, 'shell');
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
     setAttribute(element, 'data-surface-evidence-v1', 'neutral-viewport-ancestor');
   }
 }
 
-export async function prepareReveal() {
-  if (!running || !document.body) return;
-  // Let the parser populate the first viewport and layout it once while the
-  // root is still guarded. The timeout keeps background tabs from waiting on
-  // a throttled animation frame.
-  await new Promise(resolve => {
+function layoutOpportunity() {
+  return new Promise(resolve => {
     let settled = false;
     const finish = () => {
       if (settled) return;
@@ -389,7 +422,18 @@ export async function prepareReveal() {
     requestAnimationFrame(finish);
     setTimeout(finish, 50);
   });
-  if (document.documentElement.hasAttribute(ATTR_STARTING)) markInitialCanvas();
+}
+
+export async function prepareReveal() {
+  if (!running || !document.body) return;
+  // Let the parser populate and lay out the first viewport while the authored
+  // body is still guarded. The timeout keeps background tabs from waiting on
+  // a throttled animation frame.
+  await layoutOpportunity();
+  // Classify everything parsed so far before the first visible content frame.
+  // Parser additions are observed immediately, and DOMContentLoaded still gets
+  // one complete authoritative pass for relationships that arrived later.
+  if (document.documentElement.hasAttribute(ATTR_STARTING)) finishInitialViewportScan();
 }
 
 function markUtilityPanels(root) {
@@ -603,12 +647,12 @@ function backgroundForText(element) {
   // to the entire group, not just to that ancestor's own background paint.
   for (let current = element; current instanceof Element; current = current.parentElement) {
     const style = getComputedStyle(current);
-    // preload.css makes only the root transparent until the first theme is
-    // ready. That extension-owned guard must not be mistaken for authored
-    // opacity and force every text pair down the preservation path.
-    const guardedRoot = current === document.documentElement &&
-      !current.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
-    if (!guardedRoot && hasUncertainPaint(style)) return { reason: 'effects' };
+    // preload.css makes the body transparent until the first complete parsed-
+    // DOM pass is ready. That extension-owned guard must not be mistaken for
+    // authored opacity and force every text pair down the preservation path.
+    const guardedElement = (current === document.documentElement || current === document.body) &&
+      !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
+    if (!guardedElement && hasUncertainPaint(style)) return { reason: 'effects' };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
@@ -757,6 +801,10 @@ function scheduleScans(records) {
       restoreSubtree(root);
       scan(root, media);
     }
+    // Parser-driven growth can turn an initially short neutral wrapper into the
+    // viewport canvas. Refresh this bounded evidence in the same pre-paint
+    // mutation batch while startup treatment is active.
+    if (document.documentElement.hasAttribute(ATTR_STARTING)) markInitialCanvas();
   });
 }
 
@@ -778,7 +826,34 @@ function finishInitialScan() {
   // task, so the temporary canvas treatment is replaced without an in-between
   // authored paint.
   restoreAll();
+  uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
   scan(document);
+  observe();
+}
+
+function finishInitialViewportScan() {
+  if (!running || !document.body) return;
+  const started = performance.now();
+  restoreAll();
+  // Use the authoritative recognizers on only the content that can contribute
+  // to the first frame. This bounds startup cost on long documents without a
+  // separate renderer or a broad temporary recoloring rule.
+  scanViewportBottom = innerHeight + Math.min(240, innerHeight * .25);
+  scanViewportMembership = new WeakMap();
+  try {
+    scan(document);
+  } finally {
+    scanViewportBottom = 0;
+    scanViewportMembership = undefined;
+  }
+  // Sparse documents may not meet the full shell's content thresholds, while
+  // their shared neutral viewport wrapper is still strong canvas evidence.
+  markInitialCanvas();
+  // Retain exact theme base paint while the parser continues. The final full
+  // pass removes this startup marker in the same task that replaces it with
+  // complete authoritative annotations.
+  setAttribute(document.documentElement, ATTR_STARTING, '');
+  initialViewportScanMs = Math.round((performance.now() - started) * 100) / 100;
   observe();
 }
 
@@ -819,6 +894,7 @@ export async function start(theme, corrections) {
   palette = theme.colors;
   activeCorrections = corrections;
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
+  initialViewportScanMs = 0;
   if (!document.body) {
     await new Promise(resolve => {
       const bodyObserver = new MutationObserver(() => {
@@ -855,6 +931,7 @@ export function diagnostics() {
     purposes: Object.fromEntries(['reading', 'section', 'panel', 'data', 'visualization', 'navigation', 'title', 'section-heading', 'field', 'action'].map(value => [value, document.querySelectorAll(`[${ATTR_PURPOSE}="${value}"]`).length])),
     icons: { controls: document.querySelectorAll('[data-surface-glyph-v1]').length, headings: document.querySelectorAll('[data-surface-heading-glyph-v1]').length, windows: document.querySelectorAll(`[${ATTR_WINDOW}]`).length, titleBars: document.querySelectorAll(`[${ATTR_WINDOW_TITLE}]`).length, navigationFades: document.querySelectorAll(`[${ATTR_NAVIGATION_FADE}]`).length },
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
+    initialViewportScanMs,
     uncertainty: { ...uncertainty }
   };
 }

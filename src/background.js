@@ -2,10 +2,45 @@ import { normalizeSettings, updateSettings, hostname } from './settings.js';
 import { THEME_IDS } from './themes.js';
 
 let writes = Promise.resolve();
+let startupStyleUpdates = Promise.resolve();
+const STARTUP_STYLE_ID = 'surface-theme-startup-v1';
 const readSettings = async () => normalizeSettings((await chrome.storage.local.get('settings')).settings);
 // Extension-owned pages are trusted whether opened as the toolbar popup or in a
 // normal extension tab (the latter is how the isolated browser suite exercises it).
 const fromExtensionPage = sender => sender.url?.startsWith(chrome.runtime.getURL(''));
+
+function disabledHostPatterns(host) {
+  const patternHost = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return [`http://${patternHost}/*`, `https://${patternHost}/*`];
+}
+
+async function syncStartupStyle(value) {
+  const settings = normalizeSettings(value || (await readSettings()));
+  const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [STARTUP_STYLE_ID] });
+  if (!settings.enabled) {
+    if (registered.length) await chrome.scripting.unregisterContentScripts({ ids: [STARTUP_STYLE_ID] });
+    return;
+  }
+  const definition = {
+    id: STARTUP_STYLE_ID,
+    matches: ['http://*/*', 'https://*/*'],
+    excludeMatches: settings.disabledHosts.flatMap(disabledHostPatterns),
+    css: [`startup-${settings.theme}.css`],
+    allFrames: true,
+    runAt: 'document_start',
+    persistAcrossSessions: true
+  };
+  if (registered.length) await chrome.scripting.updateContentScripts([definition]);
+  else await chrome.scripting.registerContentScripts([definition]);
+}
+
+function queueStartupStyle(value) {
+  const operation = startupStyleUpdates.catch(() => {}).then(() => syncStartupStyle(value));
+  startupStyleUpdates = operation;
+  return operation;
+}
+
+void queueStartupStyle().catch(() => {});
 
 async function handle(message, sender) {
   if (sender.id !== chrome.runtime.id) throw new Error('Unknown sender');
@@ -17,6 +52,7 @@ async function handle(message, sender) {
       const operation = writes.then(async () => {
         const settings = updateSettings(await readSettings(), message.patch || {});
         await chrome.storage.local.set({ settings });
+        await queueStartupStyle(settings);
         return { settings };
       });
       writes = operation.catch(() => {});
@@ -27,6 +63,7 @@ async function handle(message, sender) {
       const operation = writes.then(async () => {
         const settings = updateSettings(await readSettings(), { theme: message.theme });
         await chrome.storage.local.set({ settings });
+        await queueStartupStyle(settings);
         return { settings };
       });
       writes = operation.catch(() => {});
@@ -37,6 +74,7 @@ async function handle(message, sender) {
       const operation = writes.then(async () => {
         const settings = updateSettings(await readSettings(), { enabled: message.enabled });
         await chrome.storage.local.set({ settings });
+        await queueStartupStyle(settings);
         return { settings };
       });
       writes = operation.catch(() => {});
@@ -73,6 +111,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.settings) void queueStartupStyle(changes.settings.newValue).catch(() => {});
+});
+
 chrome.runtime.onInstalled.addListener(async () => {
-  await chrome.storage.local.set({ settings: await readSettings() });
+  const settings = await readSettings();
+  await chrome.storage.local.set({ settings });
+  await queueStartupStyle(settings);
 });

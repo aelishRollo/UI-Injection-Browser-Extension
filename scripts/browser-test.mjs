@@ -33,6 +33,14 @@ try {
     const { settings = {} } = await chrome.storage.local.get('settings');
     await chrome.storage.local.set({ settings: { ...settings, ...patch } });
   }, patch);
+  const waitStartupStyle = async (theme = null) => {
+    for (let i = 0; i < 100; i++) {
+      const registered = await worker.evaluate(async () => chrome.scripting.getRegisteredContentScripts({ ids: ['surface-theme-startup-v1'] }));
+      if ((!theme && registered.length === 0) || (theme && registered[0]?.css?.includes(`startup-${theme}.css`))) return registered[0] || null;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    throw new Error(`Startup style did not synchronize for ${theme || 'disabled state'}`);
+  };
   const status = () => worker.evaluate(async () => {
     const tabs = await chrome.tabs.query({});
     const tab = tabs.find(t => t.url?.startsWith('http://127.0.0.1:4173'));
@@ -60,47 +68,70 @@ try {
     }));
   });
   await set({ enabled: false });
+  await waitStartupStyle();
   await page.goto(fixture.url);
   await waitStatus({ state: 'disabled' });
   const original = await appearance();
   await page.screenshot({ path: join(out, 'original.png') });
 
-  await check('full navigation never exposes an unthemed frame', async () => {
-    await set({ enabled: true, theme: 'terminal-vision' });
+  await check('full navigation starts with the selected complete theme', async () => {
     await page.addInitScript(() => {
       window.__surfaceStartupFrames = [];
       const sample = () => {
         const root = document.documentElement;
         if (!root) return requestAnimationFrame(sample);
+        const body = document.body;
+        const title = document.querySelector('h1');
+        const article = document.querySelector('article');
         window.__surfaceStartupFrames.push({
           time: Math.round(performance.now()),
-          opacity: getComputedStyle(root).opacity,
+          rootBackground: getComputedStyle(root).backgroundColor,
+          bodyOpacity: body ? getComputedStyle(body).opacity : null,
           ready: root.hasAttribute('data-surface-ready-v2'),
           themed: root.getAttribute('data-surface-context-v1') === 'page',
           shell: document.querySelector('#startup-shell')?.getAttribute('data-surface-context-v1') || null,
-          shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null
+          shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null,
+          articleContext: article?.getAttribute('data-surface-context-v1') || null,
+          titlePurpose: title?.getAttribute('data-surface-purpose-v1') || null,
+          titleTone: title?.getAttribute('data-surface-tone-v1') || null,
+          titleBackground: title ? getComputedStyle(title).backgroundColor : null,
+          titleBackgroundImage: title ? getComputedStyle(title).backgroundImage : null
         });
         if (!root.hasAttribute('data-surface-ready-v2')) requestAnimationFrame(sample);
       };
       requestAnimationFrame(sample);
     });
-    const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
-    const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
-    assert.equal(await page.evaluate(() => document.readyState), 'loading', 'Surface should reveal before a parser-blocking script finishes');
-    assert.equal(firstVisible.themed, true);
-    assert.equal(firstVisible.shell, 'shell');
-    assert.equal(firstVisible.shellBackground, 'rgb(6, 17, 11)');
-    await navigation;
-    await waitStatus({ state: 'active', theme: 'terminal-vision' });
-    const frames = await page.evaluate(() => window.__surfaceStartupFrames);
-    assert.ok(frames.some(frame => frame.opacity === '0' && !frame.ready), `expected a guarded startup frame: ${JSON.stringify(frames)}`);
-    assert.equal(frames.some(frame => frame.opacity !== '0' && !frame.ready), false, `an unguarded startup frame was visible: ${JSON.stringify(frames)}`);
-    assert.equal(frames.at(-1).opacity, '1');
-    assert.equal(frames.at(-1).ready, true);
-    assert.equal(frames.at(-1).themed, true);
-    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
+    const expected = {
+      'terminal-vision': { canvas: 'rgb(6, 17, 11)' },
+      'browser-archeology': { canvas: 'rgb(0, 128, 128)', title: 'rgb(0, 0, 128)' },
+      'liquid-dream': { canvas: 'rgb(248, 241, 231)', liquidTitle: true }
+    };
+    for (const [theme, colors] of Object.entries(expected)) {
+      await set({ enabled: true, theme });
+      await waitStartupStyle(theme);
+      const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
+      const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
+      assert.equal(await page.evaluate(() => document.readyState), 'loading', `${theme} should reveal before a parser-blocking script finishes`);
+      assert.equal(firstVisible.themed, true, `${theme} page context missing at reveal`);
+      assert.equal(firstVisible.shell, 'shell', `${theme} shell context missing at reveal`);
+      assert.equal(firstVisible.shellBackground, colors.canvas, `${theme} shell paint missing at reveal`);
+      assert.equal(firstVisible.articleContext, 'content', `${theme} content classification missing at reveal`);
+      assert.equal(firstVisible.titlePurpose, 'title', `${theme} title classification missing at reveal`);
+      assert.equal(firstVisible.titleTone, 'theme', `${theme} title foreground missing at reveal`);
+      if (colors.title) assert.equal(firstVisible.titleBackground, colors.title, `${theme} title motif missing at reveal`);
+      if (colors.liquidTitle) assert.notEqual(firstVisible.titleBackgroundImage, 'none', `${theme} title motif missing at reveal`);
+      await navigation;
+      await waitStatus({ state: 'active', theme });
+      const frames = await page.evaluate(() => window.__surfaceStartupFrames);
+      assert.ok(frames.some(frame => frame.bodyOpacity === '0' && !frame.ready), `${theme} expected a guarded startup frame: ${JSON.stringify(frames)}`);
+      assert.equal(frames.some(frame => frame.bodyOpacity !== null && frame.bodyOpacity !== '0' && !frame.ready), false, `${theme} exposed authored content before classification: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.rootBackground === colors.canvas), true, `${theme} used the wrong guarded canvas: ${JSON.stringify(frames)}`);
+      assert.equal(frames.at(-1).ready, true);
+      assert.equal(frames.at(-1).themed, true);
+    }
     await set({ enabled: false });
+    await waitStartupStyle();
     await waitStatus({ state: 'disabled' });
     await page.goto(fixture.url);
     await waitStatus({ state: 'disabled' });

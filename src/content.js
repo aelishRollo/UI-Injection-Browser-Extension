@@ -1,5 +1,5 @@
 import { THEMES } from './themes.js';
-import { isEnabled } from './settings.js';
+import { isEnabled, normalizeSettings } from './settings.js';
 import { getCorrections } from './corrections.js';
 import { buildStyles } from './styles.js';
 import { createThemePicker } from './theme-picker.js';
@@ -20,6 +20,16 @@ if (!globalThis.__surfaceUnifiedV2) {
     const result = await sendMessage(message);
     if (!result?.ok) throw new Error(result?.error || 'Extension service worker unavailable');
     return result;
+  }
+  async function settingsContext() {
+    // The top document can read extension storage directly. Avoid waking the
+    // service worker just to rediscover its own host and selected theme during
+    // the first-paint critical path. Cross-origin frames still ask the worker
+    // for the top-level host so exact-site exceptions propagate correctly.
+    const settings = normalizeSettings((await chrome.storage.local.get('settings')).settings);
+    const frameHost = location.hostname.toLowerCase();
+    if (window === top) return { settings, topHost: frameHost, frameHost };
+    return request({ type: 'settings:get' });
   }
   const themePicker = createThemePicker({
     selectTheme: async theme => (await request({ type: 'theme:select', theme })).settings,
@@ -50,7 +60,7 @@ if (!globalThis.__surfaceUnifiedV2) {
     while (pending) {
       pending = false;
       try {
-        const { settings, topHost, frameHost } = await request({ type: 'settings:get' });
+        const { settings, topHost, frameHost } = await settingsContext();
         const enabled = isEnabled(settings, topHost || frameHost);
         // Keep the picker available so a paused extension can be resumed in place.
         themePicker.render(settings, Boolean(topHost || frameHost));

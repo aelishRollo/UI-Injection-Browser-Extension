@@ -1,7 +1,11 @@
-/* Prevent an authored frame from painting before Surface has decided whether
-   this document is themed. content.js removes this guard by marking the root
-   ready after the final stylesheet is installed, or after a disabled/error
-   path has restored the authored page. */
+/* Keep authored content out of the first frame while preserving an opaque
+   browser canvas. A persisted document_start stylesheet supplies the active
+   theme variables before content.js performs any asynchronous work. */
 :root:not([data-surface-ready-v2]) {
+  background-color: var(--surface-startup-background, Canvas) !important;
+  color-scheme: var(--surface-startup-color-scheme, normal) !important;
+}
+
+:root:not([data-surface-ready-v2]) > body {
   opacity: 0 !important;
 }
