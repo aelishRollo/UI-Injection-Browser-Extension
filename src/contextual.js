@@ -43,6 +43,9 @@ let initialStageMs = {};
 let palette;
 let activeCorrections = { roles: {}, preserve: [] };
 let touched = new Map();
+let brandPaint = new WeakMap();
+let refreshBrandPaint = false;
+let authoredCanvasBackground = '#ffffff';
 let uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
 
 function record(element) {
@@ -145,6 +148,16 @@ function isNeutralSolidSurface(style) {
     style.backgroundImage === 'none' && !hasUncertainPaint(style));
 }
 
+function isNeutralLinearGradient(style) {
+  const image = style.backgroundImage;
+  if (!image.startsWith('linear-gradient(') || image.indexOf('linear-gradient(', 1) !== -1 || hasUncertainPaint(style)) return false;
+  const colors = [...image.matchAll(/rgba?\([^)]*\)/gi)].map(match => parseColor(match[0]));
+  return colors.length >= 2 && colors.every(color => color &&
+    Math.min(...color.slice(0, 3)) >= 230 &&
+    Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25) &&
+    colors.some(color => color[3] >= .98);
+}
+
 function backingFor(element) {
   for (let current = element; current instanceof Element; current = current.parentElement) {
     const style = getComputedStyle(current);
@@ -197,13 +210,31 @@ function markBrands(root) {
   const candidates = collect(root, '[class*="logo" i],[id*="logo" i],[class*="wordmark" i],[id*="wordmark" i],[class~="brand" i],[id="brand" i],[class*="branding" i],[id*="branding" i],[class*="brand-logo" i],[id*="brand-logo" i],img[alt*="logo" i],svg[aria-label*="logo" i]');
   for (const candidate of candidates) {
     if (!isVisible(candidate)) continue;
-    const target = candidate.closest('a,button,[role="link"]') || candidate;
+    const interactive = candidate.closest('a,button,[role="link"]');
+    const interactiveRect = interactive?.getBoundingClientRect();
+    // A logo-like icon inside a substantial labelled card does not make the
+    // entire card a protected brand. Keep the compact mark protected while
+    // leaving the surrounding content available to normal contrast handling.
+    const target = interactive && interactiveRect.width <= 400 && interactiveRect.height <= 120
+      ? interactive
+      : candidate;
     if (target.closest(`[${ATTR_CONTEXT}="brand"]`) && target.getAttribute(ATTR_CONTEXT) !== 'brand') continue;
-    const backing = backingFor(target);
+    let paint = brandPaint.get(target);
+    if (!paint || refreshBrandPaint) {
+      const backing = backingFor(target);
+      const themedBacking = backing?.element?.hasAttribute(ATTR_CONTEXT);
+      paint = {
+        background: backing?.color && isOpaque(backing.color) && !themedBacking
+          ? backing.color
+          : authoredCanvasBackground,
+        color: getComputedStyle(target).color
+      };
+      brandPaint.set(target, paint);
+    }
     setAttribute(target, ATTR_CONTEXT, 'brand');
     setAttribute(target, ATTR_CONFIDENCE, 'high');
-    setProperty(target, ORIGINAL_BACKGROUND, backing?.color && isOpaque(backing.color) ? backing.color : '#ffffff');
-    setProperty(target, ORIGINAL_COLOR, getComputedStyle(target).color);
+    setProperty(target, ORIGINAL_BACKGROUND, paint.background);
+    setProperty(target, ORIGINAL_COLOR, paint.color);
   }
 }
 
@@ -213,11 +244,18 @@ function canOwnSurface(element) {
   const controlCount = descendantCount(element, 'button,input,select,textarea,[role="button"]:not([aria-hidden="true"])');
   // A large composite application region is not one coherent reading surface.
   // Its smaller, understood descendants can still be classified independently.
-  return style.backgroundImage === 'none' && controlCount <= 6 && scopedTextLength(element, 40) >= 40;
+  return (style.backgroundImage === 'none' || isNeutralLinearGradient(style)) &&
+    controlCount <= 6 && scopedTextLength(element, 40) >= 40;
 }
 
 function markSurface(element, context) {
-  if (!canOwnSurface(element) || element.closest(`[${ATTR_CONTEXT}="content"],[${ATTR_CONTEXT}="chrome"]`)) return false;
+  if (!canOwnSurface(element)) return false;
+  const existingOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"],[${ATTR_CONTEXT}="chrome"]`);
+  // A restrained near-white gradient is explicit authored paint, so it can
+  // own a nested section even when an earlier parser pass already recognized
+  // the surrounding main landmark. Transparent nested sections remain part
+  // of their parent document hierarchy.
+  if (existingOwner && !isNeutralLinearGradient(getComputedStyle(element))) return false;
   setAttribute(element, ATTR_CONTEXT, context);
   setAttribute(element, ATTR_CONFIDENCE, 'high');
   return true;
@@ -236,20 +274,20 @@ function markSurfaces(root) {
   // Composite landing pages often use a semantic content region around several
   // substantial, pale, heading-led panels instead of article/aside elements.
   // Recognize those authored panel boundaries without painting arbitrary cards.
-  const neutralPanels = collect(root, 'div').filter(element => {
+  const neutralPanels = collect(root, 'div,a[href]').filter(element => {
     if (element.hasAttribute(ATTR_CONTEXT) || !element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`) ||
         !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
-    const heading = element.querySelector('h1,h2,h3,[role="heading"]');
+    const heading = element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]');
     const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
-    return isNeutralSolidSurface(style) && heading && rect.width >= 180 && rect.height >= 80 &&
+    return (isNeutralSolidSurface(style) || isNeutralLinearGradient(style)) && heading && rect.width >= 180 && rect.height >= 80 &&
       scopedTextLength(element, 100) >= 100 && controls <= 6;
   });
   for (const element of neutralPanels.filter(candidate => !neutralPanels.some(other => other !== candidate && other.contains(candidate)))) {
     setAttribute(element, ATTR_CONTEXT, 'content');
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
-    setAttribute(element, 'data-surface-evidence-v1', 'neutral-heading-panel');
+    setAttribute(element, 'data-surface-evidence-v1', element.matches('a[href]') ? 'neutral-heading-card' : 'neutral-heading-panel');
   }
   for (const element of collect(root, 'header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
     if (!isVisible(element) || isProtected(element) || getComputedStyle(element).backgroundImage !== 'none') continue;
@@ -600,6 +638,28 @@ function markPage() {
   }
 }
 
+function captureAuthoredCanvasBackground() {
+  const root = document.documentElement;
+  const ready = root.hasAttribute('data-surface-ready-v2');
+  // The registered preload sheet owns the root canvas until ready. Suppress
+  // that one selector synchronously so this snapshot sees authored CSS; the
+  // body is still guarded and no rendering opportunity occurs in this task.
+  if (!ready) root.setAttribute('data-surface-ready-v2', '');
+  try {
+    for (const element of [document.body, root]) {
+      if (!(element instanceof Element)) continue;
+      const color = getComputedStyle(element).backgroundColor;
+      if (isOpaque(color)) {
+        authoredCanvasBackground = color;
+        return;
+      }
+    }
+    authoredCanvasBackground = '#ffffff';
+  } finally {
+    if (!ready) root.removeAttribute('data-surface-ready-v2');
+  }
+}
+
 function markTheme() {
   if (!document.documentElement) return;
   setAttribute(document.documentElement, ATTR_THEME, activeTheme);
@@ -618,6 +678,9 @@ function markControls(root, media) {
   const selector = `button,summary,a[href],[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
   for (const element of collect(root, selector)) {
     if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    // A substantial heading-led linked card is an editorial surface, not one
+    // oversized button. Surface recognition runs first and owns that decision.
+    if (element.getAttribute(ATTR_CONTEXT) === 'content') continue;
     if (element.matches('a[href]:not([role="button"])')) {
       const style = getComputedStyle(element);
       const bordered = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'].some(property => parseFloat(style[property]) >= 1);
@@ -630,7 +693,7 @@ function markControls(root, media) {
     const style = getComputedStyle(element);
     const ownBackground = parseColor(style.backgroundColor);
     const ownsSolidPaint = ownBackground?.[3] > .9 && style.backgroundImage === 'none' && !hasUncertainPaint(style);
-    if (forcedOverlay || authoredImage || (overlapsMedia(element, media) && !ownsSolidPaint)) {
+    if (forcedOverlay || authoredImage || (!ownsSolidPaint && overlapsMedia(element, media))) {
       setAttribute(element, ATTR_CONTEXT, 'overlay');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setProperty(element, ORIGINAL_COLOR, getComputedStyle(element).color);
@@ -744,10 +807,17 @@ function textCandidates(root) {
 }
 
 function snapshotForegrounds(root) {
-  return new Map(textCandidates(root).map(element => {
+  const candidates = textCandidates(root);
+  const originals = new Map(candidates.map(element => {
     const style = getComputedStyle(element);
-    return [element, { color: style.color, fill: style.webkitTextFillColor }];
+    return [element, {
+      color: style.color,
+      fill: style.webkitTextFillColor,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight
+    }];
   }));
+  return { candidates, originals };
 }
 
 function scheduleEffectSettlement(owner) {
@@ -770,22 +840,27 @@ function scheduleEffectSettlement(owner) {
   }, 250);
 }
 
-function markText(root, media, originals) {
-  const candidates = textCandidates(root);
+function markText(root, media, snapshot) {
+  const { candidates, originals } = snapshot;
   for (const element of candidates) {
+    // Brand ownership is established after the authored foreground snapshot.
+    // Recheck it here without repeating the full candidate query and layout
+    // visibility pass.
+    if (!element.isConnected || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     const role = textRole(element);
     const original = originals.get(element) || (() => {
       const style = getComputedStyle(element);
-      return { color: style.color, fill: style.webkitTextFillColor };
+      return { color: style.color, fill: style.webkitTextFillColor, fontSize: style.fontSize, fontWeight: style.fontWeight };
     })();
-    const style = getComputedStyle(element);
     // Compare the authored foreground pair from the shared snapshot. An
     // earlier candidate can theme an ancestor and change this element's live
     // inherited color before its turn, creating a mismatch that the page did
     // not author.
     const backing = original.fill && original.fill !== original.color
       ? { reason: 'effects' } : backgroundForText(element);
-    const mediaBacked = overlapsMedia(element, media);
+    // An already-uncertain backing wins the preservation decision. Avoid the
+    // more expensive hit-testing path when it cannot change the result.
+    const mediaBacked = !backing.reason && overlapsMedia(element, media);
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
@@ -811,7 +886,7 @@ function markText(root, media, originals) {
       uncertainty[backing.reason === 'image' ? 'imageBackground' : mediaBacked ? 'media' : 'unknownSurface']++;
       continue;
     }
-    const minimum = minimumContrast(parseFloat(style.fontSize), Number(style.fontWeight));
+    const minimum = minimumContrast(parseFloat(original.fontSize), Number(original.fontWeight));
     const originalColor = parseColor(original.color);
     // Keep successful authored pairs on retained surfaces, including status ink.
     if (!backing.themed && originalColor && contrastRatio(originalColor, backing.color) >= minimum) {
@@ -838,7 +913,7 @@ function scan(root = document, media = mediaRects()) {
   // Capture authored foreground pairs before surface and purpose annotations
   // activate their CSS. A later parent annotation must not become a child's
   // supposed original foreground within this same scan.
-  const originalForegrounds = snapshotForegrounds(root);
+  const foregroundSnapshot = snapshotForegrounds(root);
   const run = (name, operation) => {
     if (!scanViewportBottom) return operation();
     const started = performance.now();
@@ -862,7 +937,7 @@ function scan(root = document, media = mediaRects()) {
   run('navigationFades', () => markNavigationFades(root));
   run('windows', () => markWindows(root));
   run('glyphs', () => markGlyphs(root));
-  run('text', () => markText(root, media, originalForegrounds));
+  run('text', () => markText(root, media, foregroundSnapshot));
 }
 
 const LARGE_ADDITION_LIMIT = 80;
@@ -1043,7 +1118,12 @@ function finishInitialScan() {
   restoreAll();
   markTheme();
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
-  scan(document);
+  refreshBrandPaint = true;
+  try {
+    scan(document);
+  } finally {
+    refreshBrandPaint = false;
+  }
   observe();
 }
 
@@ -1058,9 +1138,11 @@ function finishInitialViewportScan() {
   scanViewportBottom = innerHeight + Math.min(240, innerHeight * .25);
   scanViewportMembership = new WeakMap();
   initialStageMs = {};
+  refreshBrandPaint = true;
   try {
     scan(document);
   } finally {
+    refreshBrandPaint = false;
     scanViewportBottom = 0;
     scanViewportMembership = undefined;
   }
@@ -1120,7 +1202,8 @@ export async function start(theme, corrections) {
   initialViewportScanMs = 0;
   parserScanCompleted = false;
   initialStageMs = {};
-  markTheme();
+  brandPaint = new WeakMap();
+  refreshBrandPaint = false;
   if (!document.body) {
     await new Promise(resolve => {
       const bodyObserver = new MutationObserver(() => {
@@ -1131,6 +1214,11 @@ export async function start(theme, corrections) {
       bodyObserver.observe(document, { childList: true, subtree: true });
     });
   }
+  // Capture the author's base canvas before activating the selected treatment.
+  // Dynamic transparent brands can then retain a stable backing even when
+  // their nearest ancestor is already owned by Surface during a later rescan.
+  captureAuthoredCanvasBackground();
+  markTheme();
   return { completion: initialize() };
 }
 
@@ -1147,6 +1235,8 @@ export function stop() {
   if (effectSettleTimer) clearTimeout(effectSettleTimer);
   effectSettleTimer = undefined;
   pendingEffectOwners.clear();
+  brandPaint = new WeakMap();
+  refreshBrandPaint = false;
   queuedRoots.clear();
   queuedRemovedRoots.clear();
   queuedAddedElements = 0;

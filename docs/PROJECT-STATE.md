@@ -63,6 +63,8 @@ Iteration 14 passes eight unit checks, the build, and all 13 isolated Chromium c
 
 [Iteration 17](EXPERIMENT-17.md) bounds large incremental route insertions to content near the viewport before the next paint, then sends offscreen roots through the same unified classifier as they approach view. A deterministic 800-region SPA transition fell from 1,244.4 ms to 132.4–137.9 ms click-to-frame in repeated local Chromium runs while the final region was still classified after scrolling into view. Twelve unit checks, the build, and all 13 browser checks pass. The exact-snapshot five-repeat workload completed 2,000 frames with zero stalls, no recorded long tasks, and 16.8 ms median p95 frame intervals for every mode.
 
+[Iteration 18](EXPERIMENT-18.md) curates an uncommitted recognition prototype rather than accepting it wholesale. The unified path now recognizes substantial neutral linked cards and restrained near-white gradient sections, scopes logo-like marks inside large cards, stabilizes brand paint across incremental rescans, and reuses foreground snapshots. An all-translucent gradient remains authored. A broader deferred-region observer and 20-poll effect lifecycle was rejected after it raised median sampled engine work to 130.76–139.14 ms; the existing bounded six-read settlement remains. The final build, 12 unit checks, all 13 browser checks, and the 149.2 ms large-route regression pass. Median sampled engine work returned to 22.46–25.20 ms with 16.7–16.8 ms median p95 frame intervals in the five-repeat fixture.
+
 ## Documentation precedence
 
 Use documentation in this order:

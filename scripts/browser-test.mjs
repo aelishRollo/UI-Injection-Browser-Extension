@@ -73,6 +73,7 @@ try {
   await page.goto(fixture.url);
   await waitStatus({ state: 'disabled' });
   const original = await appearance();
+  const originalBrandBacking = await page.locator('.masthead').evaluate(element => getComputedStyle(element).backgroundColor);
   await page.screenshot({ path: join(out, 'original.png') });
 
   await check('full navigation starts with the selected theme treatment', async () => {
@@ -172,6 +173,12 @@ try {
         })), false);
         assert.equal(await page.locator('#article').evaluate(el => getComputedStyle(el).animationName), 'none', `${theme} must not continuously animate semantic surfaces`);
         assert.equal(await page.locator('.grid > aside').evaluate(el => getComputedStyle(el).animationName), 'none', `${theme} must not continuously animate semantic surfaces`);
+        assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
+          `${theme} brand backing must start from authored paint`);
+        await page.locator('.wordmark').evaluate(element => element.classList.toggle('refresh-probe'));
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
+          `${theme} brand backing must survive an incremental rescan`);
         const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
         await page.screenshot({ path: join(out, `${theme}.png`) });
@@ -296,7 +303,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,.product-logo').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -304,6 +311,7 @@ try {
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
+      await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '.5'; });
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
       for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading', 'composite-landing': 'panel', 'neutral-panel-one': 'panel', 'neutral-panel-two': 'panel' })) {
@@ -314,6 +322,21 @@ try {
         assert.equal(await page.locator(selector).getAttribute('data-surface-context-v1'), 'content');
         assert.equal(await page.locator(selector).getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
       }
+      assert.equal(await page.locator('#neutral-gradient-section').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#neutral-gradient-section').getAttribute('data-surface-purpose-v1'), 'section');
+      assert.equal(await page.locator('#transparent-gradient-section').getAttribute('data-surface-context-v1'), null,
+        'an all-translucent gradient must not become a theme-owned surface');
+      assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-evidence-v1'), 'neutral-heading-card');
+      assert.equal(await page.locator('#large-mark-card').getAttribute('data-surface-context-v1'), null, 'a large labelled card containing a logo-like icon must not become a brand');
+      assert.equal(await page.locator('.product-logo').getAttribute('data-surface-context-v1'), 'brand');
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), null, 'an active opacity effect stays authored');
+      await page.locator('#settling-neutral-panel p').evaluate(element => { element.textContent += ' Updated while revealing.'; });
+      await page.waitForTimeout(50);
+      await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '1'; });
+      await page.waitForTimeout(350);
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-context-v1'), 'visualization');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-purpose-v1'), 'visualization');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-evidence-v1'), 'labelled-data-graphic');
