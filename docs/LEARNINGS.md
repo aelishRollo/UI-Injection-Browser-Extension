@@ -126,6 +126,16 @@ Final validation passed the build, 12 unit checks, all 15 isolated Chromium chec
 
 Next bounded iteration: review Monochrome Signal on an article, commerce page, media page, and interactive application before changing its recognition behavior. Tune only declarative treatments unless a concrete cross-theme ownership or contrast failure demonstrates a renderer problem.
 
+Latest owner observation: **visibility issues returned on either side of Wikipedia.** Iteration 24 reproduced two cross-site lifecycle shapes rather than adding a Wikipedia appearance patch. An empty neutral side owner populated later was outside the inserted descendant's incremental scan, and Wikipedia's post-load shell hydration could strip renderer-owned attributes from the root, body, and outer page container after the theme was active. See [the resilient ownership record](EXPERIMENT-24.md).
+
+Utility-panel recognition now reconsiders at most six eligible ancestors of an incremental root. The mutation observer separately watches only paint-critical theme/style/context/purpose ownership and repairs a removed marker in the same microtask. A surviving root or body page marker restores its pair directly, avoiding the failure where the active theme's own canvas motif was mistaken for authored image paint. Renderer-authored remove-and-reclassify batches end with their markers present and do not feed back into repair.
+
+The parser-delay fixture creates pale left and right owners empty, then populates them with navigation and settings before reveal. Every registered theme must classify and paint both in the first visible frame. The hierarchy fixture removes root, body, shell, and rail markers while active, verifies exact role and paint recovery, and separately exercises one-sided body-marker loss.
+
+A final animation-frame trace of Wikipedia's `Students for a Democratic Society` article retained Terminal Vision ownership on the root, body, shell, and rails through post-load hydration; the earlier 1–2 second white-side interval did not recur. Twelve unit checks, the build, all 15 Chromium checks, and the 139.9 ms large-route regression pass. The five-repeat original-plus-four-theme workload completed 2,500 callbacks with zero stalls or recorded long tasks and 16.7–16.8 ms median p95 intervals; median sampled renderer work was 27.19/26.47/25.22/22.80 ms for Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision. These are local and targeted observations, not universal field guarantees.
+
+Next bounded iteration: verify attribute-ownership repair on a second morphing or hydrated application before broadening the watched marker set. Do not add polling or observe every Surface annotation unless a concrete failure proves the current paint-critical set insufficient.
+
 ## Historical experiment log — superseded architecture
 
 The entries below preserve observations, failures, and measurements that informed the current design. Date-relative words such as “latest,” “current,” and “next” apply only within their original experiment context.

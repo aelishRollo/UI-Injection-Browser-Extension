@@ -121,7 +121,7 @@ try {
     });
     const expected = {
       'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
-      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(212, 208, 200)', title: 'rgb(0, 0, 128)' },
+      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(255, 255, 255)', title: 'rgb(0, 0, 128)' },
       'liquid-dream': { canvas: 'rgb(248, 241, 231)', rail: 'rgb(255, 249, 241)', liquidTitle: true },
       'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(242, 242, 242)' }
     };
@@ -513,6 +513,55 @@ try {
       assert.equal(await page.locator('#late-section').getAttribute('data-surface-purpose-v1'), 'section');
       assert.equal(await page.locator('#late-action').getAttribute('data-surface-context-v1'), 'control');
       await page.locator('#dynamic').evaluate(el => el.replaceChildren());
+      const ownershipSnapshot = await page.evaluate(() => {
+        const shell = document.querySelector('#shell');
+        const rail = document.querySelector('#utility-rail');
+        return {
+          theme: document.documentElement.getAttribute('data-surface-theme-v2'),
+          userStyles: document.documentElement.hasAttribute('data-surface-user-styles-v2'),
+          rootContext: document.documentElement.getAttribute('data-surface-context-v1'),
+          bodyContext: document.body.getAttribute('data-surface-context-v1'),
+          shellContext: shell.getAttribute('data-surface-context-v1'),
+          railPurpose: rail.getAttribute('data-surface-purpose-v1'),
+          rootBackground: getComputedStyle(document.documentElement).backgroundColor,
+          shellBackground: getComputedStyle(shell).backgroundColor,
+          railBackground: getComputedStyle(rail).backgroundColor
+        };
+      });
+      await page.evaluate(() => {
+        document.documentElement.removeAttribute('data-surface-theme-v2');
+        document.documentElement.removeAttribute('data-surface-user-styles-v2');
+        document.documentElement.removeAttribute('data-surface-context-v1');
+        document.body.removeAttribute('data-surface-context-v1');
+        document.querySelector('#shell').removeAttribute('data-surface-context-v1');
+        document.querySelector('#utility-rail').removeAttribute('data-surface-purpose-v1');
+      });
+      await page.waitForFunction(theme =>
+        document.documentElement.getAttribute('data-surface-theme-v2') === theme &&
+        document.documentElement.hasAttribute('data-surface-user-styles-v2') &&
+        document.documentElement.getAttribute('data-surface-context-v1') === 'page' &&
+        document.body.getAttribute('data-surface-context-v1') === 'page' &&
+        document.querySelector('#shell')?.getAttribute('data-surface-context-v1') === 'shell' &&
+        document.querySelector('#utility-rail')?.getAttribute('data-surface-purpose-v1') === 'navigation', theme);
+      assert.deepEqual(await page.evaluate(() => {
+        const shell = document.querySelector('#shell');
+        const rail = document.querySelector('#utility-rail');
+        return {
+          theme: document.documentElement.getAttribute('data-surface-theme-v2'),
+          userStyles: document.documentElement.hasAttribute('data-surface-user-styles-v2'),
+          rootContext: document.documentElement.getAttribute('data-surface-context-v1'),
+          bodyContext: document.body.getAttribute('data-surface-context-v1'),
+          shellContext: shell.getAttribute('data-surface-context-v1'),
+          railPurpose: rail.getAttribute('data-surface-purpose-v1'),
+          rootBackground: getComputedStyle(document.documentElement).backgroundColor,
+          shellBackground: getComputedStyle(shell).backgroundColor,
+          railBackground: getComputedStyle(rail).backgroundColor
+        };
+      }), ownershipSnapshot, `${theme} must repair stripped outer paint ownership before the next frame`);
+      await page.evaluate(() => document.body.removeAttribute('data-surface-context-v1'));
+      await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
+      assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), ownershipSnapshot.rootBackground,
+        `${theme} must not treat surviving theme canvas paint as an authored body background`);
       await page.screenshot({ path: join(out, `hierarchy-${theme}.png`) });
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });

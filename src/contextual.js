@@ -21,6 +21,7 @@ const ATTR_TABLE_PART = 'data-surface-table-part-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
+const MANAGED_PAINT_ATTRIBUTES = new Set([ATTR_THEME, ATTR_USER_STYLES, ATTR_CONTEXT, ATTR_PURPOSE]);
 
 let observer;
 let deferredMutationObserver;
@@ -529,7 +530,19 @@ function initialViewportHasTheme() {
 }
 
 function markUtilityPanels(root) {
-  for (const element of collect(root, 'div,aside,nav,form')) {
+  const candidates = new Set(collect(root, 'div,aside,nav,form'));
+  // A neutral rail can be parsed empty and receive its links or settings in a
+  // later mutation. Reconsider the bounded owner chain as that content
+  // arrives; otherwise an incremental scan sees only the inserted descendants
+  // and can leave the already-visible rail in the authored light palette.
+  if (root instanceof Element) {
+    for (let element = root.parentElement, depth = 0;
+      element && element !== document.body && depth < 6;
+      element = element.parentElement, depth++) {
+      if (element.matches('div,aside,nav,form')) candidates.add(element);
+    }
+  }
+  for (const element of candidates) {
     if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     const style = getComputedStyle(element);
     const color = parseColor(style.backgroundColor);
@@ -1122,13 +1135,51 @@ function scheduleScans(records) {
 
 function observe() {
   if (!running || !document.body || observer) return;
-  observer = new MutationObserver(scheduleScans);
+  const repairPageOwner = target => {
+    const counterpart = target === document.documentElement ? document.body : document.documentElement;
+    if (counterpart.getAttribute(ATTR_CONTEXT) !== 'page') {
+      markPage();
+      return;
+    }
+    // The surviving half of an established page pair is stronger evidence
+    // than the active theme paint now visible through it. Restore only the
+    // missing owner without mistaking the renderer's canvas motif for an
+    // authored background image.
+    setAttribute(target, ATTR_CONTEXT, 'page');
+    setAttribute(target, ATTR_CONFIDENCE, 'high');
+  };
+  observer = new MutationObserver(records => {
+    const ordinary = [];
+    for (const record of records) {
+      if (!MANAGED_PAINT_ATTRIBUTES.has(record.attributeName)) {
+        ordinary.push(record);
+        continue;
+      }
+      // Hydration and DOM-morphing libraries sometimes reconcile attributes
+      // against server markup and strip renderer-owned role markers from
+      // existing outer containers. Reassert only missing paint-critical
+      // ownership in this mutation microtask, before the next frame. Surface's
+      // own remove-and-reclassify batches end with the marker present and are
+      // therefore ignored rather than feeding back into the observer.
+      if (record.oldValue === null || record.target.hasAttribute(record.attributeName)) continue;
+      if (record.target === document.documentElement) {
+        markTheme();
+        if (record.attributeName === ATTR_CONTEXT) repairPageOwner(record.target);
+      } else if (record.target === document.body && record.attributeName === ATTR_CONTEXT) {
+        repairPageOwner(record.target);
+      } else {
+        scan(record.target);
+      }
+    }
+    if (ordinary.length) scheduleScans(ordinary);
+  });
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
     characterData: true,
     attributes: true,
-    attributeFilter: ['class', 'hidden', 'role', 'aria-label', 'aria-labelledby', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid', 'data-level']
+    attributeOldValue: true,
+    attributeFilter: ['class', 'hidden', 'role', 'aria-label', 'aria-labelledby', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid', 'data-level', ...MANAGED_PAINT_ATTRIBUTES]
   });
   visualEffectListener = event => {
     const target = event.target;
