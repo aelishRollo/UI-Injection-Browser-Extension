@@ -134,6 +134,12 @@ try {
       const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
       assert.equal(await page.evaluate(() => document.readyState), 'loading', `${theme} should reveal before a parser-blocking script finishes`);
       assert.equal(firstVisible.themed, true, `${theme} page context missing at reveal`);
+      await page.evaluate(async () => {
+        document.body.append(document.createElement('span'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} parser growth must not mistake its own page texture for authored imagery`);
       assert.equal(firstVisible.residentTheme, theme, `${theme} startup treatment was not resident at document_start`);
       assert.equal(firstVisible.residentStyles === '1' || firstVisible.userStyles, true, `${theme} had neither first-paint styles nor USER-origin styles at reveal`);
       assert.equal(firstVisible.activeTheme === theme || firstVisible.userStyles, true, `${theme} had neither its resident stylesheet nor USER-origin handoff active at reveal`);
@@ -152,6 +158,8 @@ try {
       await navigation;
       if (navigationError) throw navigationError;
       await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} body paint ownership must survive parser and hydration work`);
       const frames = await page.evaluate(() => window.__surfaceStartupFrames);
       assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.residentTheme === theme), true, `${theme} selected startup token was not resident throughout startup: ${JSON.stringify(frames)}`);
       assert.equal(frames.filter(frame => frame.bodyOpacity !== '0').every(frame => frame.residentStyles === '1' || frame.userStyles), true, `${theme} exposed content without active theme styles: ${JSON.stringify(frames)}`);
@@ -509,6 +517,10 @@ try {
         assert.equal(await page.locator('#activity-summary').getAttribute('data-surface-context-v1'), 'control');
         const pair = await page.locator('#activity-summary').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
         assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `unified activity summary: ${pair.join(' on ')}`);
+        await page.locator('body').evaluate(el => el.classList.add('authored-canvas'));
+        await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'preserve');
+        await page.locator('body').evaluate(el => el.classList.remove('authored-canvas'));
+        await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
       }
       await page.locator('#menu').click();
       assert.equal(await page.locator('#menu').getAttribute('aria-expanded'), 'true');

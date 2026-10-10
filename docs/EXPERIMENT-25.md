@@ -4,7 +4,7 @@ Date: October 10, 2026
 
 ## Owner observations
 
-Terminal Vision still showed horizontal bands beside Wikipedia after scrolling. Browser Archeology on Wikipedia remained the main canary for whether the engine understood visual containers. Monochrome Signal also had visibility failures. The requested direction was a general solution shared by all themes.
+The owner reported white strips beside Wikipedia after scrolling, identified Browser Archeology on Wikipedia as the main canary for container recognition, and reported Monochrome Signal visibility failures. The requested direction was a general solution shared by all themes. The horizontal rail bands investigated here were an observed artifact; the owner later clarified that the reported strips were vertical and flanked the article columns. See [Iteration 26](EXPERIMENT-26.md).
 
 ## Reproduction
 
@@ -22,7 +22,7 @@ The container fixture represented another general gap: a semantic main landmark 
 
 ## Validation and limits
 
-The hierarchy fixture checks all four themes for a bounded card, an unbounded pale block, visualization preservation, CSS button appearance, and suppressed rail fades. A final live Wikipedia scroll capture at 1,800 px showed the side bands gone; both recognized fade pseudos computed to `display: none`. The final Monochrome Signal Wikipedia capture showed legible black Search and hide button faces. The local build, 12 unit tests, and all 15 isolated Chromium checks passed.
+The hierarchy fixture checks all four themes for a bounded card, an unbounded pale block, visualization preservation, CSS button appearance, and suppressed rail fades. A final live Wikipedia scroll capture at 1,800 px showed those horizontal bands gone; both recognized fade pseudos computed to `display: none`. This did not verify removal of the owner's vertical strips. The final Monochrome Signal Wikipedia capture showed legible black Search and hide button faces. The local build, 12 unit tests, and all 15 isolated Chromium checks passed.
 
 The large-route fixture passed at 196.1 ms to the next frame, below its 200 ms guard. The final five-repeat workload completed 2,500 frame callbacks, with zero stalls or recorded long tasks and 16.7–16.8 ms median p95 frame intervals. Median sampled renderer work was 29.18 ms Browser Archeology, 34.27 ms Liquid Dream, 28.89 ms Monochrome Signal, and 28.16 ms Terminal Vision. The fixture itself gained a mixed landmark, seven controls, and two card candidates, so these figures should not be treated as an isolated cost comparison against earlier iterations.
 

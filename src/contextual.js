@@ -682,7 +682,13 @@ function markGlyphs(root) {
 function markPage() {
   const bodyStyle = getComputedStyle(document.body);
   const htmlStyle = getComputedStyle(document.documentElement);
-  if (bodyStyle.backgroundImage !== 'none' || htmlStyle.backgroundImage !== 'none') {
+  // Parser batches can revisit the page after a prior pass installed the
+  // theme's own canvas texture. Existing page ownership makes that computed
+  // image extension paint, while an unowned image remains authored evidence.
+  // Full scans restore authored state before reaching this check.
+  const authoredBodyImage = bodyStyle.backgroundImage !== 'none' && document.body.getAttribute(ATTR_CONTEXT) !== 'page';
+  const authoredRootImage = htmlStyle.backgroundImage !== 'none' && document.documentElement.getAttribute(ATTR_CONTEXT) !== 'page';
+  if (authoredBodyImage || authoredRootImage) {
     setAttribute(document.body, ATTR_CONTEXT, 'preserve');
     setAttribute(document.body, ATTR_CONFIDENCE, 'low');
     uncertainty.imageBackground++;
