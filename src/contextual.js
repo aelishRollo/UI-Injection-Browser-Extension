@@ -14,7 +14,6 @@ const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
 const ATTR_STARTING = 'data-surface-starting-v2';
 const ATTR_THEME = 'data-surface-theme-v2';
 const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
-const ATTR_SWITCHING = 'data-surface-switching-v2';
 const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
 const ATTR_DEFERRED_READING = 'data-surface-deferred-reading-v1';
@@ -477,12 +476,14 @@ function layoutOpportunity() {
   });
 }
 
-export async function prepareReveal() {
+export async function prepareReveal({ immediate = false } = {}) {
   if (!running || !document.body) return;
   // Let the parser populate and lay out the first viewport while the authored
   // body is still guarded. The timeout keeps background tabs from waiting on
   // a throttled animation frame.
-  await layoutOpportunity();
+  // An already-rendered document has current layout, so an in-page theme
+  // change can run the bounded recognition pass immediately.
+  if (!immediate) await layoutOpportunity();
   if (!document.documentElement.hasAttribute(ATTR_STARTING)) return;
   // Usually the parser observer has already run the unified recognizers over
   // every node that can paint in this frame. Avoid repeating that work over a
@@ -643,14 +644,10 @@ function markPage() {
 function captureAuthoredCanvasBackground() {
   const root = document.documentElement;
   const ready = root.hasAttribute('data-surface-ready-v2');
-  const switching = root.hasAttribute(ATTR_SWITCHING) ? root.getAttribute(ATTR_SWITCHING) : null;
   // The registered preload sheet owns the root canvas until ready. Suppress
   // that one selector synchronously so this snapshot sees authored CSS; the
   // body is still guarded and no rendering opportunity occurs in this task.
   if (!ready) root.setAttribute('data-surface-ready-v2', '');
-  // The switch guard is extension paint, not authored canvas evidence. Remove
-  // it only for this synchronous computed-style read; no paint can occur here.
-  if (switching !== null) root.removeAttribute(ATTR_SWITCHING);
   try {
     for (const element of [document.body, root]) {
       if (!(element instanceof Element)) continue;
@@ -662,7 +659,6 @@ function captureAuthoredCanvasBackground() {
     }
     authoredCanvasBackground = '#ffffff';
   } finally {
-    if (switching !== null) root.setAttribute(ATTR_SWITCHING, switching);
     if (!ready) root.removeAttribute('data-surface-ready-v2');
   }
 }
@@ -761,8 +757,8 @@ function backgroundForText(element) {
     // preload.css makes the body transparent until the first complete parsed-
     // DOM pass is ready. That extension-owned guard must not be mistaken for
     // authored opacity and force every text pair down the preservation path.
-    const guardedElement = (current === document.documentElement || current === document.body) && Number(style.opacity) === 0 &&
-      (!document.documentElement.hasAttribute('data-surface-ready-v2') || document.documentElement.hasAttribute(ATTR_SWITCHING));
+    const guardedElement = (current === document.documentElement || current === document.body) &&
+      !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
     if (!guardedElement && hasUncertainPaint(style)) return { reason: 'effects', owner: current };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);

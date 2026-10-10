@@ -10,8 +10,6 @@ if (!globalThis.__surfaceUnifiedV2) {
   globalThis.__surfaceUnifiedV2 = true;
   const READY_ATTRIBUTE = 'data-surface-ready-v2';
   const SWITCHING_ATTRIBUTE = 'data-surface-switching-v2';
-  const SWITCH_BACKGROUND = '--surface-switch-background-v2';
-  const SWITCH_COLOR_SCHEME = '--surface-switch-color-scheme-v2';
   let currentCSS = '';
   const renderer = unifiedRenderer;
   const registeredTheme = window === top && document.documentElement
@@ -25,7 +23,6 @@ if (!globalThis.__surfaceUnifiedV2) {
   let pending = false;
   let applying = false;
   let lastSignature = '';
-  let switchGuardState;
   let status = { state: 'starting', theme: null, error: null, corrections: [], applyCount: 0, applyMs: 0 };
   const sendMessage = chrome.runtime.sendMessage.bind(chrome.runtime);
   const elapsed = started => Math.round((performance.now() - started) * 100) / 100;
@@ -67,30 +64,34 @@ if (!globalThis.__surfaceUnifiedV2) {
     }
     document.documentElement.setAttribute(READY_ATTRIBUTE, '');
   }
-  function beginThemeSwitch(theme) {
+  async function handoffTheme(theme, update) {
     const root = document.documentElement;
-    if (!root || switchGuardState) return;
-    switchGuardState = {
-      attribute: root.hasAttribute(SWITCHING_ATTRIBUTE) ? root.getAttribute(SWITCHING_ATTRIBUTE) : null,
-      background: { value: root.style.getPropertyValue(SWITCH_BACKGROUND), priority: root.style.getPropertyPriority(SWITCH_BACKGROUND) },
-      colorScheme: { value: root.style.getPropertyValue(SWITCH_COLOR_SCHEME), priority: root.style.getPropertyPriority(SWITCH_COLOR_SCHEME) }
-    };
-    root.style.setProperty(SWITCH_BACKGROUND, theme.colors.background);
-    root.style.setProperty(SWITCH_COLOR_SCHEME, theme.scheme);
+    // The top snapshot already contains the rendered pixels of embedded
+    // frames. Independent frame transitions are redundant and can outlive the
+    // top-level handoff when a viewport changes immediately afterward.
+    if (!root || window !== top || typeof document.startViewTransition !== 'function') return update();
+    const original = root.hasAttribute(SWITCHING_ATTRIBUTE) ? root.getAttribute(SWITCHING_ATTRIBUTE) : null;
     root.setAttribute(SWITCHING_ATTRIBUTE, theme.id);
-  }
-  function finishThemeSwitch() {
-    const root = document.documentElement;
-    if (!root || !switchGuardState) return;
-    const restoreProperty = (name, original) => {
-      if (original.value) root.style.setProperty(name, original.value, original.priority);
-      else root.style.removeProperty(name);
-    };
-    if (switchGuardState.attribute === null) root.removeAttribute(SWITCHING_ATTRIBUTE);
-    else root.setAttribute(SWITCHING_ATTRIBUTE, switchGuardState.attribute);
-    restoreProperty(SWITCH_BACKGROUND, switchGuardState.background);
-    restoreProperty(SWITCH_COLOR_SCHEME, switchGuardState.colorScheme);
-    switchGuardState = undefined;
+    let result;
+    try {
+      // Chromium keeps the current themed pixels visible while update rebuilds
+      // the live document. Skip the default cross-fade as soon as that update
+      // is ready, producing one direct old-to-new handoff.
+      const transition = document.startViewTransition(async () => { result = await update(); });
+      // Visual readiness can reject when Chromium aborts a transition for a
+      // viewport change. Attach handlers immediately so that visual-only abort
+      // never becomes an unhandled page error; updateCallbackDone remains the
+      // authoritative product-operation result.
+      const visualReady = transition.ready.catch(() => {});
+      const visualFinished = transition.finished.catch(() => {});
+      await transition.updateCallbackDone;
+      transition.skipTransition();
+      await Promise.all([visualReady, visualFinished]);
+      return result;
+    } finally {
+      if (original === null) root.removeAttribute(SWITCHING_ATTRIBUTE);
+      else root.setAttribute(SWITCHING_ATTRIBUTE, original);
+    }
   }
   async function reconcile() {
     pending = true;
@@ -110,41 +111,52 @@ if (!globalThis.__surfaceUnifiedV2) {
         if (signature === lastSignature) continue;
         const theme = THEMES[settings.theme];
         const switchingTheme = Boolean(enabled && theme && status.state === 'active' && status.theme !== settings.theme);
-        if (switchingTheme) beginThemeSwitch(theme);
         status = { ...status, state: 'applying', error: null, theme: settings.theme, topHost, frameHost, timings };
         const reuseBootstrap = Boolean(bootstrapStart && enabled && settings.theme === bootstrapTheme && window === top);
-        if (!reuseBootstrap) {
-          bootstrapStart = null;
-          bootstrapTheme = '';
-          await renderer.stop();
-        }
         if (!enabled) {
+          if (!reuseBootstrap) {
+            bootstrapStart = null;
+            bootstrapTheme = '';
+            await renderer.stop();
+          }
           await replaceCSS('');
           status = { ...status, state: 'disabled', corrections: [] };
         } else {
           const corrections = getCorrections(frameHost);
-          // Classification inspects the author's treatment before expressive CSS.
-          await replaceCSS('');
-          const { completion } = reuseBootstrap
-            ? await bootstrapStart
-            : await renderer.start(theme, corrections);
-          timings.rendererStartedMs = elapsed(started);
-          // The selected first-paint treatment is already parsed in the
-          // persisted document_start sheet. Install the full USER-origin sheet
-          // in parallel with recognition instead of serializing the first
-          // visible frame behind a worker round trip.
-          await Promise.all([
-            replaceCSS(buildStyles(theme, { corrections })).then(() => {
-              renderer.confirmUserStyles();
-              timings.userStylesReadyMs = elapsed(started);
-            }),
-            (reuseBootstrap ? bootstrapTreatment : renderer.prepareReveal()).then(() => { timings.recognitionReadyMs = elapsed(started); })
-          ]);
-          await revealDocument();
-          finishThemeSwitch();
-          bootstrapStart = null;
-          bootstrapTheme = '';
-          bootstrapTreatment = null;
+          const prepareTheme = async () => {
+            if (!reuseBootstrap) {
+              bootstrapStart = null;
+              bootstrapTheme = '';
+              await renderer.stop();
+            }
+            // Classification inspects the author's treatment before expressive CSS.
+            await replaceCSS('');
+            const startedRenderer = reuseBootstrap
+              ? await bootstrapStart
+              : await renderer.start(theme, corrections);
+            timings.rendererStartedMs = elapsed(started);
+            // The selected first-paint treatment is already parsed in the
+            // persisted document_start sheet. Install the full USER-origin sheet
+            // in parallel with recognition instead of serializing the first
+            // visible frame behind a worker round trip.
+            await Promise.all([
+              replaceCSS(buildStyles(theme, { corrections })).then(() => {
+                renderer.confirmUserStyles();
+                timings.userStylesReadyMs = elapsed(started);
+              }),
+              (reuseBootstrap ? bootstrapTreatment : renderer.prepareReveal({ immediate: switchingTheme })).then(() => { timings.recognitionReadyMs = elapsed(started); })
+            ]);
+            await revealDocument();
+            bootstrapStart = null;
+            bootstrapTheme = '';
+            bootstrapTreatment = null;
+            // Wrap the later full-document promise so this async preparation
+            // step does not adopt it and hold the visual handoff open.
+            return { completion: startedRenderer.completion };
+          };
+          const { completion } = switchingTheme
+            ? await handoffTheme(theme, prepareTheme)
+            : await prepareTheme();
           timings.revealedMs = elapsed(started);
           await completion;
           timings.completeMs = elapsed(started);
@@ -158,7 +170,6 @@ if (!globalThis.__surfaceUnifiedV2) {
         await renderer.stop();
         await replaceCSS('').catch(() => {});
         await revealDocument().catch(() => {});
-        finishThemeSwitch();
         lastSignature = '';
         status = { ...status, state: 'error', error: error.message };
       }

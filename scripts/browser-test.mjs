@@ -190,14 +190,11 @@ try {
       });
   }
 
-  await check('in-page theme changes never reveal authored styles between themes', async () => {
+  await check('in-page theme changes keep content visible and hand off directly', async () => {
     await set({ enabled: true, theme: 'terminal-vision' });
     await waitStatus({ state: 'active', theme: 'terminal-vision' });
-    const canvases = {
-      'browser-archeology': 'rgb(0, 128, 128)',
-      'liquid-dream': 'rgb(248, 241, 231)',
-      'terminal-vision': 'rgb(6, 17, 11)'
-    };
+    assert.equal(await page.evaluate(() => typeof document.startViewTransition), 'function');
+    const handoffTimes = [];
     let previous = 'terminal-vision';
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
       await page.evaluate(() => {
@@ -218,24 +215,25 @@ try {
         requestAnimationFrame(sample);
       });
       await set({ theme });
-      await waitStatus({ state: 'active', theme });
+      const active = await waitStatus({ state: 'active', theme });
+      handoffTimes.push({ theme, milliseconds: active.timings.revealedMs });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
         window.__surfaceSamplingSwitch = false;
         requestAnimationFrame(resolve);
       })));
       const frames = await page.evaluate(() => window.__surfaceSwitchFrames);
       assert.ok(frames.length >= 2, `${theme} switch sampling was incomplete: ${JSON.stringify(frames)}`);
-      assert.equal(frames.every(frame => frame.bodyOpacity === '0' ||
+      assert.equal(frames.every(frame => frame.bodyOpacity === '1'), true,
+        `${theme} switch hid the page body: ${JSON.stringify(frames)}`);
+      assert.equal(frames.every(frame => frame.switching === theme ||
         (frame.pageContext === 'page' && [previous, theme].includes(frame.theme))), true,
-      `${theme} switch exposed authored styles: ${JSON.stringify(frames)}`);
-      assert.equal(frames.filter(frame => frame.switching).every(frame =>
-        frame.bodyOpacity === '0' && frame.rootBackground === canvases[theme]), true,
-      `${theme} switch guard did not use the destination canvas: ${JSON.stringify(frames)}`);
+      `${theme} switch escaped the atomic handoff: ${JSON.stringify(frames)}`);
       assert.equal(frames.at(-1).bodyOpacity, '1');
       assert.equal(frames.at(-1).theme, theme);
       assert.equal(frames.at(-1).pageContext, 'page');
       previous = theme;
     }
+    results.push({ name: 'visible theme handoff timing', samples: handoffTimes });
   });
 
   await check('unified renderer pairs known surfaces and preserves uncertain regions', async () => {

@@ -1,5 +1,7 @@
 # Iteration 20 — continuous in-page theme switching
 
+> **Superseded by [Iteration 21](EXPERIMENT-21.md).** This canvas guard removed the authored flash but produced a themed empty interval. It remains here as failure evidence, not current lifecycle guidance.
+
 October 9, 2026. Baseline: `development` after Iteration 19. [Shared learning log](LEARNINGS.md).
 
 ## Owner observation

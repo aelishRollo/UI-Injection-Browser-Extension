@@ -49,7 +49,7 @@ The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performa
 - On full navigation, a compact selected-theme first-paint sheet and the unified renderer are already resident at `document_start`. It contains the real theme's surfaces, typography, hierarchy, and primary motifs; interaction and secondary state rules arrive in the full USER-origin sheet. The renderer follows parser mutations before paint, and a short guard releases after the first parser-time treatment. USER-origin handoff and the final document pass do not control first visibility.
 - Expressive CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints were removed after measured frame stalls.
 - Verified role corrections apply automatically only where general semantics are unavailable.
-- Disable and theme switching restore the author's prior attributes, inline properties, and computed appearance without a reload. During an enabled theme-to-theme change, the authored-state reclassification stays behind the destination theme canvas so the page never paints its default styling between themes.
+- Disable and theme switching restore the author's prior attributes, inline properties, and computed appearance without a reload. During an enabled theme-to-theme change, the current themed pixels remain rendered while the destination stylesheet and bounded recognition prepare; Chromium then swaps directly to the completed theme without an empty canvas or cross-fade.
 
 The worker inserts generated CSS with USER origin and removes the exact prior sheet by document ID. Theme rules use `!important`, so recognition remains deliberately conservative. The renderer does not reparent content or replace site layout systems.
 

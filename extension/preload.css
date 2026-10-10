@@ -13,15 +13,3 @@
 :root:not([data-surface-ready-v2]) > body {
   opacity: 0 !important;
 }
-
-/* Theme changes on an existing document briefly restore authored state so the
-   unified renderer can classify it again. Keep that internal reset behind the
-   destination theme's canvas instead of painting the site's default styles. */
-:root[data-surface-switching-v2] {
-  background-color: var(--surface-switch-background-v2, Canvas) !important;
-  color-scheme: var(--surface-switch-color-scheme-v2, normal) !important;
-}
-
-:root[data-surface-switching-v2] > body {
-  opacity: 0 !important;
-}
