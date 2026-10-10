@@ -152,6 +152,16 @@ This fixes a confirmed lifecycle failure on the reported page, not a visually co
 
 The final build, 12 unit checks, all 15 isolated Chromium checks, and the large-route regression pass; the large route reached the next frame in 165.4 ms against its 200 ms guard.
 
+Latest owner review: **Iteration 26 fixed the vertical strips.** Terminal Vision still briefly showed a white Appearance panel, white article-link preview, a white image caption card with dark text, and pale rank-table heading rows on Federal Police (Mexico). The supplied screenshots establish the visible failures; the isolated live probe established their paint and structure. See [Iteration 27](EXPERIMENT-27.md).
+
+The preview was a bounded absolutely positioned neutral card with a second white inner box and no semantic overlay role. Its text link carried a short white pointer-transparent generated fade. The image caption was a separate neutral box below the image, but text was conservatively classed as media-backed. The Federal Police rank headings used opaque neutral `#ccc` on `tr`, outside the prior near-white table threshold. These are shared recognition and pairing cases, so no Wikipedia selector or correction was added.
+
+The unified renderer now owns neutral captioned image frames and below-image captions while preserving image pixels; recognizes bounded positioned neutral text cards and their matching inner paint boxes; suppresses only short neutral generated fades on those cards; accepts restrained mid-gray table formatting and all-header rows; and recognizes a labelled neutral navigation panel before its controls arrive. During theme handoff, paired foregrounds use the selected theme's declarative purpose background rather than an authored or generic color. The four-theme fixture covers contrast, paint, restoration, and first-visible parser behavior. Final live probes showed a dark María Sabina image caption with green text, a dark preview with readable text, and both Federal Police heading rows at Terminal Vision's raised green surface.
+
+The Appearance flash was not caught in an isolated live timeline, so the owner's browser remains the decisive check for that transient. A white donation campaign banner also appeared in one later live capture; its broad announcement shape needs separate evidence before enlarging the bounded overlay rule. Next bounded iteration: review the new overlay and figure boundaries on a second publisher or application and keep neutral-but-authored visual units preserved when the structural evidence is weaker.
+
+Final validation passes the build, 12 unit checks, all 15 Chromium checks, and the large-route regression at 172.5 ms. The five-repeat local workload produced 25 valid samples and 2,500 completed frames with zero stalls or recorded long tasks; median p95 frame intervals were 16.7–16.8 ms and median sampled renderer work was 30.65/31.70/34.07/28.48 ms for Browser Archeology/Liquid Dream/Monochrome Signal/Terminal Vision. These fixture results do not establish field performance.
+
 ## Historical experiment log — superseded architecture
 
 The entries below preserve observations, failures, and measurements that informed the current design. Date-relative words such as “latest,” “current,” and “next” apply only within their original experiment context.

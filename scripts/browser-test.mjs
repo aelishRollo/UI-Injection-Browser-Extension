@@ -107,6 +107,8 @@ try {
           rightRailContext: rightRail?.getAttribute('data-surface-context-v1') || null,
           rightRailPurpose: rightRail?.getAttribute('data-surface-purpose-v1') || null,
           rightRailBackground: rightRail ? getComputedStyle(rightRail).backgroundColor : null,
+          appearanceContext: document.querySelector('#startup-appearance')?.getAttribute('data-surface-context-v1') || null,
+          appearanceBackground: document.querySelector('#startup-appearance') ? getComputedStyle(document.querySelector('#startup-appearance')).backgroundColor : null,
           articleContext: article?.getAttribute('data-surface-context-v1') || null,
           articlePresent: Boolean(article),
           titlePresent: Boolean(title),
@@ -150,6 +152,9 @@ try {
         assert.equal(firstVisible[`${side}RailPurpose`], 'navigation', `${theme} ${side} rail purpose missing at reveal`);
         assert.equal(firstVisible[`${side}RailBackground`], colors.rail, `${theme} ${side} rail paint missing at reveal`);
       }
+      assert.equal(firstVisible.appearanceContext, 'chrome', `${theme} labelled appearance panel context missing at reveal`);
+      assert.equal(firstVisible.appearanceBackground, theme === 'browser-archeology' ? 'rgb(212, 208, 200)' : colors.rail,
+        `${theme} labelled appearance panel paint missing at reveal`);
       assert.equal(firstVisible.articleContext, 'content', `${theme} content classification missing at reveal`);
       assert.equal(firstVisible.titlePurpose, 'title', `${theme} title classification missing at reveal`);
       assert.equal(firstVisible.titleTone, 'theme', `${theme} title foreground missing at reveal`);
@@ -312,7 +317,8 @@ try {
           return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
         });
         assert.equal(pair.fill, pair.color, `${theme} ${selector} glyph fill must follow its resolved foreground`);
-        assert.ok(contrastRatio(parseColor(pair.fill), parseColor(pair.background)) >= 4.5, `${theme} ${selector}: ${pair.fill} on ${pair.background}`);
+        assert.ok(contrastRatio(parseColor(pair.fill), parseColor(pair.background)) >= 4.5,
+          `${theme} ${selector}: ${pair.fill} on ${pair.background}; resolved=${await page.locator(selector).evaluate(el => el.style.getPropertyValue('--surface-readable-color-v1'))}`);
         assert.equal(await page.locator(selector).getAttribute('data-surface-pair-v1'), 'theme');
       }
       await page.locator('#filled-chrome-link').evaluate(element => { element.textContent = 'Updated support'; });
@@ -373,7 +379,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,#mixed-main,#bounded-editorial-card,#unbounded-editorial-block,.product-logo').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#mid-neutral-table,#captioned-media,#captioned-media figcaption,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,#mixed-main,#bounded-editorial-card,#unbounded-editorial-block,.product-logo').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -412,6 +418,34 @@ try {
         const pair = await page.locator(selector).first().evaluate(element => [getComputedStyle(element).color, getComputedStyle(element).backgroundColor]);
         assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `${theme} ${selector}: ${pair.join(' on ')}`);
       }
+      assert.equal(await page.locator('#mid-neutral-table tr').first().getAttribute('data-surface-table-part-v1'), 'header',
+        `${theme} medium neutral table row should transfer paint`);
+      assert.equal(await page.locator('#mid-neutral-table tr').first().evaluate(el => getComputedStyle(el).backgroundColor), tableColors.header);
+      assert.equal(await page.locator('#captioned-media').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#captioned-media figcaption').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#captioned-media figcaption').evaluate(el => getComputedStyle(el).backgroundColor), tableColors.body);
+      const captionPair = await page.locator('#captioned-media figcaption').evaluate(el => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(captionPair[0]), parseColor(captionPair[1])) >= 4.5,
+        `${theme} caption text must read against its themed backing`);
+      assert.ok((await page.locator('#captioned-media img').getAttribute('src')).startsWith('data:image/svg+xml,'),
+        'captioned media pixels should retain their authored source');
+      await page.evaluate(() => {
+        const preview = document.createElement('div');
+        preview.id = 'floating-preview';
+        preview.innerHTML = '<div id="floating-preview-inner"><img alt="Map preview" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'320\' height=\'120\'%3E%3Crect width=\'320\' height=\'120\' fill=\'%2394b8d8\'/%3E%3C/svg%3E"><a href="#chapter"><p>A preview of related editorial content with enough prose to establish a separate card surface.</p></a></div>';
+        document.body.append(preview);
+      });
+      await page.waitForFunction(() => document.querySelector('#floating-preview-inner')?.getAttribute('data-surface-context-v1') === 'content');
+      assert.equal(await page.locator('#floating-preview').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#floating-preview-inner').evaluate(el => getComputedStyle(el).backgroundColor),
+        await page.locator('#floating-preview').evaluate(el => getComputedStyle(el).backgroundColor),
+        `${theme} preview inner paint should not cover its themed owner`);
+      assert.equal(await page.locator('#floating-preview a').getAttribute('data-surface-content-fade-v1'), 'after');
+      assert.equal(await page.locator('#floating-preview a').evaluate(el => getComputedStyle(el, '::after').display), 'none');
+      const previewPair = await page.locator('#floating-preview p').evaluate(el => [getComputedStyle(el).color, getComputedStyle(el.parentElement.parentElement).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(previewPair[0]), parseColor(previewPair[1])) >= 4.5,
+        `${theme} preview text must read against its themed backing: ${previewPair.join(' on ')}`);
+      await page.locator('#floating-preview').evaluate(el => el.remove());
       assert.equal(await page.locator('#composite-shell').getAttribute('data-surface-context-v1'), 'shell');
       for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
         assert.equal(await page.locator(selector).getAttribute('data-surface-context-v1'), 'content');
@@ -588,7 +622,7 @@ try {
       assert.deepEqual(await snapshot(), baseline);
       assert.deepEqual(await page.locator('#data thead,#data tbody,#data th,#data td').evaluateAll(elements =>
         elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color])), baselineTableParts);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1],[data-surface-table-part-v1]').count(), 0);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1],[data-surface-content-fade-v1],[data-surface-table-part-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
       assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
       assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);

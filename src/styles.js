@@ -41,6 +41,7 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
   // rules below replace this provisional color when each region is scanned.
   css.push(rule('[data-surface-deferred-reading-v1] > :where(section,article,[role="region"])', { 'background-color': 'transparent' }));
   css.push(rule(`${context('content')}`, { 'background-color': c.surface, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius }));
+  css.push(rule(`figcaption${context('content')}`, { 'border-width': '0', 'border-radius': '0' }));
   css.push(rule(`${context('chrome')}`, { 'background-color': c.surface, 'border-color': c.line }));
   css.push(rule(`${context('control')}`, { 'background-color': c.control || c.surface, color: c.text, '-webkit-text-fill-color': 'currentColor', '--surface-control-ink-v1': c.text, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius, 'font-family': theme.font }));
   // Native button appearance can paint a platform face over the computed CSS
@@ -129,6 +130,7 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
   // A generated sticky fade has no content or hit target. Its gradient can
   // leave a horizontal seam when the rail scrolls over a different canvas.
   css.push(rule('[data-surface-navigation-fade-v1="before"]::before,[data-surface-navigation-fade-v1="after"]::after', { display: 'none' }));
+  css.push(rule('[data-surface-content-fade-v1="before"]::before,[data-surface-content-fade-v1="after"]::after', { display: 'none' }));
   if (!startup) {
     css.push(...buildTreatmentRules(theme.treatments.postlude, targets, rule));
     for (const responsive of theme.treatments.responsive) {

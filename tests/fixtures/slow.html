@@ -10,11 +10,13 @@
     #startup-left-rail{left:0}
     #startup-right-rail{right:0}
     #startup-left-rail a,#startup-right-rail label{display:block;margin:8px 0}
+    #startup-appearance{position:fixed;right:0;top:360px;width:180px;min-height:150px;padding:12px;background:#fff;color:#202122}
   </style>
 </head><body>
   <div id="startup-shell"><main><article><h1>Theme before first view</h1><p>This document pauses parsing long enough to exercise visible startup frames.</p><p>The selected theme must be resident while the parser builds the page.</p><p>The first visible frame should already use the selected theme.</p></article></main></div>
   <div id="startup-left-rail"></div>
   <div id="startup-right-rail"></div>
+  <nav aria-label="Display settings"><div id="startup-appearance"><h2>Appearance</h2></div></nav>
   <script>
     document.querySelector('#startup-left-rail').innerHTML = '<nav><a href="#one">One</a><a href="#two">Two</a><a href="#three">Three</a><a href="#four">Four</a></nav>';
     document.querySelector('#startup-right-rail').innerHTML = '<form><label><input type="radio" name="setting" checked> One</label><label><input type="radio" name="setting"> Two</label><label><input type="radio" name="setting"> Three</label></form>';

@@ -18,6 +18,7 @@ const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
 const ATTR_DEFERRED_READING = 'data-surface-deferred-reading-v1';
 const ATTR_TABLE_PART = 'data-surface-table-part-v1';
+const ATTR_CONTENT_FADE = 'data-surface-content-fade-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -44,6 +45,7 @@ let initialViewportScanMs = 0;
 let parserScanCompleted = false;
 let initialStageMs = {};
 let palette;
+let purposeTreatments = {};
 let activeCorrections = { roles: {}, preserve: [] };
 let touched = new Map();
 let brandPaint = new WeakMap();
@@ -156,7 +158,7 @@ function isNeutralTablePartSurface(element) {
   const color = parseColor(style.backgroundColor);
   const compactHeaderIndicator = element.matches('th') && style.backgroundRepeat === 'no-repeat' &&
     /^url\((?:"[^"]*"|'[^']*'|[^)]*)\)$/i.test(style.backgroundImage);
-  return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
+  return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 190 &&
     Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
     (style.backgroundImage === 'none' || compactHeaderIndicator) && !hasUncertainPaint(style));
 }
@@ -187,6 +189,9 @@ function mediaRects() {
 }
 
 function overlapsMedia(element, media) {
+  // A separately owned caption is below the image in the figure layout; its
+  // explicit neutral backing is the text surface, not the image pixels.
+  if (element.closest(`figcaption[${ATTR_CONTEXT}="content"]`)) return false;
   const localFigure = element.closest('figure,picture');
   if (localFigure && (element.matches('figcaption') || ['absolute', 'fixed'].includes(getComputedStyle(element).position)) &&
       media.some(item => localFigure.contains(item.element))) return true;
@@ -320,6 +325,52 @@ function markSurfaces(root) {
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
     setAttribute(element, 'data-surface-evidence-v1', element.matches('a[href]') ? 'neutral-heading-card' : 'neutral-heading-panel');
   }
+  // A captioned image is media inside a paintable editorial card. Own only
+  // its neutral frame and caption; the image pixels retain authored color.
+  for (const figure of collect(root, 'figure,[role="figure"]')) {
+    if (!isVisible(figure) || isProtected(figure) || figure.closest(`[${ATTR_CONTEXT}="brand"]`) ||
+        !figure.querySelector('img') || figure.querySelector('canvas,svg[role="img"],svg[aria-label]')) continue;
+    const caption = figure.querySelector('figcaption');
+    if (!caption || !isVisible(caption) || !caption.textContent.trim() || !isNeutralSolidSurface(getComputedStyle(figure))) continue;
+    // Read the caption's authored paint before the figure's new theme color
+    // can flow through an inherited caption background declaration.
+    const captionStyle = getComputedStyle(caption);
+    const captionColor = parseColor(captionStyle.backgroundColor);
+    const imageBottom = figure.querySelector('img').getBoundingClientRect().bottom;
+    const separateCaption = caption.getBoundingClientRect().top >= imageBottom - 2;
+    const ownCaption = separateCaption && (isNeutralSolidSurface(captionStyle) ||
+      (captionColor?.[3] === 0 && captionStyle.backgroundImage === 'none' && !hasUncertainPaint(captionStyle)));
+    setAttribute(figure, ATTR_CONTEXT, 'content');
+    setAttribute(figure, ATTR_CONFIDENCE, 'medium');
+    setAttribute(figure, 'data-surface-evidence-v1', 'neutral-captioned-image');
+    if (ownCaption) {
+      setAttribute(caption, ATTR_CONTEXT, 'content');
+      setAttribute(caption, ATTR_CONFIDENCE, 'medium');
+      setAttribute(caption, 'data-surface-evidence-v1', 'neutral-captioned-image');
+    }
+  }
+  // Positioned, bounded neutral text cards are independent overlay surfaces
+  // even when the site supplies no dialog or tooltip role. A matching inner
+  // paint box must follow the owner or it will cover the themed background.
+  for (const element of collect(root, 'div,[role="tooltip"]')) {
+    if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) ||
+        element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    const style = getComputedStyle(element);
+    if (!['absolute', 'fixed'].includes(style.position) || !isNeutralSolidSurface(style) ||
+        scopedTextLength(element, 40) < 40 || descendantCount(element, 'button,input,select,textarea,[role="button"]') > 6) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 180 || rect.width > 640 || rect.height < 80 || rect.height > 720) continue;
+    setAttribute(element, ATTR_CONTEXT, 'content');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', 'bounded-neutral-overlay');
+    for (const child of element.children) {
+      if (!child.matches('div') || !isNeutralSolidSurface(getComputedStyle(child))) continue;
+      const inner = child.getBoundingClientRect();
+      if (inner.width < rect.width * .8 || inner.height < rect.height * .6) continue;
+      setAttribute(child, ATTR_CONTEXT, 'content');
+      setAttribute(child, ATTR_CONFIDENCE, 'medium');
+    }
+  }
   for (const element of collect(root, 'header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
     if (!isVisible(element) || isProtected(element) || getComputedStyle(element).backgroundImage !== 'none') continue;
     if (element.closest(`[${ATTR_CONTEXT}="chrome"]`)) continue;
@@ -360,6 +411,7 @@ function markPurposes(root) {
     }
   }
   for (const element of collect(root, `[${ATTR_CONTEXT}="content"],section,article`)) {
+    if (element.getAttribute('data-surface-evidence-v1') === 'neutral-captioned-image') continue;
     if (!element.hasAttribute(ATTR_CONTEXT) && (!element.closest(reading) || !element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]'))) continue;
     if (element.matches(reading)) continue;
     const inReading = element.parentElement?.closest(reading);
@@ -382,7 +434,8 @@ function markPurposes(root) {
     // data-scale treatment.
     for (const part of element.querySelectorAll('caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
       if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) continue;
-      const header = part.matches('caption,thead,th') || Boolean(part.closest('thead'));
+      const header = part.matches('caption,thead,th') || Boolean(part.closest('thead')) ||
+        (part.matches('tr') && Boolean(part.querySelector('th')) && !part.querySelector('td'));
       setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
     }
   }
@@ -573,11 +626,13 @@ function markUtilityPanels(root) {
     const textLength = element.textContent.replace(/\s+/g, '').length;
     const navigation = links.length >= 4 && links.reduce((sum, a) => sum + a.textContent.replace(/\s+/g, '').length, 0) / textLength >= .6;
     const settings = element.querySelectorAll('input[type="radio"]').length >= 3 && element.querySelectorAll('label').length >= 3;
-    if (!navigation && !settings) continue;
+    const labelledNavigation = element.matches('div,aside,form') &&
+      Boolean(element.parentElement?.closest('nav[aria-label]')) && textLength >= 8;
+    if (!navigation && !settings && !labelledNavigation) continue;
     setAttribute(element, ATTR_CONTEXT, 'chrome');
     setAttribute(element, ATTR_PURPOSE, 'navigation');
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
-    setAttribute(element, 'data-surface-evidence-v1', navigation ? 'neutral-link-rail' : 'neutral-settings-rail');
+    setAttribute(element, 'data-surface-evidence-v1', navigation ? 'neutral-link-rail' : settings ? 'neutral-settings-rail' : 'labelled-navigation-panel');
   }
 }
 
@@ -601,6 +656,20 @@ function markNavigationFades(root) {
         break;
       }
       if (owner.hasAttribute(ATTR_NAVIGATION_FADE)) break;
+    }
+  }
+}
+
+function markContentFades(root) {
+  for (const card of collect(root, '[data-surface-evidence-v1="bounded-neutral-overlay"]')) {
+    for (const element of card.querySelectorAll('a,p,span')) {
+      for (const pseudo of ['::before', '::after']) {
+        const paint = getComputedStyle(element, pseudo);
+        if (['none', 'normal'].includes(paint.content) || paint.position !== 'absolute' ||
+            paint.pointerEvents !== 'none' || !isNeutralLinearGradient(paint) ||
+            parseFloat(paint.width) > 120 || parseFloat(paint.height) > 48) continue;
+        setAttribute(element, ATTR_CONTENT_FADE, pseudo === '::before' ? 'before' : 'after');
+      }
     }
   }
 }
@@ -836,12 +905,17 @@ function backgroundForText(element) {
     }
     let color;
     if (ownsTheme) {
+      // During theme handoff the destination stylesheet may not yet affect
+      // computed style. Predict its paint from the same declarative treatment
+      // that generates CSS, including raised panels and navigation surfaces.
       color = tablePart === 'header' ? palette.raised : tablePart === 'body' ? palette.surface :
         (headingPaint || windowTitlePaint) && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
         color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);
       }
+      const declared = purposeTreatments[purpose]?.['background-color'];
+      if (declared && parseColor(declared)) color = declared;
     } else {
       if (style.backgroundImage !== 'none') return { reason: 'image' };
       color = style.backgroundColor;
@@ -950,7 +1024,8 @@ function markText(root, media, snapshot) {
       uncertainty[backing.reason === 'image' ? 'imageBackground' : mediaBacked ? 'media' : 'unknownSurface']++;
       continue;
     }
-    const minimum = minimumContrast(parseFloat(original.fontSize), Number(original.fontWeight));
+    const minimum = Math.max(role === 'link' ? 4.5 : 0,
+      minimumContrast(parseFloat(original.fontSize), Number(original.fontWeight)));
     const originalColor = parseColor(original.color);
     // Keep successful authored pairs on retained surfaces, including status ink.
     if (!backing.themed && originalColor && contrastRatio(originalColor, backing.color) >= minimum) {
@@ -999,6 +1074,7 @@ function scan(root = document, media = mediaRects()) {
   run('shells', () => markShells(root));
   run('utilityPanels', () => markUtilityPanels(root));
   run('navigationFades', () => markNavigationFades(root));
+  run('contentFades', () => markContentFades(root));
   run('windows', () => markWindows(root));
   run('glyphs', () => markGlyphs(root));
   run('text', () => markText(root, media, foregroundSnapshot));
@@ -1304,6 +1380,7 @@ export async function start(theme, corrections) {
   activeTheme = theme.id;
   userStylesReady = false;
   palette = theme.colors;
+  purposeTreatments = theme.treatments.purposes;
   activeCorrections = corrections;
   uncertainty = { media: 0, imageBackground: 0, unknownSurface: 0 };
   initialViewportScanMs = 0;
@@ -1344,6 +1421,7 @@ export function stop() {
   pendingEffectOwners.clear();
   brandPaint = new WeakMap();
   refreshBrandPaint = false;
+  purposeTreatments = {};
   queuedRoots.clear();
   queuedRemovedRoots.clear();
   queuedAddedElements = 0;
