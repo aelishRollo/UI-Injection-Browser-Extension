@@ -6,7 +6,7 @@ Last confirmed October 9, 2026. Surface is version 0.2.0 and has one product ren
 
 ## Current architecture
 
-- One purpose-aware renderer serves Browser Archeology, Liquid Dream, and Terminal Vision.
+- One purpose-aware renderer serves Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision.
 - Each theme is a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. `src/styles.js` compiles that contract; it does not select theme-specific renderer branches.
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
 - Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.
@@ -74,6 +74,8 @@ Iteration 14 passes eight unit checks, the build, and all 13 isolated Chromium c
 [Iteration 21](EXPERIMENT-21.md) supersedes Iteration 20's empty destination-canvas interval. A top-document View Transition keeps the complete current theme rendered while the live DOM performs the same authored reset and destination preparation, then skips the default cross-fade for a direct completed-theme handoff. Already-laid-out pages also bypass the startup-only animation-frame wait. The local three-destination fixture measured 34.2–35.6 ms to the visible handoff with body opacity continuously at one. Twelve unit checks, the build, and all 14 isolated Chromium checks pass, including 20 repeated switches and later viewport changes without page errors.
 
 [Iteration 22](EXPERIMENT-22.md) corrects pale structural boxes inside otherwise recognized tables. The unified path now maps only opaque near-white table formatting boxes to theme header/body roles, pairs their foregrounds against the owned color, preserves chromatic and scalar cells, and retains a compact non-repeating sortable-header image. A live Wikipedia sortable header changed from `rgb(234, 236, 240)` to Terminal Vision's raised `rgb(16, 45, 29)` while keeping its sort SVG. Twelve unit checks, the build, all 14 browser checks, and the five-repeat workload pass with 2,000 completed frames, zero stalls or long tasks, and 16.7–16.8 ms median p95 frame intervals.
+
+[Iteration 23](EXPERIMENT-23.md) adds Monochrome Signal as the fourth declarative package, translating MDMI's black/off-white/coral system, sans display hierarchy, monospaced labels, pill controls, linework, and grayscale depth without importing host selectors, remote fonts, code, or assets. The popup now presents four choices in a compact two-column grid, and live/performance scripts consume the theme registry instead of a three-item list. Twelve unit checks, the build, all 15 browser checks, the large-route regression, and a targeted four-theme MDMI capture pass. The five-repeat five-mode workload completed 25 valid samples and 2,500 callbacks with zero stalls or long tasks; median p95 frame intervals were 16.7–16.8 ms.
 
 ## Documentation precedence
 

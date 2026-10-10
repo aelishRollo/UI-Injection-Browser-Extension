@@ -1,6 +1,6 @@
 # Surface — website themes
 
-Surface is a local Chromium MV3 extension that applies expressive, readable themes to ordinary websites. It has one rendering approach and three visual identities: Browser Archeology, Liquid Dream, and Terminal Vision.
+Surface is a local Chromium MV3 extension that applies expressive, readable themes to ordinary websites. It has one rendering approach and four visual identities: Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision.
 
 Surface recognizes page purpose before decorating it. Reading regions, sections, panels, navigation, tables, labelled visualizations, controls, headings, and fields receive coordinated treatments. Text and its effective solid background are resolved as a pair; uncertain media, effects, brand marks, and authored visualizations are preserved rather than guessed.
 
@@ -36,7 +36,7 @@ npm run fixtures
 
 The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, navigation, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
 
-`npm run test:live` captures the three themes on six public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
+`npm run test:live` captures the four themes on seven public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
 
 ## Rendering model
 

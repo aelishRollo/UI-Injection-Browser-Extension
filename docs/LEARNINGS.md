@@ -2,7 +2,7 @@
 
 Read [the authoritative project state](PROJECT-STATE.md) and this file before theme or renderer changes. Update this log as iterations land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current project state — October 8, 2026
+## Current project state — October 9, 2026
 
 **This section is current. Everything below “Historical experiment log” is retained evidence, not active architecture or an instruction to restore old modes.** Surface has one unified renderer. Experiments 01–09 may describe A/B/C, Dark Reader, correction-off baselines, renderer selection, or next experiments; all of those paths and recommendations are superseded. See [the project-state record](PROJECT-STATE.md) for documentation precedence and future-work rules.
 
@@ -115,6 +115,16 @@ All six generated outputs—the startup and full stylesheet for each theme—wer
 Twelve unit checks, the build, and all 13 isolated Chromium checks pass. The five-repeat local workload produced 20 valid samples, 2,000 completed frames, zero stalls, and 16.7–16.8 ms median p95 frame intervals. Median main-thread task totals were 199.12 ms original, 263.97 ms Terminal Vision, 277.48 ms Browser Archeology, and 274.02 ms Liquid Dream; median sampled content-engine time was 22.55 ms, 25.64 ms, and 30.95 ms for the themes. This shows no regression in the exercised fixture, not a field-performance claim.
 
 Next bounded iteration: test the same lifecycle on another motion-heavy site with nested permanent opacity and script-driven reveal states, then decide whether diagnostics should expose pending/settled effect-owner counts. Separately verify whether Terminal Vision's pale MDMI mission panel is an intended authored-preservation boundary or a safely correctable foreground/background pair; do not add an `mdmi.com` appearance correction.
+
+Latest owner direction: **add a fourth theme that looks like mdmi.com.** Iteration 23 introduces Monochrome Signal through the existing declarative theme contract. The transferable identity observed on MDMI was a near-black/off-white base, coral signal color, large neutral sans headings, monospaced labels and controls, thin technical linework, pill actions, and grayscale depth. The package uses system sans/monospace stacks and static CSS only; it contains no `mdmi.com` selector, remote font, copied code, or copied asset. See [the fourth-theme record](EXPERIMENT-23.md).
+
+The fixture review covered editorial reading, navigation, controls, fields, panels, data tables, narrow layout, both theme pickers, startup paint, direct enabled-theme handoff, restoration, dynamic content, and the 800-region SPA route. The main fixture showed the intended black canvas edges, off-white reading plane, coral interaction states, black pill controls, monospaced supporting copy, sans display hierarchy, and gray panel depth. A targeted 1440 × 1000 MDMI capture applied all four themes without application errors or horizontal overflow; the new theme remained recognizably related to the source while the unified renderer continued to preserve the site's logo and authored landscape media.
+
+Adding the fourth full-width toolbar card initially pushed Feedback below the popup's initial 600 px viewport. A two-column chooser with smaller previews restored the existing visibility requirement without hiding theme descriptions. One post-layout Chromium run also reached `document.readyState === "complete"` before the parser-delay assertion sampled Terminal Vision; an immediate unchanged-build rerun passed the startup check and all remaining checks. Treat that isolated result as timing-sensitive harness variability, not proof of a product regression or a latency guarantee.
+
+Final validation passed the build, 12 unit checks, all 15 isolated Chromium checks, and the large-route regression at 189.2 ms. The five-repeat workload covered original plus four themes: 25 valid samples, 2,500 completed frame callbacks, zero stalls, no recorded long tasks, and 16.7–16.8 ms median p95 frame intervals. Monochrome Signal measured 258.31 ms median main-thread task time and 26.24 ms median sampled content-engine time. These are local fixture results, while the MDMI screenshots are targeted visual evidence; neither establishes universal site quality.
+
+Next bounded iteration: review Monochrome Signal on an article, commerce page, media page, and interactive application before changing its recognition behavior. Tune only declarative treatments unless a concrete cross-theme ownership or contrast failure demonstrates a renderer problem.
 
 ## Historical experiment log — superseded architecture
 

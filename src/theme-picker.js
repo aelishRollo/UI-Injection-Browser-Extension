@@ -185,6 +185,7 @@ const pickerStyles = `
   }
   .option[data-theme-id="browser-archeology"] .swatch { border-radius: 1px; }
   .option[data-theme-id="liquid-dream"] .swatch { border-radius: 45% 55% 42% 58%; }
+  .option[data-theme-id="monochrome-signal"] .swatch { border-color: #f03d3d; border-radius: 999px; }
   .option-copy { min-width: 0; }
   .option-name { display: block; font-size: 11px; font-weight: 800; line-height: 1.2; }
   .option-description {
@@ -246,7 +247,7 @@ export function createThemePicker({ selectTheme, setEnabled }) {
     <aside class="picker" data-surface-picker-v1 aria-label="Theme controls">
       <button class="toggle" type="button" aria-expanded="false" aria-controls="surface-theme-panel-v1">
         <span class="toggle-icon" aria-hidden="true">✦</span>
-        <span class="toggle-copy"><span class="toggle-kicker">3 themes</span><span class="toggle-label">Themes</span></span>
+        <span class="toggle-copy"><span class="toggle-kicker">${Object.keys(THEMES).length} themes</span><span class="toggle-label">Themes</span></span>
         <span class="chevron" aria-hidden="true"></span>
       </button>
       <section class="panel" id="surface-theme-panel-v1" aria-labelledby="surface-theme-heading-v1" hidden>
@@ -336,7 +337,7 @@ export function createThemePicker({ selectTheme, setEnabled }) {
     const active = THEMES[nextSettings.theme];
     power.setAttribute('aria-checked', String(nextSettings.enabled));
     powerState.textContent = nextSettings.enabled ? 'On everywhere' : 'Paused everywhere';
-    toggleKicker.textContent = nextSettings.enabled ? '3 themes' : 'Surface paused';
+    toggleKicker.textContent = nextSettings.enabled ? `${Object.keys(THEMES).length} themes` : 'Surface paused';
     toggle.setAttribute('aria-label', `Choose theme. Current theme: ${active.name}. Surface is ${nextSettings.enabled ? 'on' : 'paused'}.`);
   }
 

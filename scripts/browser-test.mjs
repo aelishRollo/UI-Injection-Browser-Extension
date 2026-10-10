@@ -6,9 +6,11 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { serveFixtures } from './serve.mjs';
 import { chromiumPath } from './browser-path.mjs';
+import { THEME_IDS as REGISTERED_THEME_IDS } from '../src/themes.js';
 
 const results = [];
 const errors = [];
+const themeIds = ['terminal-vision', ...REGISTERED_THEME_IDS.filter(theme => theme !== 'terminal-vision')];
 const out = resolve('test-results');
 await mkdir(out, { recursive: true });
 const fixture = await serveFixtures();
@@ -85,6 +87,8 @@ try {
         const body = document.body;
         const title = document.querySelector('h1');
         const article = document.querySelector('article');
+        const leftRail = document.querySelector('#startup-left-rail');
+        const rightRail = document.querySelector('#startup-right-rail');
         window.__surfaceStartupFrames.push({
           time: Math.round(performance.now()),
           rootBackground: getComputedStyle(root).backgroundColor,
@@ -97,6 +101,12 @@ try {
           themed: root.getAttribute('data-surface-context-v1') === 'page',
           shell: document.querySelector('#startup-shell')?.getAttribute('data-surface-context-v1') || null,
           shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null,
+          leftRailContext: leftRail?.getAttribute('data-surface-context-v1') || null,
+          leftRailPurpose: leftRail?.getAttribute('data-surface-purpose-v1') || null,
+          leftRailBackground: leftRail ? getComputedStyle(leftRail).backgroundColor : null,
+          rightRailContext: rightRail?.getAttribute('data-surface-context-v1') || null,
+          rightRailPurpose: rightRail?.getAttribute('data-surface-purpose-v1') || null,
+          rightRailBackground: rightRail ? getComputedStyle(rightRail).backgroundColor : null,
           articleContext: article?.getAttribute('data-surface-context-v1') || null,
           articlePresent: Boolean(article),
           titlePresent: Boolean(title),
@@ -110,9 +120,10 @@ try {
       requestAnimationFrame(sample);
     });
     const expected = {
-      'terminal-vision': { canvas: 'rgb(6, 17, 11)' },
-      'browser-archeology': { canvas: 'rgb(0, 128, 128)', title: 'rgb(0, 0, 128)' },
-      'liquid-dream': { canvas: 'rgb(248, 241, 231)', liquidTitle: true }
+      'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
+      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(212, 208, 200)', title: 'rgb(0, 0, 128)' },
+      'liquid-dream': { canvas: 'rgb(248, 241, 231)', rail: 'rgb(255, 249, 241)', liquidTitle: true },
+      'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(242, 242, 242)' }
     };
     for (const [theme, colors] of Object.entries(expected)) {
       await set({ enabled: true, theme });
@@ -128,6 +139,11 @@ try {
       assert.equal(firstVisible.activeTheme === theme || firstVisible.userStyles, true, `${theme} had neither its resident stylesheet nor USER-origin handoff active at reveal`);
       assert.equal(firstVisible.shell, 'shell', `${theme} shell context missing at reveal`);
       assert.equal(firstVisible.shellBackground, colors.canvas, `${theme} shell paint missing at reveal`);
+      for (const side of ['left', 'right']) {
+        assert.equal(firstVisible[`${side}RailContext`], 'chrome', `${theme} ${side} rail context missing at reveal`);
+        assert.equal(firstVisible[`${side}RailPurpose`], 'navigation', `${theme} ${side} rail purpose missing at reveal`);
+        assert.equal(firstVisible[`${side}RailBackground`], colors.rail, `${theme} ${side} rail paint missing at reveal`);
+      }
       assert.equal(firstVisible.articleContext, 'content', `${theme} content classification missing at reveal`);
       assert.equal(firstVisible.titlePurpose, 'title', `${theme} title classification missing at reveal`);
       assert.equal(firstVisible.titleTone, 'theme', `${theme} title foreground missing at reveal`);
@@ -153,7 +169,7 @@ try {
     await waitStatus({ state: 'disabled' });
   });
 
-  for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+  for (const theme of themeIds) {
       await check(`${theme}: apply, preserve media, isolate CSS, restore`, async () => {
         await set({ enabled: true, theme });
         const active = await waitStatus({ state: 'active', theme });
@@ -179,7 +195,7 @@ try {
         await page.waitForTimeout(100);
         assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
           `${theme} brand backing must survive an incremental rescan`);
-        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)' }[theme];
+        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)', 'monochrome-signal': 'rgb(240, 61, 61)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
         await page.screenshot({ path: join(out, `${theme}.png`) });
         results.push({ name: 'apply timing (includes worker/import wait)', theme, milliseconds: active.applyMs });
@@ -196,7 +212,7 @@ try {
     assert.equal(await page.evaluate(() => typeof document.startViewTransition), 'function');
     const handoffTimes = [];
     let previous = 'terminal-vision';
-    for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
+    for (const theme of ['browser-archeology', 'liquid-dream', 'monochrome-signal', 'terminal-vision']) {
       await page.evaluate(() => {
         window.__surfaceSwitchFrames = [];
         window.__surfaceSamplingSwitch = true;
@@ -268,7 +284,7 @@ try {
 
   await check('unified foregrounds pass contrast on retained and alpha surfaces in every theme', async () => {
     const colorOf = selector => page.locator(selector).evaluate(el => getComputedStyle(el).color);
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+    for (const theme of themeIds) {
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
       for (const [selector, background] of [['#low-contrast', '#fff'], ['#dark-contrast', '#111'], ['#alpha-contrast', 'rgb(159.375,159.375,159.375)']]) {
@@ -358,7 +374,7 @@ try {
       elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color]));
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
-    for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
+    for (const theme of themeIds) {
       await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '.5'; });
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
@@ -368,7 +384,8 @@ try {
       const tableColors = {
         'terminal-vision': { body: 'rgb(9, 26, 17)', header: 'rgb(16, 45, 29)' },
         'browser-archeology': { body: 'rgb(255, 255, 255)', header: 'rgb(212, 208, 200)' },
-        'liquid-dream': { body: 'rgb(255, 249, 241)', header: 'rgb(217, 245, 239)' }
+        'liquid-dream': { body: 'rgb(255, 249, 241)', header: 'rgb(217, 245, 239)' },
+        'monochrome-signal': { body: 'rgb(242, 242, 242)', header: 'rgb(191, 191, 191)' }
       }[theme];
       for (const selector of ['#data thead', '#data th']) {
         assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'header');
@@ -439,7 +456,7 @@ try {
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
       assert.equal(await page.locator('#utility-fade').getAttribute('data-surface-navigation-fade-v1'), 'after');
-      const fadeColor = { 'terminal-vision': 'rgb(9, 26, 17)', 'browser-archeology': 'rgb(212, 208, 200)', 'liquid-dream': 'rgb(255, 249, 241)' }[theme];
+      const fadeColor = { 'terminal-vision': 'rgb(9, 26, 17)', 'browser-archeology': 'rgb(212, 208, 200)', 'liquid-dream': 'rgb(255, 249, 241)', 'monochrome-signal': 'rgb(242, 242, 242)' }[theme];
       assert.ok((await page.locator('#utility-fade').evaluate(el => getComputedStyle(el, '::after').backgroundImage)).includes(fadeColor), `${theme} navigation fade should end in ${fadeColor}`);
       for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
         assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
@@ -550,8 +567,8 @@ try {
     assert.equal(await page.locator('#selected').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(215, 255, 78)');
     assert.equal(await page.locator('#later-shadow-host article').count(), 1);
   });
-  await check('one role correction works across all three themes', async () => {
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+  await check('one role correction works across all themes', async () => {
+    for (const theme of themeIds) {
       await set({ theme });
       await waitStatus({ state: 'active', theme });
       assert.equal(await page.locator('.fixture-error').evaluate(el => getComputedStyle(el).borderTopStyle), 'double');
@@ -577,12 +594,12 @@ try {
     const picker = page.locator('#surface-theme-picker-v1');
     await picker.locator('.toggle').click();
     assert.equal(await picker.locator('.panel').isVisible(), true);
-    assert.equal(await picker.locator('.option').count(), 3);
+    assert.equal(await picker.locator('.option').count(), themeIds.length);
     const swatchBox = await picker.locator('.swatch').first().boundingBox();
     assert.equal(Math.round(swatchBox?.width || 0), 32);
     assert.equal(Math.round(swatchBox?.height || 0), 32);
 
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+    for (const theme of themeIds) {
         await set({ enabled: true, theme });
         await waitStatus({ state: 'active', theme });
         const pairs = await picker.evaluate(host => {
@@ -646,7 +663,7 @@ try {
     const baseline = await appearance();
     const styleCount = await page.locator('style,link[rel="stylesheet"]').count();
     for (let i = 0; i < 20; i++) {
-      const theme = ['terminal-vision', 'browser-archeology', 'liquid-dream'][i % 3];
+      const theme = themeIds[i % themeIds.length];
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
     }

@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { chromiumPath } from './browser-path.mjs';
+import { THEME_IDS } from '../src/themes.js';
 
 const sites = [
   { id: 'wikipedia', url: 'https://en.wikipedia.org/wiki/Chromium_(web_browser)', group: 'known' },
@@ -12,7 +13,8 @@ const sites = [
   { id: 'github', url: 'https://github.com/darkreader/darkreader', group: 'known' },
   { id: 'mdn', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS', group: 'unfamiliar-article' },
   { id: 'ikea', url: 'https://www.ikea.com/us/en/', group: 'unfamiliar-commerce' },
-  { id: 'excalidraw', url: 'https://excalidraw.com/', group: 'unfamiliar-application' }
+  { id: 'excalidraw', url: 'https://excalidraw.com/', group: 'unfamiliar-application' },
+  { id: 'mdmi', url: 'https://mdmi.com/', group: 'visual-reference' }
 ];
 const selectedSites = process.env.SURFACE_SITES ? sites.filter(site => process.env.SURFACE_SITES.split(',').includes(site.id)) : sites;
 const out = resolve(process.env.SURFACE_OUTPUT || 'test-results/live');
@@ -45,7 +47,7 @@ try {
       const tabId = await worker.evaluate(async url => (await chrome.tabs.query({})).find(t => t.url === url)?.id, page.url());
       if (!tabId) throw new Error('No matching browser tab');
       await page.screenshot({ path: join(out, `${site.id}-original.png`), timeout: 30000 });
-      for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+      for (const theme of THEME_IDS) {
           const result = { theme, qualityVerdict: 'requires human review' };
           row.combinations.push(result);
           try {

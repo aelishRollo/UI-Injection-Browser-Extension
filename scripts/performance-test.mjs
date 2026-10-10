@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { chromiumPath } from './browser-path.mjs';
 import { serveFixtures } from './serve.mjs';
+import { THEME_IDS } from '../src/themes.js';
 
 const fixture = await serveFixtures();
 const profileDir = await mkdtemp(join(tmpdir(), 'surface-perf-'));
@@ -12,7 +13,7 @@ const out = resolve(process.env.SURFACE_PERF_OUTPUT || 'test-results/performance
 await mkdir(out, { recursive: true });
 let context;
 const samples = [];
-const modes = [{ enabled: false, theme: null }, ...['terminal-vision', 'browser-archeology', 'liquid-dream'].map(theme => ({ enabled: true, theme }))];
+const modes = [{ enabled: false, theme: null }, ...THEME_IDS.map(theme => ({ enabled: true, theme }))];
 const repeatCount = Math.max(1, Math.min(20, Number.parseInt(process.env.SURFACE_PERF_REPEATS || '5', 10) || 5));
 const percentile = (values, p) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * p))];
 try {

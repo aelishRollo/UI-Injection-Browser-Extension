@@ -2,7 +2,7 @@
 
 > **Current architecture note:** These themes now run only through the unified renderer described in [the authoritative project state](PROJECT-STATE.md). References below to A/B/C, Dark Reader, optional corrections, or renderer comparisons are historical theme-development context, not available product modes.
 
-Source: the three corresponding files under the user's reference project `assets/css/skins/`.
+Source: three corresponding files under the user's reference project `assets/css/skins/`, plus an original Monochrome Signal treatment informed by visual review of `mdmi.com`.
 This is internal authoring v1, not an XML/JSON interoperability standard.
 
 The current adaptation boundary is a validated declarative treatment contract. `src/themes.js` is the registry, and each definition lives independently under `src/theme-definitions/`. A theme supplies palette and typography tokens, icon style, optional packaged assets, stable context/state treatments, purpose treatments, a compact startup-compatible subset, and bounded responsive rules. `src/styles.js` compiles those declarations against the unified renderer's annotations. Theme definitions do not classify the page, contain host selectors, or create another renderer path. The build rejects incomplete tokens, unknown treatment targets, remote asset paths, missing declared assets, and malformed responsive or scalar-grid definitions; unit checks also enforce base-pair contrast, stylesheet size budgets, and the absence of keyframes, animation declarations, and fixed paint.
@@ -11,6 +11,7 @@ The current adaptation boundary is a validated declarative treatment contract. `
 |---|---|---|
 | Browser Archeology | Teal desktop, white document surfaces, gray system chrome, navy accents, blue underlined links, beveled controls, serif body and sans-serif headings | Based on `browser-archaeology.css`. A narrow navy inset rule suggests window chrome without inserting fake toolbars, labels, or title-bar buttons. Existing content and icons stay in place. |
 | Liquid Dream | Warm cream, pink/yellow/mint gradients, serif type, rounded surfaces, soft shadows, fluid color bands | Surface fills and hierarchy bands are static. Repeated multi-radial and full-page gradient paints were replaced after they produced missed frame opportunities in the local scroll workload. Gradients use light stops with dark ink; source photo filters, shape clipping, and layout changes are excluded. |
+| Monochrome Signal | Near-black canvas, engineered off-white surfaces, coral signals, large sans headings, monospaced labels, thin linework, pill controls, grayscale depth | Informed by visual review of `mdmi.com`. The treatment uses system fonts and original static CSS only; it does not contain host selectors or import the site's code, fonts, logos, landscape artwork, layout, or motion system. |
 | Terminal Vision | Green/acid palette, monospace, squared rules, scanlines, grid, glowing type and hover edges | Static scanlines live on the page background rather than above photos. Hero geometry/cursor text is not copied into arbitrary headings; existing pseudo-elements remain available to the site. |
 
 These substitutions are hypotheses about retaining identity on foreign websites. They are not evidence that full personality has been preserved; source-to-prototype visual review and user evaluation remain required. Current theme treatments contain no continuous decorative motion; interactive state changes remain immediate.
@@ -26,7 +27,7 @@ These substitutions are hypotheses about retaining identity on foreign websites.
 
 ## Corrections versus appearance overrides
 
-`src/corrections.js` contains host matching plus selector-to-role mappings and protected regions. Verified corrections apply automatically; there is no settings toggle or corrections-off product mode. The YouTube mapping uses the same video-overlay role across themes, while the fixture mapping verifies that roles remain reusable across all three themes.
+`src/corrections.js` contains host matching plus selector-to-role mappings and protected regions. Verified corrections apply automatically; there is no settings toggle or corrections-off product mode. The YouTube mapping uses the same video-overlay role across themes, while the fixture mapping verifies that roles remain reusable across all themes.
 
 There is no public correction schema, user CSS editor, appearance-override format, or layout representation yet. A future editor can target the renderer's role or appearance boundary without requiring that we freeze today's internal data structures.
 
