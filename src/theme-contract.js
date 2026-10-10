@@ -6,7 +6,7 @@ const TREATMENT_TARGETS = new Set([
   'windowTitleReading', 'windowTitleContents', 'windowFrame', 'titlePurpose', 'note', 'divider'
 ]);
 const PURPOSE_TARGETS = new Set([
-  'reading', 'section', 'panel', 'data', 'title', 'titleContents', 'section-heading',
+  'reading', 'section', 'panel', 'data', 'table-body', 'table-header', 'title', 'titleContents', 'section-heading',
   'titleAndSectionHeading', 'navigation', 'field', 'fieldFocus'
 ]);
 

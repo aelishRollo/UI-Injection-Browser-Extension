@@ -354,6 +354,8 @@ try {
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
     const baseline = await snapshot();
+    const baselineTableParts = await page.locator('#data thead,#data tbody,#data th,#data td').evaluateAll(elements =>
+      elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color]));
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
     for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
@@ -362,6 +364,28 @@ try {
       await waitStatus({ state: 'active', theme });
       for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading', 'composite-landing': 'panel', 'neutral-panel-one': 'panel', 'neutral-panel-two': 'panel' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
+      }
+      const tableColors = {
+        'terminal-vision': { body: 'rgb(9, 26, 17)', header: 'rgb(16, 45, 29)' },
+        'browser-archeology': { body: 'rgb(255, 255, 255)', header: 'rgb(212, 208, 200)' },
+        'liquid-dream': { body: 'rgb(255, 249, 241)', header: 'rgb(217, 245, 239)' }
+      }[theme];
+      for (const selector of ['#data thead', '#data th']) {
+        assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'header');
+        assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), tableColors.header);
+      }
+      assert.notEqual(await page.locator('#data th').first().evaluate(element => getComputedStyle(element).backgroundImage), 'none',
+        'compact sortable-header imagery must survive neutral backing treatment');
+      for (const selector of ['#data tbody', '#data td:not(.encoded-cell)']) {
+        assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'body');
+        assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), tableColors.body);
+      }
+      assert.equal(await page.locator('#data .encoded-cell').getAttribute('data-surface-table-part-v1'), null,
+        'chromatic data cells must stay outside neutral table-paint ownership');
+      assert.equal(await page.locator('#data .encoded-cell').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(161, 38, 54)');
+      for (const selector of ['#data th', '#data td:not(.encoded-cell)']) {
+        const pair = await page.locator(selector).first().evaluate(element => [getComputedStyle(element).color, getComputedStyle(element).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `${theme} ${selector}: ${pair.join(' on ')}`);
       }
       assert.equal(await page.locator('#composite-shell').getAttribute('data-surface-context-v1'), 'shell');
       for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
@@ -476,7 +500,9 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1]').count(), 0);
+      assert.deepEqual(await page.locator('#data thead,#data tbody,#data th,#data td').evaluateAll(elements =>
+        elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color])), baselineTableParts);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1],[data-surface-table-part-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
       assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
       assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);

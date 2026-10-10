@@ -27,6 +27,8 @@ export function createLiquidDreamTheme() {
       section: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0', 'background-color': 'transparent', border: '0' },
       panel: { 'background-color': '#fff9f1', 'background-image': LIQUID_SURFACE, 'background-size': '100% 100%', border: '1px solid #a98bb5', 'box-shadow': '0 8px 24px rgba(78,64,104,.16)', 'border-radius': '16px' },
       data: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0', 'background-color': '#fff9f1', border: '1px solid #9b859e' },
+      'table-body': { 'background-color': theme.colors.surface, 'border-color': theme.colors.line },
+      'table-header': { 'background-color': theme.colors.raised, 'border-color': theme.colors.line },
       titleAndSectionHeading: { ...ink('#4b235d'), 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'border-bottom': '2px solid #8f6da0', 'border-radius': '8px', 'letter-spacing': '-0.025em' },
       navigation: { 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.36)' },
       field: { 'background-color': '#fff9f1', 'background-image': 'none', 'box-shadow': 'inset 0 1px 3px rgba(78,64,104,.18)' }

@@ -17,6 +17,7 @@ const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
 const ATTR_NAVIGATION_FADE = 'data-surface-navigation-fade-v1';
 const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
 const ATTR_DEFERRED_READING = 'data-surface-deferred-reading-v1';
+const ATTR_TABLE_PART = 'data-surface-table-part-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -147,6 +148,16 @@ function isNeutralSolidSurface(style) {
   return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
     Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
     style.backgroundImage === 'none' && !hasUncertainPaint(style));
+}
+
+function isNeutralTablePartSurface(element) {
+  const style = getComputedStyle(element);
+  const color = parseColor(style.backgroundColor);
+  const compactHeaderIndicator = element.matches('th') && style.backgroundRepeat === 'no-repeat' &&
+    /^url\((?:"[^"]*"|'[^']*'|[^)]*)\)$/i.test(style.backgroundImage);
+  return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
+    Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
+    (style.backgroundImage === 'none' || compactHeaderIndicator) && !hasUncertainPaint(style));
 }
 
 function isNeutralLinearGradient(style) {
@@ -344,6 +355,17 @@ function markPurposes(root) {
     const panel = style.cssFloat !== 'none' && parseFloat(style.borderTopWidth) > 0 &&
       element.querySelector('th') && element.querySelector('td');
     assign(element, panel ? 'panel' : 'data', 'content', panel ? 'floated-bordered-facts' : 'semantic-table');
+    if (!element.hasAttribute(ATTR_PURPOSE)) continue;
+    // A recognized table can still expose authored white paint on its internal
+    // formatting boxes after the table itself receives theme paint. Transfer
+    // only opaque near-neutral structural paint; chromatic cells, gradients,
+    // effects and explicit scalar values remain authored or use the existing
+    // data-scale treatment.
+    for (const part of element.querySelectorAll('caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
+      if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) continue;
+      const header = part.matches('caption,thead,th') || Boolean(part.closest('thead'));
+      setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
+    }
   }
   for (const element of collect(root, `[${ATTR_CONTEXT}="chrome"]`)) assign(element, 'navigation', null, 'semantic-navigation');
   for (const element of collect(root, 'h1,h2,[role="heading"][aria-level="1"],[role="heading"][aria-level="2"]')) {
@@ -764,9 +786,10 @@ function backgroundForText(element) {
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
     const purpose = current.getAttribute(ATTR_PURPOSE);
+    const tablePart = current.getAttribute(ATTR_TABLE_PART);
     const headingPaint = (activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) || (activeTheme === 'browser-archeology' && purpose === 'title');
     const windowTitlePaint = activeTheme === 'browser-archeology' && current.hasAttribute(ATTR_WINDOW_TITLE);
-    const ownsTheme = headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
+    const ownsTheme = Boolean(tablePart) || headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
       if (pseudo === '::before' && current.hasAttribute('data-surface-heading-glyph-v1')) continue;
       const paint = getComputedStyle(current, pseudo);
@@ -776,7 +799,8 @@ function backgroundForText(element) {
     }
     let color;
     if (ownsTheme) {
-      color = (headingPaint || windowTitlePaint) && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
+      color = tablePart === 'header' ? palette.raised : tablePart === 'body' ? palette.surface :
+        (headingPaint || windowTitlePaint) && activeTheme === 'browser-archeology' ? palette.accent : ['page', 'shell'].includes(context) ? palette.background : context === 'chrome' && activeTheme === 'browser-archeology' ? '#d4d0c8' : palette.surface;
       if (context === 'control') {
         const selected = current.matches('[aria-selected="true"],[aria-pressed="true"],[aria-current]:not([aria-current="false"])');
         color = selected ? palette.accent : purpose === 'field' ? palette.surface : (palette.control || palette.surface);

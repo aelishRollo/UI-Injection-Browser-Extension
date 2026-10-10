@@ -29,6 +29,8 @@ export function createBrowserArcheologyTheme() {
       section: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0', 'background-color': 'transparent', border: '0' },
       panel: { 'background-color': '#ffffff', border: '3px solid #c0c0c0', 'border-color': '#ffffff #404040 #404040 #ffffff', outline: '1px solid #000000', 'box-shadow': 'inset 1px 1px #dfdfdf,inset -1px -1px #808080,2px 2px 0 rgba(0,0,0,.25)', 'background-image': 'none' },
       data: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0', 'background-color': '#ffffff', border: '1px solid #808080' },
+      'table-body': { 'background-color': theme.colors.surface, 'border-color': theme.colors.line },
+      'table-header': { 'background-color': theme.colors.raised, 'border-color': theme.colors.line },
       title: { ...ink(theme.colors.accentText), 'font-family': 'Arial,Helvetica,sans-serif', 'font-size': 'clamp(20px,2.4vw,32px)', 'line-height': '1.15', 'min-height': '22px', 'padding-block': '3px', 'padding-inline': '26px 62px', 'border-bottom': '0', 'text-shadow': 'none', 'background-color': '#000080', 'background-image': `${iconImage(theme, 'document')},${controls},linear-gradient(90deg,#000080,#1084d0)`, 'background-position': '4px 3px,calc(100% - 3px) 3px,0 0', 'background-size': '18px 18px,54px 18px,100% 100%', 'background-repeat': 'no-repeat' },
       titleContents: ink(theme.colors.accentText),
       'section-heading': { 'font-family': 'Arial,Helvetica,sans-serif', 'border-bottom': '1px solid #808080', 'text-shadow': 'none' },

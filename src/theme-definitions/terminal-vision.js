@@ -19,7 +19,9 @@ export function createTerminalVisionTheme() {
     purposes: {
       reading: { 'background-color': theme.colors.surface, color: theme.colors.text },
       section: { 'background-color': 'transparent', border: '0', 'box-shadow': 'none', 'background-image': 'none' },
-      data: { 'background-color': theme.colors.surface, color: theme.colors.text }
+      data: { 'background-color': theme.colors.surface, color: theme.colors.text },
+      'table-body': { 'background-color': theme.colors.surface, 'border-color': theme.colors.line },
+      'table-header': { 'background-color': theme.colors.raised, 'border-color': theme.colors.line }
     },
     dataScale: {
       colors: ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'],
