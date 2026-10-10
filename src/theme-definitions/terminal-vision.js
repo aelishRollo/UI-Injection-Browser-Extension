@@ -27,7 +27,6 @@ export function createTerminalVisionTheme() {
       colors: ['#102d1d','#176244','#2f9e55','#7eea94','#d7ff4e'],
       declarations: { 'border-color': '#06110b', 'box-shadow': 'inset 0 0 0 1px rgba(157,255,176,.12)' }
     },
-    navigationFade: theme.colors.surface,
     postlude: [], responsive: []
   } };
 }

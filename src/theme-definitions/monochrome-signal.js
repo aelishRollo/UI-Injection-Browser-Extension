@@ -99,7 +99,6 @@ export function createMonochromeSignalTheme() {
       colors: ['#f2f2f2', '#d8d8d8', '#bfbfbf', '#f47b7b', '#f03d3d'],
       declarations: { 'border-color': theme.colors.line, 'box-shadow': 'none' }
     },
-    navigationFade: theme.colors.surface,
     postlude: [
       { target: 'controlDisabled', declarations: {
         ...ink('#595959'), '--surface-control-ink-v1': '#595959',

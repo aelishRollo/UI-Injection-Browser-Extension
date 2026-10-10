@@ -66,7 +66,6 @@ export function themeContractErrors(theme) {
     if (!PURPOSE_TARGETS.has(target)) errors.push(`treatments.purposes uses unknown target ${target}`);
     validateDeclarations(declarations, `treatments.purposes.${target}`, errors);
   }
-  if (typeof treatments.navigationFade !== 'string' || !treatments.navigationFade) errors.push('treatments.navigationFade must be a non-empty string');
   if (!Array.isArray(treatments.responsive)) errors.push('treatments.responsive must be an array');
   else for (const [index, responsive] of treatments.responsive.entries()) {
     if (typeof responsive?.query !== 'string' || !responsive.query) errors.push(`treatments.responsive[${index}].query must be a non-empty string`);

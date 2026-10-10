@@ -288,14 +288,32 @@ function markSurfaces(root) {
   // substantial, pale, heading-led panels instead of article/aside elements.
   // Recognize those authored panel boundaries without painting arbitrary cards.
   const neutralPanels = collect(root, 'div,a[href]').filter(element => {
-    if (element.hasAttribute(ATTR_CONTEXT) || !element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`) ||
-        !isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
+    if (element.hasAttribute(ATTR_CONTEXT)) return false;
+    const contentOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`);
+    const landmark = contentOwner ? null : element.parentElement?.closest('main,[role="main"],article');
+    if ((!contentOwner && !landmark) || !isVisible(element) || isProtected(element) ||
+        element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
     const style = getComputedStyle(element);
+    // A mixed main region may have too many controls to become one coherent
+    // surface. Its individually bounded editorial cards are still paintable:
+    // use a real visual edge plus a semantic landmark, never a pale div alone.
+    if (!contentOwner && !(['Top', 'Right', 'Bottom', 'Left'].some(side => parseFloat(style[`border${side}Width`]) >= 1 &&
+      style[`border${side}Style`] !== 'none') || style.boxShadow !== 'none')) return false;
+    if (!isNeutralSolidSurface(style) && !isNeutralLinearGradient(style)) return false;
     const rect = element.getBoundingClientRect();
+    if (rect.width < 180 || rect.height < 80) return false;
     const heading = element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]');
+    if (!heading || scopedTextLength(element, 100) < 100) return false;
     const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
-    return (isNeutralSolidSurface(style) || isNeutralLinearGradient(style)) && heading && rect.width >= 180 && rect.height >= 80 &&
-      scopedTextLength(element, 100) >= 100 && controls <= 6;
+    if (controls > 6) return false;
+    // A substantial labelled graphic and its caption are an authored visual
+    // unit. Leave it to visualization recognition before taking panel paint.
+    const graphic = element.querySelector('canvas,svg[role="img"],svg[aria-label],svg[aria-labelledby]');
+    if (graphic) {
+      const graphicRect = graphic.getBoundingClientRect();
+      if (graphicRect.width >= 160 && graphicRect.height >= 80) return false;
+    }
+    return true;
   });
   for (const element of neutralPanels.filter(candidate => !neutralPanels.some(other => other !== candidate && other.contains(candidate)))) {
     setAttribute(element, ATTR_CONTEXT, 'content');

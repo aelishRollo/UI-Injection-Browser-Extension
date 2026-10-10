@@ -365,7 +365,7 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,.product-logo').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,#mixed-main,#bounded-editorial-card,#unbounded-editorial-block,.product-logo').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
@@ -415,6 +415,14 @@ try {
         'an all-translucent gradient must not become a theme-owned surface');
       assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-context-v1'), 'content');
       assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-evidence-v1'), 'neutral-heading-card');
+      assert.equal(await page.locator('#brand-module-button').evaluate(el => getComputedStyle(el).appearance), 'none',
+        `${theme} native button face must use the themed foreground/background pair`);
+      assert.equal(await page.locator('#mixed-main').getAttribute('data-surface-context-v1'), null,
+        'mixed application landmark should not become one content surface');
+      assert.equal(await page.locator('#bounded-editorial-card').getAttribute('data-surface-purpose-v1'), 'panel',
+        'a visually bounded editorial card should be recognized inside a mixed landmark');
+      assert.equal(await page.locator('#unbounded-editorial-block').getAttribute('data-surface-context-v1'), null,
+        'pale paint without a boundary should not establish a panel');
       assert.equal(await page.locator('#large-mark-card').getAttribute('data-surface-context-v1'), null, 'a large labelled card containing a logo-like icon must not become a brand');
       assert.equal(await page.locator('.product-logo').getAttribute('data-surface-context-v1'), 'brand');
       assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), null, 'an active opacity effect stays authored');
@@ -456,8 +464,8 @@ try {
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
       assert.equal(await page.locator('#utility-fade').getAttribute('data-surface-navigation-fade-v1'), 'after');
-      const fadeColor = { 'terminal-vision': 'rgb(9, 26, 17)', 'browser-archeology': 'rgb(212, 208, 200)', 'liquid-dream': 'rgb(255, 249, 241)', 'monochrome-signal': 'rgb(242, 242, 242)' }[theme];
-      assert.ok((await page.locator('#utility-fade').evaluate(el => getComputedStyle(el, '::after').backgroundImage)).includes(fadeColor), `${theme} navigation fade should end in ${fadeColor}`);
+      assert.equal(await page.locator('#utility-fade').evaluate(el => getComputedStyle(el, '::after').display), 'none',
+        `${theme} decorative sticky fade should leave no scrolling seam`);
       for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
         assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
         assert.equal(await page.locator(`#${role}-icon`).evaluate(el => getComputedStyle(el).maskImage), 'none');

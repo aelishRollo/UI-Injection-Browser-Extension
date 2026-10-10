@@ -43,6 +43,9 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
   css.push(rule(`${context('content')}`, { 'background-color': c.surface, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius }));
   css.push(rule(`${context('chrome')}`, { 'background-color': c.surface, 'border-color': c.line }));
   css.push(rule(`${context('control')}`, { 'background-color': c.control || c.surface, color: c.text, '-webkit-text-fill-color': 'currentColor', '--surface-control-ink-v1': c.text, border: `${theme.border} solid ${c.line}`, 'border-radius': theme.radius, 'font-family': theme.font }));
+  // Native button appearance can paint a platform face over the computed CSS
+  // background. Keep the visible face paired with the chosen control ink.
+  css.push(rule(`button${context('control')},input${context('control')}:where([type="button"],[type="submit"],[type="reset"])`, { appearance: 'none', '-webkit-appearance': 'none' }));
   css.push(rule(`${context('control')}:hover`, { 'background-color': c.raised, color: c.text, '-webkit-text-fill-color': 'currentColor', '--surface-control-ink-v1': c.text, 'border-color': c.accent }));
   css.push(rule(`${text('heading')}${highOrMedium}`, { 'font-family': theme.headingFont, 'font-weight': theme.weight, 'letter-spacing': '-0.035em' }));
   css.push(rule(`:where(${text('text')},${text('link')},${text('code')})${highOrMedium}`, { 'font-family': theme.font }));
@@ -123,7 +126,9 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
   ));
   if (!startup) css.push(...buildIconStyles(theme, rule));
   css.push(rule(context('shell'), { 'background-color': c.background }));
-  css.push(rule('[data-surface-navigation-fade-v1="before"]::before,[data-surface-navigation-fade-v1="after"]::after', { 'background-color': 'transparent', 'background-image': `linear-gradient(rgba(0,0,0,0),${theme.treatments.navigationFade})` }));
+  // A generated sticky fade has no content or hit target. Its gradient can
+  // leave a horizontal seam when the rail scrolls over a different canvas.
+  css.push(rule('[data-surface-navigation-fade-v1="before"]::before,[data-surface-navigation-fade-v1="after"]::after', { display: 'none' }));
   if (!startup) {
     css.push(...buildTreatmentRules(theme.treatments.postlude, targets, rule));
     for (const responsive of theme.treatments.responsive) {

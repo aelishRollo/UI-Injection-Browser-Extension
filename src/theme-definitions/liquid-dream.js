@@ -33,7 +33,6 @@ export function createLiquidDreamTheme() {
       navigation: { 'background-color': '#fff9f1', 'background-image': LIQUID_WASH, 'box-shadow': 'inset 0 -1px rgba(110,83,137,.36)' },
       field: { 'background-color': '#fff9f1', 'background-image': 'none', 'box-shadow': 'inset 0 1px 3px rgba(78,64,104,.18)' }
     },
-    navigationFade: theme.colors.surface,
     postlude: [], responsive: []
   } };
 }
