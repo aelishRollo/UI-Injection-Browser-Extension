@@ -93,6 +93,8 @@ The build, 12 unit checks, all 15 browser checks, and the 172.5 ms large-route r
 
 The owner reported that those visible issues persisted. [Iteration 28](EXPERIMENT-28.md) reproduced two missed timing states in a frame-by-frame isolated trace: the Appearance rail first paints as a 31 px header before hydration, and the link preview fades in from zero opacity before effect settlement. The unified recognizer now classifies a short labelled navigation panel with a button and a bounded neutral overlay during an opacity-only reveal. Live traces show no ready white Appearance frame and a dark preview throughout its fade. Caption and rank headers remained themed in this isolated run, including after scrolling; any remaining owner-browser failure needs exact-state evidence.
 
+The owner subsequently confirmed those issues fixed except for the final two light rows in the Aircraft table. [Iteration 29](EXPERIMENT-29.md) reuses table-formatting recognition during a row-only rescan under an already recognized table and repairs removed table-part markers. Inline-gray row fixtures exercise both lifecycle paths across all four themes. The exact owner screenshot state did not reproduce in isolated wide-layout Chromium, where those rows were already themed before and after scrolling; the remaining owner-browser outcome requires confirmation after reloading this build.
+
 ## Documentation precedence
 
 Use documentation in this order:

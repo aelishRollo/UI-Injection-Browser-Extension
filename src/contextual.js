@@ -22,7 +22,7 @@ const ATTR_CONTENT_FADE = 'data-surface-content-fade-v1';
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
-const MANAGED_PAINT_ATTRIBUTES = new Set([ATTR_THEME, ATTR_USER_STYLES, ATTR_CONTEXT, ATTR_PURPOSE]);
+const MANAGED_PAINT_ATTRIBUTES = new Set([ATTR_THEME, ATTR_USER_STYLES, ATTR_CONTEXT, ATTR_PURPOSE, ATTR_TABLE_PART]);
 
 let observer;
 let deferredMutationObserver;
@@ -168,6 +168,18 @@ function isNeutralTablePartSurface(element) {
   return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 190 &&
     Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
     (style.backgroundImage === 'none' || compactHeaderIndicator) && !hasUncertainPaint(style));
+}
+
+function markTableFormatting(scope) {
+  // A row or cell can be rescanned after a class/text mutation without its
+  // table ancestor being in the scan root. Reapply its own structural paint
+  // while retaining the already established table purpose.
+  for (const part of collect(scope, 'caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
+    if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) continue;
+    const header = part.matches('caption,thead,th') || Boolean(part.closest('thead')) ||
+      (part.matches('tr') && Boolean(part.querySelector('th')) && !part.querySelector('td'));
+    setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
+  }
 }
 
 function isNeutralLinearGradient(style) {
@@ -442,12 +454,11 @@ function markPurposes(root) {
     // only opaque near-neutral structural paint; chromatic cells, gradients,
     // effects and explicit scalar values remain authored or use the existing
     // data-scale treatment.
-    for (const part of element.querySelectorAll('caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
-      if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) continue;
-      const header = part.matches('caption,thead,th') || Boolean(part.closest('thead')) ||
-        (part.matches('tr') && Boolean(part.querySelector('th')) && !part.querySelector('td'));
-      setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
-    }
+    markTableFormatting(element);
+  }
+  if (root instanceof Element && !root.matches('table')) {
+    const table = root.closest('table');
+    if (table?.hasAttribute(ATTR_PURPOSE)) markTableFormatting(root);
   }
   for (const element of collect(root, `[${ATTR_CONTEXT}="chrome"]`)) assign(element, 'navigation', null, 'semantic-navigation');
   for (const element of collect(root, 'h1,h2,[role="heading"][aria-level="1"],[role="heading"][aria-level="2"]')) {

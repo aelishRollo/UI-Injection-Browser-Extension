@@ -384,7 +384,7 @@ try {
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
     const baseline = await snapshot();
-    const baselineTableParts = await page.locator('#data thead,#data tbody,#data th,#data td').evaluateAll(elements =>
+    const baselineTableParts = await page.locator('#data thead,#data tbody,#data th,#data td,#inline-neutral-row,#inline-neutral-last-row').evaluateAll(elements =>
       elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color]));
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
@@ -421,6 +421,24 @@ try {
       assert.equal(await page.locator('#mid-neutral-table tr').first().getAttribute('data-surface-table-part-v1'), 'header',
         `${theme} medium neutral table row should transfer paint`);
       assert.equal(await page.locator('#mid-neutral-table tr').first().evaluate(el => getComputedStyle(el).backgroundColor), tableColors.header);
+      for (const selector of ['#inline-neutral-row', '#inline-neutral-last-row']) {
+        assert.equal(await page.locator(selector).getAttribute('data-surface-table-part-v1'), 'body');
+        assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundColor), tableColors.body);
+      }
+      await page.locator('#inline-neutral-row').evaluate(el => el.classList.toggle('updated'));
+      await page.waitForFunction(expected => {
+        const row = document.querySelector('#inline-neutral-row');
+        return row?.getAttribute('data-surface-table-part-v1') === 'body' && getComputedStyle(row).backgroundColor === expected;
+      }, tableColors.body);
+      await page.locator('#inline-neutral-last-row').evaluate(el => el.removeAttribute('data-surface-table-part-v1'));
+      await page.waitForFunction(expected => {
+        const row = document.querySelector('#inline-neutral-last-row');
+        return row?.getAttribute('data-surface-table-part-v1') === 'body' && getComputedStyle(row).backgroundColor === expected;
+      }, tableColors.body);
+      const inlineRowPair = await page.locator('#inline-neutral-last-row td').last().evaluate(el =>
+        [getComputedStyle(el).color, getComputedStyle(el.parentElement).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(inlineRowPair[0]), parseColor(inlineRowPair[1])) >= 4.5,
+        `${theme} rescanned row ink must remain readable: ${inlineRowPair.join(' on ')}`);
       assert.equal(await page.locator('#captioned-media').getAttribute('data-surface-context-v1'), 'content');
       assert.equal(await page.locator('#captioned-media figcaption').getAttribute('data-surface-context-v1'), 'content');
       assert.equal(await page.locator('#captioned-media figcaption').evaluate(el => getComputedStyle(el).backgroundColor), tableColors.body);
@@ -622,7 +640,7 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.deepEqual(await page.locator('#data thead,#data tbody,#data th,#data td').evaluateAll(elements =>
+      assert.deepEqual(await page.locator('#data thead,#data tbody,#data th,#data td,#inline-neutral-row,#inline-neutral-last-row').evaluateAll(elements =>
         elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color])), baselineTableParts);
       assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1],[data-surface-content-fade-v1],[data-surface-table-part-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');

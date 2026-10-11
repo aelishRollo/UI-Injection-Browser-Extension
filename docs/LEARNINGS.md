@@ -168,6 +168,12 @@ The shared utility recognizer now accepts a short neutral panel only when it is 
 
 Validation passed the build, 12 unit checks, 15 browser checks, and the large-route navigation regression at 170.8 ms. The five-repeat local workload produced 25 valid samples and 2,500 completed frames with zero stalls; median p95 frame intervals were 16.7–16.8 ms. Median sampled renderer work was 28.03/29.65/25.13/25.33 ms for Browser Archeology/Liquid Dream/Monochrome Signal/Terminal Vision. These fixture measurements are not field performance claims.
 
+Latest owner review: **the Appearance, preview, caption, and heading issues are fixed, but the final two Aircraft table rows on Federal Police (Mexico) remain light in the owner's screenshot.** Those rows use inline neutral gray paint and black ink. An isolated wide-layout run themed them on initial load and after scrolling, so the exact owner-browser trigger remains unknown. A deterministic local failure emerged from code review: a row-only incremental rescan restores its authored paint but cannot reapply table paint when the recognizer only looks for tables inside the root. See [Iteration 29](EXPERIMENT-29.md).
+
+The unified pipeline now reapplies neutral table formatting within a changed row or cell under an already recognized table, and repairs page-removed table-part markers. A four-theme fixture exercises class mutation and marker removal on inline-gray rows. The exact live Aircraft rows retained dark paint after both forced updates in an isolated browser. Next bounded review: confirm the owner's rows after reloading this build; if they remain light, capture the affected row's computed paint and ownership at the moment of failure before broadening the rule.
+
+Validation passed the build, 12 unit checks, all 15 browser checks, and large-route navigation at 198.6 ms against its 200 ms guard. The five-repeat performance run produced 25 valid samples, 2,500 frames, zero stalls, and 16.7–16.8 ms median p95 intervals; one Liquid Dream sample reached 33.3 ms p95. Median sampled renderer work was higher than the preceding run (38.48/39.84/33.22/37.08 ms for Browser Archeology/Liquid Dream/Monochrome Signal/Terminal Vision), with cause unresolved. These are local fixture measurements.
+
 ## Historical experiment log — superseded architecture
 
 The entries below preserve observations, failures, and measurements that informed the current design. Date-relative words such as “latest,” “current,” and “next” apply only within their original experiment context.
