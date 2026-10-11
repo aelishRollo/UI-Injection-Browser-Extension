@@ -91,6 +91,8 @@ The final build, 12 unit checks, and all 15 browser checks pass. The five-repeat
 The owner subsequently confirmed Iteration 26 fixed those strips. [Iteration 27](EXPERIMENT-27.md) addresses the next screenshot set through shared paint recognition: early labelled navigation panels, positioned neutral previews and their inner backing/fades, captioned image frames, and mid-gray table headers. Live María Sabina and Federal Police probes confirm final caption, preview, and table paint; the owner's transient Appearance flash was represented by a first-visible parser fixture but was not captured in an isolated live timeline.
 The build, 12 unit checks, all 15 browser checks, and the 172.5 ms large-route regression pass. The five-repeat workload completed 2,500 frames with zero stalls or recorded long tasks and 16.7–16.8 ms median p95 intervals.
 
+The owner reported that those visible issues persisted. [Iteration 28](EXPERIMENT-28.md) reproduced two missed timing states in a frame-by-frame isolated trace: the Appearance rail first paints as a 31 px header before hydration, and the link preview fades in from zero opacity before effect settlement. The unified recognizer now classifies a short labelled navigation panel with a button and a bounded neutral overlay during an opacity-only reveal. Live traces show no ready white Appearance frame and a dark preview throughout its fade. Caption and rank headers remained themed in this isolated run, including after scrolling; any remaining owner-browser failure needs exact-state evidence.
+
 ## Documentation precedence
 
 Use documentation in this order:

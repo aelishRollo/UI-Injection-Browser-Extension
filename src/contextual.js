@@ -153,6 +153,13 @@ function isNeutralSolidSurface(style) {
     style.backgroundImage === 'none' && !hasUncertainPaint(style));
 }
 
+function isNeutralOpacitySurface(style) {
+  const color = parseColor(style.backgroundColor);
+  return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
+    Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
+    style.backgroundImage === 'none' && !hasUncertainPaintExceptOpacity(style));
+}
+
 function isNeutralTablePartSurface(element) {
   const style = getComputedStyle(element);
   const color = parseColor(style.backgroundColor);
@@ -353,10 +360,13 @@ function markSurfaces(root) {
   // even when the site supplies no dialog or tooltip role. A matching inner
   // paint box must follow the owner or it will cover the themed background.
   for (const element of collect(root, 'div,[role="tooltip"]')) {
-    if (element.hasAttribute(ATTR_CONTEXT) || !isVisible(element) || isProtected(element) ||
+    if (element.hasAttribute(ATTR_CONTEXT) || isProtected(element) ||
         element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     const style = getComputedStyle(element);
-    if (!['absolute', 'fixed'].includes(style.position) || !isNeutralSolidSurface(style) ||
+    // A preview may enter at opacity zero and reveal without another DOM
+    // mutation. Recognize its paint before that first visible animation frame.
+    if (style.display === 'none' || style.visibility === 'hidden' ||
+        !['absolute', 'fixed'].includes(style.position) || !isNeutralOpacitySurface(style) ||
         scopedTextLength(element, 40) < 40 || descendantCount(element, 'button,input,select,textarea,[role="button"]') > 6) continue;
     const rect = element.getBoundingClientRect();
     if (rect.width < 180 || rect.width > 640 || rect.height < 80 || rect.height > 720) continue;
@@ -621,13 +631,16 @@ function markUtilityPanels(root) {
         Math.max(...color.slice(0,3)) - Math.min(...color.slice(0,3)) > 18 ||
         style.backgroundImage !== 'none' || hasUncertainPaint(style)) continue;
     const rect = element.getBoundingClientRect();
-    if (rect.width < 100 || rect.width > 400 || rect.height < 100 || element.querySelector('img,video,canvas,article,main')) continue;
+    if (rect.width < 100 || rect.width > 400 || element.querySelector('img,video,canvas,article,main')) continue;
     const links = [...element.querySelectorAll('a[href]')];
     const textLength = element.textContent.replace(/\s+/g, '').length;
     const navigation = links.length >= 4 && links.reduce((sum, a) => sum + a.textContent.replace(/\s+/g, '').length, 0) / textLength >= .6;
     const settings = element.querySelectorAll('input[type="radio"]').length >= 3 && element.querySelectorAll('label').length >= 3;
     const labelledNavigation = element.matches('div,aside,form') &&
       Boolean(element.parentElement?.closest('nav[aria-label]')) && textLength >= 8;
+    const emergingPanel = labelledNavigation && rect.height >= 24 &&
+      Boolean(element.querySelector('button,[role="button"]'));
+    if (rect.height < 100 && !emergingPanel) continue;
     if (!navigation && !settings && !labelledNavigation) continue;
     setAttribute(element, ATTR_CONTEXT, 'chrome');
     setAttribute(element, ATTR_PURPOSE, 'navigation');
@@ -849,7 +862,11 @@ function textRole(element) {
 }
 
 function hasUncertainPaint(style) {
-  return Number(style.opacity) < 1 || style.mixBlendMode !== 'normal' || style.filter !== 'none' ||
+  return Number(style.opacity) < 1 || hasUncertainPaintExceptOpacity(style);
+}
+
+function hasUncertainPaintExceptOpacity(style) {
+  return style.mixBlendMode !== 'normal' || style.filter !== 'none' ||
     (style.backdropFilter && style.backdropFilter !== 'none') || style.backgroundClip === 'text' ||
     (style.maskImage && style.maskImage !== 'none');
 }
@@ -887,7 +904,9 @@ function backgroundForText(element) {
     // authored opacity and force every text pair down the preservation path.
     const guardedElement = (current === document.documentElement || current === document.body) &&
       !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
-    if (!guardedElement && hasUncertainPaint(style)) return { reason: 'effects', owner: current };
+    const ownedOpacityReveal = current.getAttribute('data-surface-evidence-v1') === 'bounded-neutral-overlay' &&
+      !hasUncertainPaintExceptOpacity(style);
+    if (!guardedElement && hasUncertainPaint(style) && !ownedOpacityReveal) return { reason: 'effects', owner: current };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };

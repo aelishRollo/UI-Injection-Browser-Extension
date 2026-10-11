@@ -432,14 +432,16 @@ try {
       await page.evaluate(() => {
         const preview = document.createElement('div');
         preview.id = 'floating-preview';
+        preview.style.opacity = '0';
         preview.innerHTML = '<div id="floating-preview-inner"><img alt="Map preview" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'320\' height=\'120\'%3E%3Crect width=\'320\' height=\'120\' fill=\'%2394b8d8\'/%3E%3C/svg%3E"><a href="#chapter"><p>A preview of related editorial content with enough prose to establish a separate card surface.</p></a></div>';
         document.body.append(preview);
       });
       await page.waitForFunction(() => document.querySelector('#floating-preview-inner')?.getAttribute('data-surface-context-v1') === 'content');
+      await page.mouse.move(1, 1);
+      await page.locator('#floating-preview').evaluate(el => { el.style.opacity = '.5'; });
       assert.equal(await page.locator('#floating-preview').getAttribute('data-surface-context-v1'), 'content');
-      assert.equal(await page.locator('#floating-preview-inner').evaluate(el => getComputedStyle(el).backgroundColor),
-        await page.locator('#floating-preview').evaluate(el => getComputedStyle(el).backgroundColor),
-        `${theme} preview inner paint should not cover its themed owner`);
+      assert.equal(await page.locator('#floating-preview').evaluate(el => getComputedStyle(el).opacity), '0.5',
+        `${theme} preview opacity should remain authored during its reveal`);
       assert.equal(await page.locator('#floating-preview a').getAttribute('data-surface-content-fade-v1'), 'after');
       assert.equal(await page.locator('#floating-preview a').evaluate(el => getComputedStyle(el, '::after').display), 'none');
       const previewPair = await page.locator('#floating-preview p').evaluate(el => [getComputedStyle(el).color, getComputedStyle(el.parentElement.parentElement).backgroundColor]);
