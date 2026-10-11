@@ -2,7 +2,7 @@
 
 Read [the authoritative project state](PROJECT-STATE.md) and this file before theme or renderer changes. Update this log as iterations land. This repository file and the linked evidence carry learning between project chats. They do not automatically inject context into unrelated chats or already-running conversations.
 
-## Current project state — October 10, 2026
+## Current project state — October 11, 2026
 
 **This section is current. Everything below “Historical experiment log” is retained evidence, not active architecture or an instruction to restore old modes.** Surface has one unified renderer. Experiments 01–09 may describe A/B/C, Dark Reader, correction-off baselines, renderer selection, or next experiments; all of those paths and recommendations are superseded. See [the project-state record](PROJECT-STATE.md) for documentation precedence and future-work rules.
 
@@ -173,6 +173,12 @@ Latest owner review: **the Appearance, preview, caption, and heading issues are 
 The unified pipeline now reapplies neutral table formatting within a changed row or cell under an already recognized table, and repairs page-removed table-part markers. A four-theme fixture exercises class mutation and marker removal on inline-gray rows. The exact live Aircraft rows retained dark paint after both forced updates in an isolated browser. Next bounded review: confirm the owner's rows after reloading this build; if they remain light, capture the affected row's computed paint and ownership at the moment of failure before broadening the rule.
 
 Validation passed the build, 12 unit checks, all 15 browser checks, and large-route navigation at 198.6 ms against its 200 ms guard. The five-repeat performance run produced 25 valid samples, 2,500 frames, zero stalls, and 16.7–16.8 ms median p95 intervals; one Liquid Dream sample reached 33.3 ms p95. Median sampled renderer work was higher than the preceding run (38.48/39.84/33.22/37.08 ms for Browser Archeology/Liquid Dream/Monochrome Signal/Terminal Vision), with cause unresolved. These are local fixture measurements.
+
+Latest owner observation: **rapid scrolling on Federal Police (Mexico) leaves the Terminal Vision canvas visible while content appears unrendered for about a second.** [Iteration 30](EXPERIMENT-30.md) traced isolated long frames to shared foreground geometry work, a body-wide rescan on a scroll-position class, stale deferred work after the complete document pass, and recursive scans from Surface's own marker restoration. The unified renderer now batches text geometry, filters media before hit testing, retains established ownership for positional root classes near scroll, clears completed parser-era deferrals, and distinguishes internal marker removal from page removal.
+
+The local long-article regression fails on the prior build at 664.6 ms to its next scroll frame and passed the initial fixed run at 8.4 ms, with foreground ownership retained. A targeted Wikipedia bottom screenshot call fell from 5,714 ms on the committed build to 551 ms in one comparable isolated run. These timings include browser work and vary with load; they establish the exercised failure path, not a field guarantee. Removing theme grid/shadow paint, reducing the deferred observer margin, and a 250 ms scroll-class window did not solve the pause. The pale category and collapsed navigation boxes seen at the bottom matched the prior build. The build, 12 unit checks, all 15 browser checks, and five-repeat performance workload pass: 2,500 callbacks, zero stalls or recorded long tasks, and 16.8 ms median p95 frame intervals in every mode. Next bounded review: confirm rapid up/down scrolling in the owner's browser after reloading the build; if a pause persists, capture a trace of that exact state before broadening scheduling.
+
+The final navigation run passed the existing route guard at 134.3 ms and the scroll case at 8.1 ms. An immediately preceding route run exceeded its 200 ms guard at 225.8 ms; the earlier 165.0 and 185.5 ms runs passed. Keep this isolated outlier as local timing variability rather than claiming the route path is universally below the guard.
 
 ## Historical experiment log — superseded architecture
 

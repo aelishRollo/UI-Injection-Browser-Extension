@@ -41,6 +41,23 @@ try {
   await deferred.scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('#route-section-799 h2')?.hasAttribute('data-surface-tone-v1'));
   console.log(`PASS large route navigation reached the next frame in ${routeFrameMs.toFixed(1)} ms, kept deferred paint coherent, and themed deferred foregrounds on entry`);
+
+  await page.goto(`${fixture.url}/deferred-scroll.html`);
+  await page.waitForFunction(() => document.querySelector('#deferred-target p:last-child')?.hasAttribute('data-surface-tone-v1'));
+  const finalParagraph = page.locator('#deferred-target p:last-child');
+  const toneBeforeScroll = await finalParagraph.getAttribute('data-surface-tone-v1');
+  const scrollFrameMs = await page.evaluate(() => new Promise(resolve => {
+    const started = performance.now();
+    scrollTo(0, document.scrollingElement.scrollHeight);
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve(performance.now() - started)));
+  }));
+  assert.ok(scrollFrameMs < 300, `scroll-triggered root state or stale deferred work blocked content for ${scrollFrameMs.toFixed(1)} ms`);
+  assert.ok(await page.locator('body').evaluate(element => element.classList.contains('article-below-title')),
+    'the fixture must exercise its scroll-triggered root class');
+  assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page');
+  assert.equal(await finalParagraph.getAttribute('data-surface-tone-v1'), toneBeforeScroll,
+    'scroll state must retain the established foreground decision');
+  console.log(`PASS long article scroll painted within ${scrollFrameMs.toFixed(1)} ms and retained foreground ownership`);
 } finally {
   await context?.close().catch(() => {});
   await fixture.close().catch(() => {});

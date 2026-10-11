@@ -2,7 +2,7 @@
 
 > **Authoritative architecture record.** Read this before changing Surface. If an older experiment, finding, screenshot note, or next-step recommendation conflicts with this file, this file wins.
 
-Last confirmed October 10, 2026. Surface is version 0.2.0 and has one product rendering path.
+Last confirmed October 11, 2026. Surface is version 0.2.0 and has one product rendering path.
 
 ## Current architecture
 
@@ -16,6 +16,7 @@ Last confirmed October 10, 2026. Surface is version 0.2.0 and has one product re
 - Neutral captioned image frames and below-image captions can own surface paint while image pixels stay authored. Bounded positioned neutral preview cards can own their inner paint boxes, and short pointer-transparent generated fades in those cards are suppressed.
 - Neutral table formatting includes restrained mid-gray header rows. Foreground pairing uses the selected theme's declarative purpose paint when a destination stylesheet is still entering a theme handoff.
 - Dynamic updates are batched. Inserted content and relevant class, state, label, and text mutations are reclassified; late-populated neutral owners receive a bounded ancestor recheck; paint-critical ownership stripped by page hydration is repaired in the same mutation microtask; detached themed nodes are restored and released.
+- Scroll-position root classes retain established descendant ownership after a root paint check. Completed full-document scans clear stale parser-era deferred observations, growing deferred roots still use viewport-bounded work, and internal marker restoration does not trigger page-removal repair. Text geometry is batched before foreground writes and media hit testing is limited to intersecting media boxes.
 - Incremental page-canvas recognition retains an already owned root/body when its computed background image is the theme's own canvas treatment. Unowned background imagery remains authored evidence, and full scans restore authored state before recognition.
 - Full-document navigations keep a compact selected-theme first-paint sheet and the unified renderer resident at `document_start`. The sheet uses the normal theme selectors for core surfaces, typography, hierarchy, and primary motifs while leaving secondary interaction/icon/state rules to the full USER-origin sheet. Top documents bootstrap from the registered theme token and classify parser additions before paint. A short guard lasts only through the first parser-time treatment; USER-origin handoff and the complete document pass do not control first visibility.
 - Enabled theme-to-theme changes keep the current themed pixels rendered in a top-document snapshot while the renderer restores authored state and prepares the destination stylesheet plus bounded recognition underneath. The default cross-fade is skipped and the completed destination replaces the snapshot directly; the later full-document pass does not control the visible handoff.
@@ -94,6 +95,8 @@ The build, 12 unit checks, all 15 browser checks, and the 172.5 ms large-route r
 The owner reported that those visible issues persisted. [Iteration 28](EXPERIMENT-28.md) reproduced two missed timing states in a frame-by-frame isolated trace: the Appearance rail first paints as a 31 px header before hydration, and the link preview fades in from zero opacity before effect settlement. The unified recognizer now classifies a short labelled navigation panel with a button and a bounded neutral overlay during an opacity-only reveal. Live traces show no ready white Appearance frame and a dark preview throughout its fade. Caption and rank headers remained themed in this isolated run, including after scrolling; any remaining owner-browser failure needs exact-state evidence.
 
 The owner subsequently confirmed those issues fixed except for the final two light rows in the Aircraft table. [Iteration 29](EXPERIMENT-29.md) reuses table-formatting recognition during a row-only rescan under an already recognized table and repairs removed table-part markers. Inline-gray row fixtures exercise both lifecycle paths across all four themes. The exact owner screenshot state did not reproduce in isolated wide-layout Chromium, where those rows were already themed before and after scrolling; the remaining owner-browser outcome requires confirmation after reloading this build.
+
+[Iteration 30](EXPERIMENT-30.md) addresses the owner's fast-scroll pause on Federal Police (Mexico) in the shared renderer. Isolated tracing found redundant deferred and root scans plus per-text geometry work. The long-article regression fails at a 664.6 ms scroll frame on the prior build and passed at 8.4 ms after the changes; a comparable live bottom capture fell from 5,714 ms to 551 ms. The reported user's browser state remains to be confirmed after reloading this build. These local measurements are not field guarantees.
 
 ## Documentation precedence
 

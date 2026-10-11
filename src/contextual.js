@@ -28,6 +28,8 @@ let observer;
 let deferredMutationObserver;
 let readinessListener;
 let visualEffectListener;
+let scrollStateListener;
+let lastScrollAt = -Infinity;
 let effectSettleTimer;
 const pendingEffectOwners = new Map();
 let scanScheduled = false;
@@ -35,7 +37,7 @@ let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
 let queuedAddedElements = 0;
 const deferredMutationRoots = new Set();
-const deferredLargeMutationRoots = new WeakSet();
+let deferredLargeMutationRoots = new WeakSet();
 let running = false;
 let activeTheme = '';
 let userStylesReady = false;
@@ -48,6 +50,7 @@ let palette;
 let purposeTreatments = {};
 let activeCorrections = { roles: {}, preserve: [] };
 let touched = new Map();
+let internalPaintRemovals = new WeakMap();
 let brandPaint = new WeakMap();
 let refreshBrandPaint = false;
 let authoredCanvasBackground = '#ffffff';
@@ -78,7 +81,14 @@ function restoreElement(element) {
   const state = touched.get(element);
   if (!state) return;
   for (const [name, value] of state.attrs) {
-    if (value === null) element.removeAttribute(name);
+    if (value === null) {
+      if (observer && element.isConnected && MANAGED_PAINT_ATTRIBUTES.has(name) && element.hasAttribute(name)) {
+        const counts = internalPaintRemovals.get(element) || new Map();
+        counts.set(name, (counts.get(name) || 0) + 1);
+        internalPaintRemovals.set(element, counts);
+      }
+      element.removeAttribute(name);
+    }
     else element.setAttribute(name, value);
   }
   for (const [name, original] of state.properties) {
@@ -207,20 +217,22 @@ function mediaRects() {
     .map(element => ({ element, rect: element.getBoundingClientRect() }));
 }
 
-function overlapsMedia(element, media) {
+function overlapsMedia(element, media, rect) {
   // A separately owned caption is below the image in the figure layout; its
   // explicit neutral backing is the text surface, not the image pixels.
   if (element.closest(`figcaption[${ATTR_CONTEXT}="content"]`)) return false;
   const localFigure = element.closest('figure,picture');
   if (localFigure && (element.matches('figcaption') || ['absolute', 'fixed'].includes(getComputedStyle(element).position)) &&
       media.some(item => localFigure.contains(item.element))) return true;
-  const rect = element.getBoundingClientRect();
+  rect ||= element.getBoundingClientRect();
   if (!rect.width || !rect.height) return false;
   const x = rect.left + rect.width / 2;
   const y = rect.top + rect.height / 2;
+  const candidates = media.filter(item => item.element !== element && !element.contains(item.element) &&
+    x >= item.rect.left && x <= item.rect.right && y >= item.rect.top && y <= item.rect.bottom);
+  if (!candidates.length) return false;
   const stack = document.elementsFromPoint(x, y);
-  return media.some(item => {
-    if (item.element === element || element.contains(item.element) || x < item.rect.left || x > item.rect.right || y < item.rect.top || y > item.rect.bottom) return false;
+  return candidates.some(item => {
     let common = element.parentElement;
     while (common && !common.contains(item.element)) common = common.parentElement;
     const locallyRelated = common && common !== document.body && common !== document.documentElement;
@@ -1010,6 +1022,10 @@ function scheduleEffectSettlement(owner) {
 
 function markText(root, media, snapshot) {
   const { candidates, originals } = snapshot;
+  // Measure text boxes after structural treatment but before foreground writes.
+  // Interleaving geometry reads with each text annotation forces repeated
+  // layout; one read phase keeps overlap decisions tied to the same frame.
+  const textRects = media.length ? new Map(candidates.map(element => [element, element.getBoundingClientRect()])) : null;
   for (const element of candidates) {
     // Brand ownership is established after the authored foreground snapshot.
     // Recheck it here without repeating the full candidate query and layout
@@ -1028,7 +1044,7 @@ function markText(root, media, snapshot) {
       ? { reason: 'effects' } : backgroundForText(element);
     // An already-uncertain backing wins the preservation decision. Avoid the
     // more expensive hit-testing path when it cannot change the result.
-    const mediaBacked = !backing.reason && overlapsMedia(element, media);
+    const mediaBacked = !backing.reason && overlapsMedia(element, media, textRects?.get(element));
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
@@ -1126,7 +1142,11 @@ function deferMutationRoot(root, large = false) {
         if (!entry.isIntersecting || !entry.target.isConnected) continue;
         deferredMutationObserver.unobserve(entry.target);
         deferredMutationRoots.delete(entry.target);
-        const type = deferredLargeMutationRoots.has(entry.target) ? 'deferred-large-mutation' : 'deferred-mutation';
+        // A small deferred node can grow while it is offscreen. Recheck its
+        // current size on entry so it still takes the viewport-bounded path.
+        const type = deferredLargeMutationRoots.has(entry.target) ||
+          entry.target.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT
+          ? 'deferred-large-mutation' : 'deferred-mutation';
         deferredLargeMutationRoots.delete(entry.target);
         records.push({ type, target: entry.target });
       }
@@ -1265,6 +1285,12 @@ function scheduleScans(records) {
 
 function observe() {
   if (!running || !document.body || observer) return;
+  // Root classes commonly toggle sticky navigation as the viewport moves.
+  // Keep the established descendant ownership in place for that scroll state;
+  // restoring and rescanning a whole article here can monopolize multiple
+  // frames even though no content subtree changed.
+  scrollStateListener = () => { lastScrollAt = performance.now(); };
+  document.addEventListener('scroll', scrollStateListener, { capture: true, passive: true });
   const repairPageOwner = target => {
     const counterpart = target === document.documentElement ? document.body : document.documentElement;
     if (counterpart.getAttribute(ATTR_CONTEXT) !== 'page') {
@@ -1281,8 +1307,36 @@ function observe() {
   observer = new MutationObserver(records => {
     const ordinary = [];
     for (const record of records) {
+      let changedRootClasses = [];
+      const isRootClass = record.attributeName === 'class' &&
+        (record.target === document.body || record.target === document.documentElement);
+      if (isRootClass && performance.now() - lastScrollAt < 3000) {
+        const before = new Set(String(record.oldValue || '').split(/\s+/));
+        const after = new Set(String(record.target.getAttribute('class') || '').split(/\s+/));
+        changedRootClasses = [...new Set([...before, ...after])]
+          .filter(token => token && before.has(token) !== after.has(token));
+      }
+      if (record.attributeName === 'class' &&
+          isRootClass && changedRootClasses.length > 0 &&
+          changedRootClasses.every(token => /(?:^|[-_])(scroll|sticky|affix|below|above|pinned)(?:$|[-_])/.test(token))) {
+        restoreElement(record.target);
+        if (record.target === document.documentElement) markTheme();
+        const paint = getComputedStyle(record.target);
+        // Authored root imagery or effects change the effective text backing.
+        // Those changes still need the complete conservative pairing pass.
+        if (paint.backgroundImage !== 'none' || hasUncertainPaint(paint)) ordinary.push(record);
+        else markPage();
+        continue;
+      }
       if (!MANAGED_PAINT_ATTRIBUTES.has(record.attributeName)) {
         ordinary.push(record);
+        continue;
+      }
+      const internalCount = internalPaintRemovals.get(record.target)?.get(record.attributeName) || 0;
+      if (internalCount && record.oldValue !== null) {
+        const counts = internalPaintRemovals.get(record.target);
+        if (internalCount === 1) counts.delete(record.attributeName);
+        else counts.set(record.attributeName, internalCount - 1);
         continue;
       }
       // Hydration and DOM-morphing libraries sometimes reconcile attributes
@@ -1337,6 +1391,13 @@ function finishInitialScan() {
   } finally {
     refreshBrandPaint = false;
   }
+  // The complete pass has already classified every connected subtree. Parser
+  // era viewport observations would otherwise replay stale mutations after a
+  // scroll and restore paint that the full pass established.
+  deferredMutationObserver?.disconnect();
+  deferredMutationObserver = undefined;
+  deferredMutationRoots.clear();
+  deferredLargeMutationRoots = new WeakSet();
   observe();
 }
 
@@ -1439,9 +1500,13 @@ export async function start(theme, corrections) {
 export function stop() {
   observer?.disconnect();
   observer = undefined;
+  if (scrollStateListener) document.removeEventListener('scroll', scrollStateListener, true);
+  scrollStateListener = undefined;
+  lastScrollAt = -Infinity;
   deferredMutationObserver?.disconnect();
   deferredMutationObserver = undefined;
   deferredMutationRoots.clear();
+  deferredLargeMutationRoots = new WeakSet();
   if (visualEffectListener) for (const type of ['transitionend', 'transitioncancel', 'animationend', 'animationcancel']) {
     document.removeEventListener(type, visualEffectListener, true);
   }
@@ -1460,6 +1525,7 @@ export function stop() {
   readinessListener = undefined;
   running = false;
   restoreAll();
+  internalPaintRemovals = new WeakMap();
   userStylesReady = false;
 }
 
