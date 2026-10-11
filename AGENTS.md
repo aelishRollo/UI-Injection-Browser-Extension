@@ -29,3 +29,11 @@ For development commands and the scope of the browser and performance checks, se
 - For each iteration, update `docs/LEARNINGS.md` with the tested pages or interface types, what changed in the unified path, evidence, failures, and the next bounded iteration. Keep useful failures; do not overwrite history with the latest success.
 - Prefer reusable semantic/structural role recognition over host-specific appearance patches. Record correction-free failures before adding a site correction.
 - Preserve concise evidence in `docs/` when it informs future decisions; `test-results/` is ignored and is not durable shared memory.
+
+## Performance and regression requirements
+
+- Treat readable visibility, responsive scrolling, and scalability on long or dynamic pages as acceptance criteria for every renderer and theme change.
+- Fix a concrete failure through shared recognition, paint, or lifecycle logic. Avoid a page-specific patch or extra work per theme when one general rule can address the cause.
+- Before landing a fix, reproduce the reported state when possible, add a focused regression for the failure mechanism, and compare the affected page or interface before and after the change.
+- Check that a visibility fix does not delay first paint or scrolling, and that a performance fix does not leave previously themed content unpainted. Validate the affected state across relevant themes and run the browser, navigation, and performance checks appropriate to the change.
+- Record measured improvements, remaining failures, and any timing variability. Do not claim a regression-free result from a single local capture or a passing test suite alone.

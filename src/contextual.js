@@ -180,16 +180,18 @@ function isNeutralTablePartSurface(element) {
     (style.backgroundImage === 'none' || compactHeaderIndicator) && !hasUncertainPaint(style));
 }
 
+function markTablePart(part) {
+  if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) return;
+  const header = part.matches('caption,thead,th') || Boolean(part.closest('thead')) ||
+    (part.matches('tr') && Boolean(part.querySelector('th')) && !part.querySelector('td'));
+  setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
+}
+
 function markTableFormatting(scope) {
   // A row or cell can be rescanned after a class/text mutation without its
   // table ancestor being in the scan root. Reapply its own structural paint
   // while retaining the already established table purpose.
-  for (const part of collect(scope, 'caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
-    if (part.matches('[data-level],[aria-valuenow]') || !isNeutralTablePartSurface(part)) continue;
-    const header = part.matches('caption,thead,th') || Boolean(part.closest('thead')) ||
-      (part.matches('tr') && Boolean(part.querySelector('th')) && !part.querySelector('td'));
-    setAttribute(part, ATTR_TABLE_PART, header ? 'header' : 'body');
-  }
+  for (const part of collect(scope, 'caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) markTablePart(part);
 }
 
 function isNeutralLinearGradient(style) {
@@ -452,15 +454,8 @@ function markPurposes(root) {
     const panel = element.matches('aside,dialog,fieldset,[role="dialog"],[role="menu"],[role="listbox"]');
     assign(element, inReading && !panel ? 'section' : 'panel', 'content', panel ? 'semantic-panel' : 'content-hierarchy');
   }
-  // A floated, bordered key/value table is an auxiliary fact panel. Ordinary
-  // data tables keep their own role; neither relies on a Wikipedia class name.
   for (const element of collect(root, 'table')) {
-    if (!element.closest(reading)) continue;
-    const style = getComputedStyle(element);
-    const panel = style.cssFloat !== 'none' && parseFloat(style.borderTopWidth) > 0 &&
-      element.querySelector('th') && element.querySelector('td');
-    assign(element, panel ? 'panel' : 'data', 'content', panel ? 'floated-bordered-facts' : 'semantic-table');
-    if (!element.hasAttribute(ATTR_PURPOSE)) continue;
+    if (!markTableOwner(element)) continue;
     // A recognized table can still expose authored white paint on its internal
     // formatting boxes after the table itself receives theme paint. Transfer
     // only opaque near-neutral structural paint; chromatic cells, gradients,
@@ -496,6 +491,24 @@ function markPurposes(root) {
   for (const element of collect(root, `[${ATTR_CONTEXT}="control"]`)) {
     assign(element, element.matches('textarea,select,input:not([type="button"],[type="submit"],[type="reset"],[type="checkbox"],[type="radio"],[type="range"],[type="color"])') ? 'field' : 'action', null, 'native-control');
   }
+}
+
+function markTableOwner(element) {
+  // A floated, bordered key/value table is an auxiliary fact panel. Ordinary
+  // data tables keep their own role; neither relies on a Wikipedia class name.
+  if (!element.closest(`[${ATTR_PURPOSE}="reading"]`) || !isVisible(element) || isProtected(element) ||
+      element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
+  const style = getComputedStyle(element);
+  if (style.backgroundImage !== 'none' &&
+      !['page', 'shell', 'content', 'chrome', 'control'].includes(element.getAttribute(ATTR_CONTEXT))) return false;
+  const panel = style.cssFloat !== 'none' && parseFloat(style.borderTopWidth) > 0 &&
+    element.querySelector('th') && element.querySelector('td');
+  setAttribute(element, ATTR_PURPOSE, panel ? 'panel' : 'data');
+  if (!element.hasAttribute('data-surface-evidence-v1'))
+    setAttribute(element, 'data-surface-evidence-v1', panel ? 'floated-bordered-facts' : 'semantic-table');
+  setAttribute(element, ATTR_CONTEXT, 'content');
+  setAttribute(element, ATTR_CONFIDENCE, 'high');
+  return true;
 }
 
 // Preserve a chart and its supporting labels as one authored visual unit. Large,
@@ -1171,6 +1184,14 @@ function hasTextContent(element, threshold) {
 
 function classifyLargeSemanticRoot(root) {
   if (!isVisible(root) || isProtected(root) || root.closest(`[${ATTR_CONTEXT}="brand"]`)) return;
+  if (root.matches('table')) {
+    markTableOwner(root);
+    return;
+  }
+  if (root.matches('caption,colgroup,col,thead,tbody,tfoot,tr,th,td')) {
+    if (root.closest('table')?.hasAttribute(ATTR_PURPOSE)) markTablePart(root);
+    return;
+  }
   if (root.matches('header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
     if (getComputedStyle(root).backgroundImage === 'none') {
       setAttribute(root, ATTR_CONTEXT, 'chrome');

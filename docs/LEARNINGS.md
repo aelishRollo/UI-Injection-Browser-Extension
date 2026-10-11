@@ -180,6 +180,8 @@ The local long-article regression fails on the prior build at 664.6 ms to its ne
 
 The final navigation run passed the existing route guard at 134.3 ms and the scroll case at 8.1 ms. An immediately preceding route run exceeded its 200 ms guard at 225.8 ms; the earlier 165.0 and 185.5 ms runs passed. Keep this isolated outlier as local timing variability rather than claiming the route path is universally below the guard.
 
+Latest owner observation: **fast scrolling now feels much more usable, but table visibility regressed.** [Iteration 31](EXPERIMENT-31.md) reproduced the Aircraft table reverting to authored light paint after its enclosing section was restored during deferred scroll entry. The shared large-addition walker now establishes table purpose before classifying visible neutral table parts; offscreen work stays deferred. A four-theme long-article regression and an isolated repeated live scroll check pass. The build, 12 unit checks, 15 browser checks, and five-repeat workload pass with 2,500 callbacks and zero stalls. All modes, including unthemed, measured 33.4 ms median p95 frame intervals in this run, so that cadence is not evidence of a theme-specific slowdown. Further scroll polish is a separate measured iteration.
+
 ## Historical experiment log — superseded architecture
 
 The entries below preserve observations, failures, and measurements that informed the current design. Date-relative words such as “latest,” “current,” and “next” apply only within their original experiment context.

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { chromium } from 'playwright';
 import { chromiumPath } from './browser-path.mjs';
 import { serveFixtures } from './serve.mjs';
+import { THEME_IDS } from '../src/themes.js';
 
 const fixture = await serveFixtures();
 const profile = await mkdtemp(join(tmpdir(), 'surface-navigation-'));
@@ -58,6 +59,36 @@ try {
   assert.equal(await finalParagraph.getAttribute('data-surface-tone-v1'), toneBeforeScroll,
     'scroll state must retain the established foreground decision');
   console.log(`PASS long article scroll painted within ${scrollFrameMs.toFixed(1)} ms and retained foreground ownership`);
+
+  for (const theme of THEME_IDS) {
+    await worker.evaluate(async nextTheme => chrome.storage.local.set({ settings: {
+      version: 2, enabled: true, theme: nextTheme, disabledHosts: []
+    } }), theme);
+    await page.goto(`${fixture.url}/deferred-table.html`);
+    await page.waitForFunction(nextTheme => document.documentElement.getAttribute('data-surface-theme-v2') === nextTheme, theme);
+    const table = page.locator('#aircraft');
+    const lastRow = page.locator('#aircraft-body tr:last-child');
+    await lastRow.scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('#aircraft')?.getAttribute('data-surface-purpose-v1') === 'data' &&
+      document.querySelector('#aircraft-body tr:last-child')?.getAttribute('data-surface-table-part-v1') === 'body');
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.evaluate(() => {
+      const section = document.querySelector('#article');
+      section.classList.add('updated');
+      section.insertAdjacentHTML('beforeend', Array.from({ length: 80 }, (_, index) =>
+        `<p>New article paragraph ${index + 1}.</p>`).join(''));
+    });
+    await page.waitForFunction(() => !document.querySelector('#aircraft')?.hasAttribute('data-surface-purpose-v1'));
+    await lastRow.scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('#aircraft')?.getAttribute('data-surface-purpose-v1') === 'data' &&
+      document.querySelector('#aircraft-body tr:last-child')?.getAttribute('data-surface-table-part-v1') === 'body');
+    assert.equal(await table.getAttribute('data-surface-context-v1'), 'content', `${theme} table lost content ownership`);
+    assert.notEqual(await table.evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(248, 249, 250)',
+      `${theme} deferred table exposed its original light surface after reentering the viewport`);
+    assert.notEqual(await lastRow.evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(239, 239, 239)',
+      `${theme} last inline-gray data row lost the shared table paint`);
+    console.log(`PASS ${theme} deferred table and inline-gray row regained purpose and paint on scroll entry`);
+  }
 } finally {
   await context?.close().catch(() => {});
   await fixture.close().catch(() => {});
