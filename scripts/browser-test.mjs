@@ -125,7 +125,7 @@ try {
       'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
       'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(255, 255, 255)', title: 'rgb(0, 0, 128)' },
       'liquid-dream': { canvas: 'rgb(248, 241, 231)', rail: 'rgb(255, 249, 241)', liquidTitle: true },
-      'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(242, 242, 242)' }
+      'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(5, 5, 5)' }
     };
     for (const [theme, colors] of Object.entries(expected)) {
       await set({ enabled: true, theme });
@@ -395,11 +395,21 @@ try {
       for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading', 'composite-landing': 'panel', 'neutral-panel-one': 'panel', 'neutral-panel-two': 'panel' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
       }
+      assert.notEqual(await page.locator('#facts-logo-cell').getAttribute('data-surface-context-v1'), 'brand',
+        `${theme} protected descriptive copy with its neighboring logo`);
+      assert.equal(await page.locator('#facts-logo-image').getAttribute('data-surface-context-v1'), 'brand',
+        `${theme} must retain the image mark while freeing its caption`);
+      const logoCaptionPair = await page.locator('#facts-media-caption').evaluate(element => ({
+        color: getComputedStyle(element).color,
+        background: getComputedStyle(element.closest('#facts')).backgroundColor
+      }));
+      assert.ok(contrastRatio(parseColor(logoCaptionPair.color), parseColor(logoCaptionPair.background)) >= 4.5,
+        `${theme} logo-adjacent caption must contrast with its panel: ${JSON.stringify(logoCaptionPair)}`);
       const tableColors = {
         'terminal-vision': { body: 'rgb(9, 26, 17)', header: 'rgb(16, 45, 29)' },
         'browser-archeology': { body: 'rgb(255, 255, 255)', header: 'rgb(212, 208, 200)' },
         'liquid-dream': { body: 'rgb(255, 249, 241)', header: 'rgb(217, 245, 239)' },
-        'monochrome-signal': { body: 'rgb(242, 242, 242)', header: 'rgb(191, 191, 191)' }
+        'monochrome-signal': { body: 'rgb(16, 19, 19)', header: 'rgb(41, 45, 45)' }
       }[theme];
       for (const selector of ['#data thead', '#data th']) {
         assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'header');

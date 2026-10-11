@@ -2,16 +2,16 @@ const ink = color => ({ color, '-webkit-text-fill-color': color });
 
 export function createMonochromeSignalTheme() {
   const theme = {
-    version: 1, id: 'monochrome-signal', name: 'Monochrome Signal', scheme: 'light',
+    version: 1, id: 'monochrome-signal', name: 'Monochrome Signal', scheme: 'dark',
     description: 'Engineered black and white with coral signals.',
     colors: {
-      background: '#050505', surface: '#f2f2f2', raised: '#bfbfbf', control: '#050505',
-      text: '#090909', muted: '#4a4a4a', line: '#111111', accent: '#f03d3d',
-      accentText: '#090909', link: '#981f1f', error: '#a01735', success: '#14633f', warning: '#765000'
+      background: '#050505', surface: '#101313', raised: '#292d2d', control: '#f2f2f2',
+      text: '#f2f2f2', muted: '#b9c0bf', line: '#626968', accent: '#f03d3d',
+      accentText: '#090909', link: '#ff7777', error: '#ff7b92', success: '#91dfb9', warning: '#ffd488'
     },
-    font: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    font: 'Arial, Helvetica, sans-serif',
     headingFont: 'Arial, Helvetica, sans-serif',
-    border: '1px', radius: '10px', weight: '500',
+    border: '1px', radius: '10px', weight: '600',
     assets: [], icons: { style: 'line', ink: '#f03d3d', headings: false }
   };
 
@@ -32,13 +32,15 @@ export function createMonochromeSignalTheme() {
         'border-color': theme.colors.accent, 'box-shadow': 'inset 0 -3px 0 rgba(240,61,61,.9)'
       } },
       { target: 'chrome', declarations: {
-        'background-color': theme.colors.surface, 'border-color': theme.colors.line,
-        'box-shadow': 'inset 0 -1px 0 #111111'
+        'background-color': theme.colors.background, 'border-color': theme.colors.line,
+        'box-shadow': 'inset 0 -1px 0 #626968',
+        'font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
       } },
       { target: 'control', declarations: {
-        ...ink('#ffffff'), '--surface-control-ink-v1': '#ffffff',
+        ...ink(theme.colors.accentText), '--surface-control-ink-v1': theme.colors.accentText,
         'border-color': theme.colors.control, 'border-radius': '999px',
-        'font-family': theme.font, 'font-weight': '500', 'letter-spacing': '.055em',
+        'font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        'font-weight': '600', 'letter-spacing': '.055em',
         'text-transform': 'uppercase', 'box-shadow': 'none'
       } },
       { target: 'controlHover', declarations: {
@@ -47,11 +49,12 @@ export function createMonochromeSignalTheme() {
       } },
       { target: 'controlActive', declarations: { transform: 'translateY(1px)' } },
       { target: 'link', declarations: {
-        'font-family': theme.font, 'text-decoration-line': 'underline',
+        'font-family': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        'text-decoration-line': 'underline',
         'text-decoration-thickness': '1px', 'text-underline-offset': '.24em'
       } },
       { target: 'linkHover', declarations: {
-        ...ink(theme.colors.accent), 'text-decoration-color': theme.colors.accent
+        ...ink('#ff9191'), 'text-decoration-color': '#ff9191'
       } },
       { target: 'selection', declarations: {
         color: theme.colors.accentText, 'background-color': theme.colors.accent
@@ -69,7 +72,7 @@ export function createMonochromeSignalTheme() {
       },
       panel: {
         'background-color': theme.colors.raised,
-        'background-image': 'linear-gradient(145deg,#bfbfbf 0%,#e8e8e8 100%)',
+        'background-image': 'linear-gradient(145deg,#292d2d 0%,#1b1e1e 100%)',
         border: `1px solid ${theme.colors.line}`, 'border-radius': '10px', 'box-shadow': 'none'
       },
       data: {
@@ -84,28 +87,28 @@ export function createMonochromeSignalTheme() {
         'border-radius': '0', 'padding-bottom': '.18em'
       },
       navigation: {
-        'background-color': theme.colors.surface, 'background-image': 'none',
+        'background-color': theme.colors.background, 'background-image': 'none',
         'border-bottom': `1px solid ${theme.colors.line}`, 'box-shadow': 'none'
       },
       field: {
         ...ink(theme.colors.text), '--surface-control-ink-v1': theme.colors.text,
-        'background-color': '#ffffff', 'background-image': 'none',
+        'background-color': theme.colors.raised, 'background-image': 'none',
         'border-color': theme.colors.line, 'border-radius': '999px', 'box-shadow': 'none',
         'letter-spacing': 'normal', 'text-transform': 'none'
       },
       fieldFocus: { outline: `3px solid ${theme.colors.accent}`, 'outline-offset': '2px' }
     },
     dataScale: {
-      colors: ['#f2f2f2', '#d8d8d8', '#bfbfbf', '#f47b7b', '#f03d3d'],
+      colors: ['#101313', '#292d2d', '#443436', '#663638', '#89393c'],
       declarations: { 'border-color': theme.colors.line, 'box-shadow': 'none' }
     },
     postlude: [
       { target: 'controlDisabled', declarations: {
-        ...ink('#595959'), '--surface-control-ink-v1': '#595959',
-        'background-color': '#dedede', 'border-color': '#595959', opacity: '1'
+        ...ink('#b9c0bf'), '--surface-control-ink-v1': '#b9c0bf',
+        'background-color': '#353939', 'border-color': '#626968', opacity: '1'
       } },
       { target: 'note', declarations: {
-        'background-color': '#ffffff', 'border': `1px solid ${theme.colors.line}`,
+        'background-color': theme.colors.raised, 'border': `1px solid ${theme.colors.line}`,
         'border-left': `6px solid ${theme.colors.accent}`, 'border-radius': '0', 'box-shadow': 'none'
       } },
       { target: 'divider', declarations: {

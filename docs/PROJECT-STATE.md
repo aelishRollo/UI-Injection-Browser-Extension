@@ -9,6 +9,8 @@ Last confirmed October 11, 2026. Surface is version 0.2.0 and has one product re
 - One purpose-aware renderer serves Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision.
 - Each theme is a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. `src/styles.js` compiles that contract; it does not select theme-specific renderer branches.
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
+- Monochrome Signal is a dark package with near-black reading surfaces, light typography, charcoal depth, and red signals. Its recognition uses the same renderer as Terminal Vision and the other themes.
+- A media mark with substantial sibling copy receives brand protection only on the media; the neighboring copy remains available for normal contrast pairing.
 - Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.
 - Recognized data and fact-panel tables transfer only opaque near-white structural header/body paint to theme table roles; chromatic, scalar, gradient, and effect-backed cells remain authored, and compact sortable-header imagery is preserved.
 - Short pointer-transparent bottom fades attached to recognized sticky navigation rails are suppressed because their gradient can leave a horizontal band against the page canvas after scrolling.
@@ -100,6 +102,8 @@ The owner subsequently confirmed those issues fixed except for the final two lig
 [Iteration 30](EXPERIMENT-30.md) addresses the owner's fast-scroll pause on Federal Police (Mexico) in the shared renderer. Isolated tracing found redundant deferred and root scans plus per-text geometry work. The long-article regression fails at a 664.6 ms scroll frame on the prior build and passed at 8.4 ms after the changes; a comparable live bottom capture fell from 5,714 ms to 551 ms. The owner subsequently confirmed that scrolling felt much more usable. These local measurements are not field guarantees.
 
 [Iteration 31](EXPERIMENT-31.md) fixes the table ownership regression exposed by deferred large-section restoration on the same article. The existing viewport-bounded path now recognizes a table before its visible neutral rows, allowing all four theme packages to paint it without a site rule or full scroll-time scan. The isolated live Aircraft table and four-theme deferred-table fixture pass. The five-repeat workload completed 2,500 callbacks with zero stalls; all modes, including unthemed, ran at a 33.4 ms median p95 frame cadence in this environment.
+
+[Iteration 32](EXPERIMENT-32.md) makes Monochrome Signal a dark MDMI-inspired package through the existing theme contract and narrows shared brand protection when a logo image has substantial neighboring copy. The Wikipedia Chromium infobox caption now pairs with the dark fact panel in Monochrome Signal and Terminal Vision, while its image remains protected. Live Federal Police and María Sabina captures retain dark table and caption treatment. The build, 12 unit checks, 15 browser checks, navigation checks, and five-repeat workload pass with 2,500 frame callbacks and no stalls.
 
 ## Documentation precedence
 

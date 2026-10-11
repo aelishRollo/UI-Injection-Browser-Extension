@@ -255,6 +255,21 @@ function isProtected(element) {
   return Boolean(selector && element.closest(selector));
 }
 
+function mediaWithSeparateCopy(container) {
+  const media = container.querySelector('img,picture,svg[role="img"],svg[aria-label]');
+  if (!media) return null;
+  for (let branch = media; branch !== container && branch.parentElement; branch = branch.parentElement) {
+    const siblings = branch.parentElement.childNodes;
+    for (const sibling of siblings) {
+      if (sibling === branch) continue;
+      const length = sibling.nodeType === Node.TEXT_NODE || sibling instanceof Element
+        ? sibling.textContent.trim().length : 0;
+      if (length >= 32) return media;
+    }
+  }
+  return null;
+}
+
 function markBrands(root) {
   // Treat logo/wordmark names as strong evidence. A bare "brand" substring is
   // too broad: design systems commonly use it for ordinary navigation text.
@@ -266,9 +281,13 @@ function markBrands(root) {
     // A logo-like icon inside a substantial labelled card does not make the
     // entire card a protected brand. Keep the compact mark protected while
     // leaving the surrounding content available to normal contrast handling.
-    const target = interactive && interactiveRect.width <= 400 && interactiveRect.height <= 120
+    const container = interactive && interactiveRect.width <= 400 && interactiveRect.height <= 120
       ? interactive
       : candidate;
+    // A logo image can share a structural card or table cell with descriptive
+    // copy. Preserve the media mark without freezing that adjacent text in the
+    // author's ink after the surrounding surface becomes dark.
+    const target = mediaWithSeparateCopy(container) || container;
     if (target.closest(`[${ATTR_CONTEXT}="brand"]`) && target.getAttribute(ATTR_CONTEXT) !== 'brand') continue;
     let paint = brandPaint.get(target);
     if (!paint || refreshBrandPaint) {
