@@ -11,9 +11,11 @@ main>section p{max-width:680px}
 #media-section .copy{position:relative;z-index:1;max-width:560px;padding:30px}
 #notice{position:fixed;z-index:5;right:20px;bottom:20px;width:340px;padding:16px;background:#fff;border:1px solid #aaa;visibility:hidden;opacity:0}
 #notice button{padding:4px 8px;border:0;background:transparent;color:#111;font:inherit}
-#reveal-card{display:block;width:360px;min-height:130px;box-sizing:border-box;padding:16px;background:#9d9e9e;color:#833635;text-decoration:none;opacity:0}
+#reveal-card{display:block;width:360px;max-width:100%;min-height:130px;box-sizing:border-box;padding:16px;background:#9d9e9e;color:#833635;text-decoration:none;opacity:0}
 #card-group{opacity:0}
-#reveal-card h3{margin:0 0 8px}
+#reveal-card h3{margin:0 0 8px;font-size:64px;line-height:1.1}
+#compact-navigation{width:180px;min-height:180px;background:#eee}
+#compact-navigation h3{font-size:14px}
 </style>
 <img id="hero-media" src="landscape.svg" alt="Background scenery">
 <main id="landing">
@@ -22,5 +24,6 @@ main>section p{max-width:680px}
   <section id="approach"><h2>Approach</h2><p>A third substantial section explains the approach and adds prose that would otherwise make a simplistic paragraph count misclassify the entire landing page.</p></section>
   <section id="media-section"><img id="section-media" src="dark-backdrop.svg" alt=""><div class="copy"><h5 id="media-heading">A statement over full-width image media</h5><p id="media-copy">The light authored copy belongs with the dark image. It must remain paired even when classification happens while this section is below the viewport.</p></div></section>
 </main>
+<nav id="compact-navigation" aria-label="Chapters"><h3>Contents</h3><a href="#landing">Overview</a><br><a href="#approach">Approach</a><br><a href="#media-section">Media</a><br><a href="#notice">Notice</a></nav>
 <div id="notice" role="dialog" aria-label="Site notice"><p>A fixed, opaque notice sits above unrelated page media and contains an action.</p><button id="notice-action">Continue</button></div>
 </html>

@@ -125,7 +125,7 @@ try {
     });
     const expected = {
       'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
-      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(255, 255, 255)', title: 'rgb(0, 0, 128)' },
+      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(212, 208, 200)', title: 'rgb(0, 0, 128)' },
       'liquid-dream': { canvas: 'rgb(16, 12, 34)', rail: 'rgb(33, 25, 54)', liquidTitle: true },
       'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(5, 5, 5)' }
     };
@@ -423,6 +423,30 @@ try {
       assert.equal(await page.locator('#landing').getAttribute('data-surface-context-v1'), 'shell',
         `${theme} mixed landing must own only its page shell`);
       assert.notEqual(await page.locator('#landing').getAttribute('data-surface-purpose-v1'), 'reading');
+      const windowPaint = await page.locator('#reveal-card').evaluate(el => {
+        const style = getComputedStyle(el);
+        const title = getComputedStyle(el.querySelector('h3'));
+        return { background: style.backgroundColor, titleSize: parseFloat(title.fontSize), titleLineHeight: parseFloat(title.lineHeight) };
+      });
+      if (theme === 'browser-archeology') {
+        assert.equal(windowPaint.background, 'rgb(212, 208, 200)', 'large panels need the classic gray window body');
+        assert.ok(windowPaint.titleSize <= 24, 'oversized authored headings must fit classic window chrome');
+        assert.ok(windowPaint.titleLineHeight >= 24, 'window furniture must fit a title line');
+        assert.equal(await page.locator('#compact-navigation h3').getAttribute('data-surface-window-title-v1'), 'navigation');
+        assert.equal(await page.locator('#compact-navigation h3').evaluate(el => getComputedStyle(el).fontSize), '14px',
+          'narrow navigation titles must retain their authored compact size');
+        const titleImage = await page.locator('#reveal-card h3').evaluate(el => getComputedStyle(el).backgroundImage);
+        assert.ok(titleImage.includes('rgb(8, 116, 186)'), 'compact title bars need the readable blue endpoint');
+        for (const stop of ['#000080', '#0874ba']) {
+          assert.ok(contrastRatio(parseColor('#ffffff'), parseColor(stop)) >= 4.5, 'title gradient must support normal-size white text');
+        }
+        await page.setViewportSize({ width: 390, height: 844 });
+        const fit = await page.locator('#reveal-card h3').evaluate(el => ({ width: el.clientWidth, content: el.scrollWidth }));
+        assert.ok(fit.content <= fit.width + 1, 'narrow window title must wrap without clipping');
+        await page.setViewportSize({ width: 1280, height: 960 });
+      } else {
+        assert.equal(windowPaint.titleSize, 64, `${theme} must retain its authored heading scale`);
+      }
       assert.equal(await page.locator('#media-heading').getAttribute('data-surface-pair-v1'), 'media',
         `${theme} offscreen full-section media must retain its authored heading pair`);
       assert.equal(await page.locator('#media-heading').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
@@ -514,6 +538,7 @@ try {
     await waitStatus({ state: 'disabled' });
     assert.equal(await page.locator('#landing').getAttribute('data-surface-context-v1'), null);
     assert.equal(await page.locator('#notice-action').evaluate(el => getComputedStyle(el).color), 'rgb(17, 17, 17)');
+    assert.equal(await page.locator('#reveal-card h3').evaluate(el => getComputedStyle(el).fontSize), '64px');
   });
 
   await check('reading hierarchy separates sections, fact panels, data and fields', async () => {

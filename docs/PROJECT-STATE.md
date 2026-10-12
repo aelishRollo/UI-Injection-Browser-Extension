@@ -9,6 +9,7 @@ Last confirmed October 12, 2026. Surface is version 0.2.0 and has one product re
 - One purpose-aware renderer serves Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision.
 - Each theme is a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. `src/styles.js` compiles that contract; it does not select theme-specific renderer branches.
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
+- Browser Archeology separates warm-gray window panels from white reading/data/field surfaces. Reading and panel window titles use compact, wrapping 18–24 px type and a navy-to-blue gradient with normal-text contrast; navigation titles keep their authored size, and untitled furniture inherits its purpose background. This is static treatment CSS over the shared renderer.
 - Monochrome Signal is a dark package with near-black reading surfaces, light typography, charcoal depth, and red signals. Its recognition uses the same renderer as Terminal Vision and the other themes.
 - A media mark with substantial sibling copy receives brand protection only on the media; the neighboring copy remains available for normal contrast pairing.
 - Opaque themed owners above unrelated page media retain their own text pairing; media inside the owner remains relevant to overlay preservation.

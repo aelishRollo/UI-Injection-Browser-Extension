@@ -1,0 +1,84 @@
+{
+  "before": {
+    "timings": {
+      "reconcileAtMs": 3049.3,
+      "settingsMs": 1.1,
+      "rendererStartedMs": 3.4,
+      "userStylesReadyMs": 9.1,
+      "recognitionReadyMs": 62.1,
+      "revealedMs": 62.1,
+      "completeMs": 128.4
+    },
+    "layouts": [
+      {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "mission": {
+          "text": "Our mission is to empower organizations to accelerate innovation through central",
+          "purpose": null,
+          "window": "panel",
+          "font": "45.184px",
+          "height": 216.875,
+          "width": 985.5,
+          "background": "rgb(0, 0, 128)",
+          "owner": "SECTION"
+        }
+      },
+      {
+        "width": 390,
+        "scrollWidth": 390,
+        "mission": {
+          "text": "Our mission is to empower organizations to accelerate innovation through central",
+          "purpose": null,
+          "window": "panel",
+          "font": "26.704px",
+          "height": 384.5625,
+          "width": 291.59375,
+          "background": "rgb(0, 0, 128)",
+          "owner": "SECTION"
+        }
+      }
+    ]
+  },
+  "after": {
+    "timings": {
+      "reconcileAtMs": 3233.3,
+      "settingsMs": 0.3,
+      "rendererStartedMs": 2.7,
+      "userStylesReadyMs": 7.4,
+      "recognitionReadyMs": 57.2,
+      "revealedMs": 57.2,
+      "completeMs": 122.7
+    },
+    "layouts": [
+      {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "mission": {
+          "text": "Our mission is to empower organizations to accelerate innovation through central",
+          "purpose": null,
+          "window": "panel",
+          "font": "21.6px",
+          "height": 64.28125,
+          "width": 985.5,
+          "background": "rgb(0, 0, 128)",
+          "owner": "SECTION"
+        }
+      },
+      {
+        "width": 390,
+        "scrollWidth": 390,
+        "mission": {
+          "text": "Our mission is to empower organizations to accelerate innovation through central",
+          "purpose": null,
+          "window": "panel",
+          "font": "18px",
+          "height": 176.078125,
+          "width": 291.59375,
+          "background": "rgb(0, 0, 128)",
+          "owner": "SECTION"
+        }
+      }
+    ]
+  }
+}

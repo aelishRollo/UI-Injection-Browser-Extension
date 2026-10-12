@@ -3,7 +3,7 @@ const TREATMENT_TARGETS = new Set([
   'page', 'themedHeading', 'surface', 'surfaceHover', 'chrome', 'control', 'controlHover',
   'controlActive', 'controlDisabled', 'controlAndLinkHover', 'link', 'linkHover',
   'linkVisited', 'linkHoverFocus', 'selection', 'windowOwner', 'windowTitle',
-  'windowTitleReading', 'windowTitleContents', 'windowFrame', 'titlePurpose', 'note', 'divider'
+  'windowTitleReading', 'windowTitleContent', 'windowTitleContents', 'windowFrame', 'titlePurpose', 'note', 'divider'
 ]);
 const PURPOSE_TARGETS = new Set([
   'reading', 'section', 'panel', 'data', 'table-body', 'table-header', 'title', 'titleContents', 'section-heading',
