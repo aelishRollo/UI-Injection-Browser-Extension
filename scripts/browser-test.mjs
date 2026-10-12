@@ -646,6 +646,33 @@ try {
       await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
       assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), ownershipSnapshot.rootBackground,
         `${theme} must not treat surviving theme canvas paint as an authored body background`);
+      await page.evaluate(() => {
+        const block = document.createElement('section');
+        block.id = 'large-hydration-block';
+        block.innerHTML = Array.from({ length: 100 }, (_, index) => `<p>Hydrated paragraph ${index} with enough content to represent a substantial route addition.</p>`).join('');
+        document.body.classList.add('hydrated-large');
+        document.querySelector('#dynamic').append(block);
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} a combined class change and large addition must retain body paint ownership`);
+      assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell',
+        `${theme} a large addition must retain established shell paint`);
+      assert.equal(await page.locator('#data').getAttribute('data-surface-purpose-v1'), 'data',
+        `${theme} a large addition must retain existing table recognition`);
+      await page.evaluate(() => {
+        document.body.classList.replace('hydrated-large', 'authored-canvas');
+        document.querySelector('#large-hydration-block').remove();
+        const block = document.createElement('section');
+        block.id = 'large-hydration-block';
+        block.innerHTML = Array.from({ length: 100 }, (_, index) => `<p>Replacement paragraph ${index} with a substantial amount of content.</p>`).join('');
+        document.querySelector('#dynamic').append(block);
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'preserve',
+        `${theme} a real authored body image must be preserved during large hydration`);
+      await page.evaluate(() => { document.body.classList.remove('authored-canvas'); document.querySelector('#large-hydration-block').remove(); });
+      await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
       await page.screenshot({ path: join(out, `hierarchy-${theme}.png`) });
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });

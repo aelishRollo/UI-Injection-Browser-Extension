@@ -1309,9 +1309,18 @@ function scheduleScans(records) {
       (addedElements > 0 && outermost.some(root => root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT));
     const media = mediaRects();
     for (const root of outermost) {
-      // Recompute the affected subtree from authored state. This covers common
-      // SPA class/state/text updates without repeatedly rescanning the document.
-      if (!largeAddition || touched.has(root)) restoreSubtree(root);
+      // Small SPA class/state/text updates recompute the affected subtree from
+      // authored state without rescanning the document.
+      // A large batch can include a class mutation on an established ancestor
+      // and a newly inserted route below it. Restoring that whole ancestor
+      // discards paint from offscreen descendants, while the large-addition
+      // walker intentionally visits only the viewport. Keep established
+      // descendants; reconsider a page root's own authored canvas separately.
+      if (largeAddition && (root === document.documentElement || root === document.body)) {
+        restoreElement(root);
+        markTheme();
+        markPage();
+      } else if (!largeAddition) restoreSubtree(root);
       if (largeAddition) scanLargeAddition(root, media);
       else scan(root, media);
     }

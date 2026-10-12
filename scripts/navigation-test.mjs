@@ -78,7 +78,10 @@ try {
       section.insertAdjacentHTML('beforeend', Array.from({ length: 80 }, (_, index) =>
         `<p>New article paragraph ${index + 1}.</p>`).join(''));
     });
-    await page.waitForFunction(() => !document.querySelector('#aircraft')?.hasAttribute('data-surface-purpose-v1'));
+    assert.equal(await table.getAttribute('data-surface-purpose-v1'), 'data',
+      `${theme} large route growth must retain existing offscreen table purpose`);
+    assert.equal(await lastRow.getAttribute('data-surface-table-part-v1'), 'body',
+      `${theme} large route growth must retain existing offscreen row paint`);
     await lastRow.scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('#aircraft')?.getAttribute('data-surface-purpose-v1') === 'data' &&
       document.querySelector('#aircraft-body tr:last-child')?.getAttribute('data-surface-table-part-v1') === 'body');
@@ -87,7 +90,7 @@ try {
       `${theme} deferred table exposed its original light surface after reentering the viewport`);
     assert.notEqual(await lastRow.evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(239, 239, 239)',
       `${theme} last inline-gray data row lost the shared table paint`);
-    console.log(`PASS ${theme} deferred table and inline-gray row regained purpose and paint on scroll entry`);
+    console.log(`PASS ${theme} deferred table and inline-gray row retained purpose and paint through growth and scroll entry`);
   }
 } finally {
   await context?.close().catch(() => {});
