@@ -184,7 +184,7 @@ const pickerStyles = `
     box-shadow: inset 0 0 0 4px var(--surface);
   }
   .option[data-theme-id="browser-archeology"] .swatch { border-radius: 1px; }
-  .option[data-theme-id="liquid-dream"] .swatch { border-color: #83e8f1; border-radius: 45% 55% 42% 58%; background: linear-gradient(90deg,#ff78bb,#ffc56b 24%,#b7ec92 48%,#67e0e8 72%,#b692ff) top / 100% 6px no-repeat, linear-gradient(135deg,#5b247d,#423a8c 52%,#176579); }
+  .option[data-theme-id="liquid-dream"] .swatch { border-color: #83e8f1; border-radius: 45% 55% 42% 58%; background: linear-gradient(90deg,#ff78bb,#ffc56b 24%,#b7ec92 48%,#67e0e8 72%,#b692ff) top / 100% 6px no-repeat, linear-gradient(100deg,#762b69,#8c4835 23%,#4f6532 48%,#19677a 73%,#4f418d); }
   .option[data-theme-id="monochrome-signal"] .swatch { border-color: #f03d3d; border-radius: 999px; }
   .option-copy { min-width: 0; }
   .option-name { display: block; font-size: 11px; font-weight: 800; line-height: 1.2; }

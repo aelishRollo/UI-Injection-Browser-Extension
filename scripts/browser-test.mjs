@@ -668,6 +668,9 @@ try {
           return { image: style.backgroundImage, size: style.backgroundSize, position: style.backgroundPosition, repeat: style.backgroundRepeat };
         });
         assert.equal((titlePaint.image.match(/linear-gradient/g) || []).length, 2, 'Liquid Dream title should carry one rainbow edge over its dark gradient');
+        for (const color of ['rgb(118, 43, 105)', 'rgb(140, 72, 53)', 'rgb(79, 101, 50)', 'rgb(25, 103, 122)', 'rgb(79, 65, 141)']) {
+          assert.ok(titlePaint.image.includes(color), `Liquid Dream title should show its full dark rainbow: ${color}`);
+        }
         assert.match(titlePaint.size, /100% 6px, 100% 100%/);
         assert.equal(titlePaint.position, '50% 0%, 50% 50%');
         assert.equal(titlePaint.repeat, 'no-repeat, no-repeat');
@@ -683,7 +686,7 @@ try {
           assert.equal(paint.repeat, 'no-repeat, no-repeat');
         }
         // Every static glass and hierarchy stop must support text and links.
-        for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
+        for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#762b69','#8c4835','#4f6532','#19677a','#4f418d','#622253','#753a2d','#43552b','#185469','#493678']) {
           for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
         }
         for (const stop of ['#ff78bb','#ffc56b','#b7ec92','#67e0e8','#b692ff']) {

@@ -1,7 +1,7 @@
 const LIQUID_SURFACE = 'linear-gradient(135deg,#2c1c45 0%,#211936 52%,#1a2948 100%)';
 const LIQUID_PANEL = 'linear-gradient(130deg,#35204f 0%,#22284d 100%)';
-const LIQUID_HEADING = 'linear-gradient(100deg,#5b247d 0%,#423a8c 52%,#176579 100%)';
-const LIQUID_NAV = 'linear-gradient(110deg,#3a2058 0%,#242550 52%,#173b51 100%)';
+const LIQUID_HEADING = 'linear-gradient(100deg,#762b69 0%,#8c4835 23%,#4f6532 48%,#19677a 73%,#4f418d 100%)';
+const LIQUID_NAV = 'linear-gradient(110deg,#622253 0%,#753a2d 23%,#43552b 48%,#185469 73%,#493678 100%)';
 const LIQUID_RAINBOW = 'linear-gradient(90deg,#ff78bb 0%,#ffc56b 24%,#b7ec92 48%,#67e0e8 72%,#b692ff 100%)';
 const ink = color => ({ color, '-webkit-text-fill-color': color });
 
