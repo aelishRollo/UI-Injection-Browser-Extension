@@ -8,7 +8,8 @@ let latestStatus = {};
 const preview = {
   'terminal-vision': ['terminal', '> hello_', 'SYSTEM READY'],
   'browser-archeology': ['archeology', 'www.', 'WELCOME'],
-  'liquid-dream': ['liquid', 'flow', 'IN COLOR']
+  'liquid-dream': ['liquid', 'flow', 'IN COLOR'],
+  'monochrome-signal': ['signal', 'data.', 'MAKE IT CLEAR']
 };
 
 for (const theme of Object.values(THEMES)) {

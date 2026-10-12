@@ -10,6 +10,7 @@
   "action": { "default_popup": "popup.html", "default_title": "Surface themes" },
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*"],
+    "css": ["preload.css"],
     "js": ["content.js"],
     "all_frames": true,
     "run_at": "document_start"

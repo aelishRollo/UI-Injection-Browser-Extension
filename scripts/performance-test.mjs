@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { chromiumPath } from './browser-path.mjs';
 import { serveFixtures } from './serve.mjs';
+import { THEME_IDS } from '../src/themes.js';
 
 const fixture = await serveFixtures();
 const profileDir = await mkdtemp(join(tmpdir(), 'surface-perf-'));
@@ -12,7 +13,7 @@ const out = resolve(process.env.SURFACE_PERF_OUTPUT || 'test-results/performance
 await mkdir(out, { recursive: true });
 let context;
 const samples = [];
-const modes = [{ enabled: false, theme: null }, ...['terminal-vision', 'browser-archeology', 'liquid-dream'].map(theme => ({ enabled: true, theme }))];
+const modes = [{ enabled: false, theme: null }, ...THEME_IDS.map(theme => ({ enabled: true, theme }))];
 const repeatCount = Math.max(1, Math.min(20, Number.parseInt(process.env.SURFACE_PERF_REPEATS || '5', 10) || 5));
 const percentile = (values, p) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * p))];
 try {
@@ -21,6 +22,12 @@ try {
     args: [`--disable-extensions-except=${resolve('dist')}`, `--load-extension=${resolve('dist')}`, '--no-first-run']
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+  for (let i = 0; i < 100; i++) {
+    const installed = await worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings?.version === 2);
+    if (installed) break;
+    if (i === 99) throw new Error('Extension installation did not initialize settings');
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
   const page = await context.newPage();
   await page.exposeFunction('__surfaceTrustedClick', selector => page.locator(selector).click({ force: true, timeout: 2000 }));
   const cdp = await context.newCDPSession(page);
@@ -39,16 +46,17 @@ try {
       console.log(`Starting ${repeat + 1}/${repeatCount} ${mode.theme || 'original'}`);
       await page.goto(fixture.url, { waitUntil: 'load' });
       let active;
+      const expectedState = mode.enabled ? 'active' : 'disabled';
       for (let i = 0; i < 100; i++) {
         active = await worker.evaluate(async () => {
           const tab = (await chrome.tabs.query({})).find(t => t.url?.startsWith('http://127.0.0.1:4173'));
           return chrome.tabs.sendMessage(tab.id, { type: 'status:get' }, { frameId: 0 });
         }).catch(() => null);
         if (active?.state === 'error') throw new Error(active.error);
-        if (active?.state === (mode.enabled ? 'active' : 'disabled')) break;
+        if (active?.state === expectedState) break;
         await page.waitForTimeout(50);
       }
-      if (!active || !['active', 'disabled'].includes(active.state)) throw new Error('Renderer did not settle');
+      if (active?.state !== expectedState) throw new Error(`Renderer did not settle as ${expectedState}`);
       const loadToAppliedMs = Date.now() - loadStarted;
       await page.waitForTimeout(250);
       const before = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value]));
@@ -99,7 +107,7 @@ try {
       profile.samples?.forEach((id, i) => { if (isEngine(id)) sampledEngineMs += (profile.timeDeltas[i] || 0) / 1000; });
       const metrics = Object.fromEntries(['TaskDuration', 'ScriptDuration', 'RecalcStyleDuration', 'LayoutDuration'].map(name => [name + 'Ms', Math.round((after[name] - before[name]) * 100000) / 100]));
       const frameMeasurementValid = workload.completedFrames === 100 && workload.stalledFrames === 0;
-      samples.push({ ...mode, repeat, loadToAppliedMs, applyMs: active.applyMs, metrics, sampledContentEngineMs: Math.round(sampledEngineMs * 100) / 100, frameMeasurementValid, p95FrameIntervalMs: frameMeasurementValid ? percentile(workload.intervals, .95) : null, p95SyntheticInteractionMs: frameMeasurementValid ? percentile(workload.interactionToTwoFrames, .95) : null, ...workload });
+      samples.push({ ...mode, repeat, loadToAppliedMs, applyMs: active.applyMs, styleHandoff: active.renderer?.styleHandoff, metrics, sampledContentEngineMs: Math.round(sampledEngineMs * 100) / 100, frameMeasurementValid, p95FrameIntervalMs: frameMeasurementValid ? percentile(workload.intervals, .95) : null, p95SyntheticInteractionMs: frameMeasurementValid ? percentile(workload.interactionToTwoFrames, .95) : null, ...workload });
       await writeFile(join(out, 'partial-results.json'), JSON.stringify({ configuration: { repeatCount, modes }, samples }, null, 2));
       console.log(`${repeat + 1}/${repeatCount} ${mode.theme || 'original'}: ${metrics.TaskDurationMs} ms main-thread tasks, ${sampledEngineMs.toFixed(1)} ms sampled engine`);
     }

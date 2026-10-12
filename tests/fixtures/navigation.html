@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Surface navigation workload</title>
+  <style>
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #f4f4f2; color: #202124; }
+    header { position: sticky; top: 0; z-index: 2; padding: 16px 24px; background: #fff; border-bottom: 1px solid #ccc; }
+    main { max-width: 900px; margin: 0 auto; padding: 24px; }
+    section { min-height: 150px; margin: 0 0 16px; padding: 20px; background: #fff; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <header><button id="navigate">Open the next page</button></header>
+  <main id="page"><h1>Navigation workload</h1><p>Replace this route with a long editorial page.</p></main>
+  <script>
+    document.querySelector('#navigate').addEventListener('click', () => {
+      const started = performance.now();
+      history.pushState({}, '', '/navigation.html?page=next');
+      const sections = Array.from({ length: 800 }, (_, index) => `
+        <section id="route-section-${index}">
+          <h2>Destination section ${index + 1}</h2>
+          <p>This is substantial route content used to exercise a large single-page navigation without relying on network timing.</p>
+        </section>`).join('');
+      const destination = document.createElement('main');
+      destination.id = 'page';
+      destination.innerHTML = `<h1>Destination page</h1>${sections}`;
+      document.querySelector('#page').replaceWith(destination);
+      requestAnimationFrame(() => {
+        document.documentElement.dataset.routeFrameMs = String(performance.now() - started);
+      });
+    });
+  </script>
+</body>
+</html>

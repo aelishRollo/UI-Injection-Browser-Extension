@@ -6,9 +6,11 @@ import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { serveFixtures } from './serve.mjs';
 import { chromiumPath } from './browser-path.mjs';
+import { THEME_IDS as REGISTERED_THEME_IDS } from '../src/themes.js';
 
 const results = [];
 const errors = [];
+const themeIds = ['terminal-vision', ...REGISTERED_THEME_IDS.filter(theme => theme !== 'terminal-vision')];
 const out = resolve('test-results');
 await mkdir(out, { recursive: true });
 const fixture = await serveFixtures();
@@ -20,13 +22,28 @@ try {
     args: [`--disable-extensions-except=${resolve('dist')}`, `--load-extension=${resolve('dist')}`, '--no-first-run']
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 15000 });
+  for (let i = 0; i < 100; i++) {
+    const installed = await worker.evaluate(async () => (await chrome.storage.local.get('settings')).settings?.version === 2);
+    if (installed) break;
+    if (i === 99) throw new Error('Extension installation did not initialize settings');
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
   const extensionId = new URL(worker.url()).host;
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(e.message));
+  page.on('crash', () => console.error('Chromium renderer crashed during browser test'));
   const set = patch => worker.evaluate(async patch => {
     const { settings = {} } = await chrome.storage.local.get('settings');
     await chrome.storage.local.set({ settings: { ...settings, ...patch } });
   }, patch);
+  const waitStartupStyle = async (theme = null) => {
+    for (let i = 0; i < 100; i++) {
+      const registered = await worker.evaluate(async () => chrome.scripting.getRegisteredContentScripts({ ids: ['surface-theme-startup-v1'] }));
+      if ((!theme && registered.length === 0) || (theme && registered[0]?.css?.includes(`startup-${theme}.css`))) return registered[0] || null;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    throw new Error(`Startup style did not synchronize for ${theme || 'disabled state'}`);
+  };
   const status = () => worker.evaluate(async () => {
     const tabs = await chrome.tabs.query({});
     const tab = tabs.find(t => t.url?.startsWith('http://127.0.0.1:4173'));
@@ -54,12 +71,118 @@ try {
     }));
   });
   await set({ enabled: false });
+  await waitStartupStyle();
   await page.goto(fixture.url);
   await waitStatus({ state: 'disabled' });
   const original = await appearance();
+  const originalBrandBacking = await page.locator('.masthead').evaluate(element => getComputedStyle(element).backgroundColor);
   await page.screenshot({ path: join(out, 'original.png') });
 
-  for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+  await check('full navigation starts with the selected theme treatment', async () => {
+    await page.addInitScript(() => {
+      window.__surfaceStartupFrames = [];
+      const sample = () => {
+        const root = document.documentElement;
+        if (!root) return requestAnimationFrame(sample);
+        const body = document.body;
+        const title = document.querySelector('h1');
+        const article = document.querySelector('article');
+        const leftRail = document.querySelector('#startup-left-rail');
+        const rightRail = document.querySelector('#startup-right-rail');
+        window.__surfaceStartupFrames.push({
+          time: Math.round(performance.now()),
+          rootBackground: getComputedStyle(root).backgroundColor,
+          bodyOpacity: body ? getComputedStyle(body).opacity : null,
+          ready: root.hasAttribute('data-surface-ready-v2'),
+          residentTheme: getComputedStyle(root).getPropertyValue('--surface-startup-theme').trim(),
+          residentStyles: getComputedStyle(root).getPropertyValue('--surface-startup-styles-resident').trim(),
+          activeTheme: root.getAttribute('data-surface-theme-v2'),
+          userStyles: root.hasAttribute('data-surface-user-styles-v2'),
+          themed: root.getAttribute('data-surface-context-v1') === 'page',
+          shell: document.querySelector('#startup-shell')?.getAttribute('data-surface-context-v1') || null,
+          shellBackground: document.querySelector('#startup-shell') ? getComputedStyle(document.querySelector('#startup-shell')).backgroundColor : null,
+          leftRailContext: leftRail?.getAttribute('data-surface-context-v1') || null,
+          leftRailPurpose: leftRail?.getAttribute('data-surface-purpose-v1') || null,
+          leftRailBackground: leftRail ? getComputedStyle(leftRail).backgroundColor : null,
+          rightRailContext: rightRail?.getAttribute('data-surface-context-v1') || null,
+          rightRailPurpose: rightRail?.getAttribute('data-surface-purpose-v1') || null,
+          rightRailBackground: rightRail ? getComputedStyle(rightRail).backgroundColor : null,
+          appearanceContext: document.querySelector('#startup-appearance')?.getAttribute('data-surface-context-v1') || null,
+          appearanceBackground: document.querySelector('#startup-appearance') ? getComputedStyle(document.querySelector('#startup-appearance')).backgroundColor : null,
+          articleContext: article?.getAttribute('data-surface-context-v1') || null,
+          articlePresent: Boolean(article),
+          titlePresent: Boolean(title),
+          titlePurpose: title?.getAttribute('data-surface-purpose-v1') || null,
+          titleTone: title?.getAttribute('data-surface-tone-v1') || null,
+          titleBackground: title ? getComputedStyle(title).backgroundColor : null,
+          titleBackgroundImage: title ? getComputedStyle(title).backgroundImage : null
+        });
+        if (!root.hasAttribute('data-surface-ready-v2')) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    const expected = {
+      'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
+      'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(255, 255, 255)', title: 'rgb(0, 0, 128)' },
+      'liquid-dream': { canvas: 'rgb(16, 12, 34)', rail: 'rgb(33, 25, 54)', liquidTitle: true },
+      'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(5, 5, 5)' }
+    };
+    for (const [theme, colors] of Object.entries(expected)) {
+      await set({ enabled: true, theme });
+      await waitStartupStyle(theme);
+      let navigationError;
+      const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' }).catch(error => { navigationError = error; });
+      await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
+      const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
+      assert.equal(await page.evaluate(() => document.readyState), 'loading', `${theme} should reveal before a parser-blocking script finishes`);
+      assert.equal(firstVisible.themed, true, `${theme} page context missing at reveal`);
+      await page.evaluate(async () => {
+        document.body.append(document.createElement('span'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} parser growth must not mistake its own page texture for authored imagery`);
+      assert.equal(firstVisible.residentTheme, theme, `${theme} startup treatment was not resident at document_start`);
+      assert.equal(firstVisible.residentStyles === '1' || firstVisible.userStyles, true, `${theme} had neither first-paint styles nor USER-origin styles at reveal`);
+      assert.equal(firstVisible.activeTheme === theme || firstVisible.userStyles, true, `${theme} had neither its resident stylesheet nor USER-origin handoff active at reveal`);
+      assert.equal(firstVisible.shell, 'shell', `${theme} shell context missing at reveal`);
+      assert.equal(firstVisible.shellBackground, colors.canvas, `${theme} shell paint missing at reveal`);
+      for (const side of ['left', 'right']) {
+        assert.equal(firstVisible[`${side}RailContext`], 'chrome', `${theme} ${side} rail context missing at reveal`);
+        assert.equal(firstVisible[`${side}RailPurpose`], 'navigation', `${theme} ${side} rail purpose missing at reveal`);
+        assert.equal(firstVisible[`${side}RailBackground`], colors.rail, `${theme} ${side} rail paint missing at reveal`);
+      }
+      assert.equal(firstVisible.appearanceContext, 'chrome', `${theme} labelled appearance panel context missing at reveal`);
+      assert.equal(firstVisible.appearanceBackground, theme === 'browser-archeology' ? 'rgb(212, 208, 200)' : colors.rail,
+        `${theme} labelled appearance panel paint missing at reveal`);
+      assert.equal(firstVisible.articleContext, 'content', `${theme} content classification missing at reveal`);
+      assert.equal(firstVisible.titlePurpose, 'title', `${theme} title classification missing at reveal`);
+      assert.equal(firstVisible.titleTone, 'theme', `${theme} title foreground missing at reveal`);
+      if (colors.title) assert.equal(firstVisible.titleBackground, colors.title, `${theme} title motif missing at reveal`);
+      if (colors.liquidTitle) assert.notEqual(firstVisible.titleBackgroundImage, 'none', `${theme} title motif missing at reveal`);
+      await navigation;
+      if (navigationError) throw navigationError;
+      await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} body paint ownership must survive parser and hydration work`);
+      const frames = await page.evaluate(() => window.__surfaceStartupFrames);
+      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.residentTheme === theme), true, `${theme} selected startup token was not resident throughout startup: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => frame.bodyOpacity !== '0').every(frame => frame.residentStyles === '1' || frame.userStyles), true, `${theme} exposed content without active theme styles: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => !frame.ready).every(frame => frame.rootBackground === colors.canvas), true, `${theme} used the wrong startup canvas: ${JSON.stringify(frames)}`);
+      assert.equal(frames.filter(frame => (frame.titlePresent || frame.articlePresent) && frame.bodyOpacity !== '0').some(frame =>
+        !frame.themed || !frame.articleContext || !frame.titlePurpose || !frame.titleTone
+      ), false, `${theme} exposed a placeholder or unclassified content frame: ${JSON.stringify(frames)}`);
+      assert.equal(frames.at(-1).ready, true);
+      assert.equal(frames.at(-1).themed, true);
+    }
+    await set({ enabled: false });
+    await waitStartupStyle();
+    await waitStatus({ state: 'disabled' });
+    await page.goto(fixture.url);
+    await waitStatus({ state: 'disabled' });
+  });
+
+  for (const theme of themeIds) {
       await check(`${theme}: apply, preserve media, isolate CSS, restore`, async () => {
         await set({ enabled: true, theme });
         const active = await waitStatus({ state: 'active', theme });
@@ -79,7 +202,13 @@ try {
         })), false);
         assert.equal(await page.locator('#article').evaluate(el => getComputedStyle(el).animationName), 'none', `${theme} must not continuously animate semantic surfaces`);
         assert.equal(await page.locator('.grid > aside').evaluate(el => getComputedStyle(el).animationName), 'none', `${theme} must not continuously animate semantic surfaces`);
-        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)' }[theme];
+        assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
+          `${theme} brand backing must start from authored paint`);
+        await page.locator('.wordmark').evaluate(element => element.classList.toggle('refresh-probe'));
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
+          `${theme} brand backing must survive an incremental rescan`);
+        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(238, 139, 255)', 'monochrome-signal': 'rgb(240, 61, 61)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
         await page.screenshot({ path: join(out, `${theme}.png`) });
         results.push({ name: 'apply timing (includes worker/import wait)', theme, milliseconds: active.applyMs });
@@ -89,6 +218,52 @@ try {
         assert.deepEqual(await appearance(), original, 'Disable did not restore original computed styles');
       });
   }
+
+  await check('in-page theme changes keep content visible and hand off directly', async () => {
+    await set({ enabled: true, theme: 'terminal-vision' });
+    await waitStatus({ state: 'active', theme: 'terminal-vision' });
+    assert.equal(await page.evaluate(() => typeof document.startViewTransition), 'function');
+    const handoffTimes = [];
+    let previous = 'terminal-vision';
+    for (const theme of ['browser-archeology', 'liquid-dream', 'monochrome-signal', 'terminal-vision']) {
+      await page.evaluate(() => {
+        window.__surfaceSwitchFrames = [];
+        window.__surfaceSamplingSwitch = true;
+        const sample = () => {
+          const root = document.documentElement;
+          const body = document.body;
+          window.__surfaceSwitchFrames.push({
+            bodyOpacity: getComputedStyle(body).opacity,
+            rootBackground: getComputedStyle(root).backgroundColor,
+            switching: root.getAttribute('data-surface-switching-v2'),
+            theme: root.getAttribute('data-surface-theme-v2'),
+            pageContext: root.getAttribute('data-surface-context-v1')
+          });
+          if (window.__surfaceSamplingSwitch) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      await set({ theme });
+      const active = await waitStatus({ state: 'active', theme });
+      handoffTimes.push({ theme, milliseconds: active.timings.revealedMs });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+        window.__surfaceSamplingSwitch = false;
+        requestAnimationFrame(resolve);
+      })));
+      const frames = await page.evaluate(() => window.__surfaceSwitchFrames);
+      assert.ok(frames.length >= 2, `${theme} switch sampling was incomplete: ${JSON.stringify(frames)}`);
+      assert.equal(frames.every(frame => frame.bodyOpacity === '1'), true,
+        `${theme} switch hid the page body: ${JSON.stringify(frames)}`);
+      assert.equal(frames.every(frame => frame.switching === theme ||
+        (frame.pageContext === 'page' && [previous, theme].includes(frame.theme))), true,
+      `${theme} switch escaped the atomic handoff: ${JSON.stringify(frames)}`);
+      assert.equal(frames.at(-1).bodyOpacity, '1');
+      assert.equal(frames.at(-1).theme, theme);
+      assert.equal(frames.at(-1).pageContext, 'page');
+      previous = theme;
+    }
+    results.push({ name: 'visible theme handoff timing', samples: handoffTimes });
+  });
 
   await check('unified renderer pairs known surfaces and preserves uncertain regions', async () => {
     await set({ enabled: true, theme: 'terminal-vision' });
@@ -122,7 +297,7 @@ try {
 
   await check('unified foregrounds pass contrast on retained and alpha surfaces in every theme', async () => {
     const colorOf = selector => page.locator(selector).evaluate(el => getComputedStyle(el).color);
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+    for (const theme of themeIds) {
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
       for (const [selector, background] of [['#low-contrast', '#fff'], ['#dark-contrast', '#111'], ['#alpha-contrast', 'rgb(159.375,159.375,159.375)']]) {
@@ -135,6 +310,42 @@ try {
       }
       assert.equal(await page.locator('#authored-color-title').getAttribute('data-surface-tone-v1'), 'preserve');
       assert.equal(await colorOf('#authored-color-title'), 'rgb(255, 255, 255)', `${theme} must preserve a readable heading on an authored colored card`);
+      assert.equal(await page.locator('#filled-chrome').getAttribute('data-surface-purpose-v1'), 'navigation');
+      for (const selector of ['#filled-chrome-link', '#filled-chrome-copy']) {
+        const pair = await page.locator(selector).evaluate(element => {
+          const style = getComputedStyle(element);
+          return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+        });
+        assert.equal(pair.fill, pair.color, `${theme} ${selector} glyph fill must follow its resolved foreground`);
+        assert.ok(contrastRatio(parseColor(pair.fill), parseColor(pair.background)) >= 4.5,
+          `${theme} ${selector}: ${pair.fill} on ${pair.background}; resolved=${await page.locator(selector).evaluate(el => el.style.getPropertyValue('--surface-readable-color-v1'))}`);
+        assert.equal(await page.locator(selector).getAttribute('data-surface-pair-v1'), 'theme');
+      }
+      await page.locator('#filled-chrome-link').evaluate(element => { element.textContent = 'Updated support'; });
+      await page.waitForTimeout(100);
+      const updatedChromeLink = await page.locator('#filled-chrome-link').evaluate(element => {
+        const style = getComputedStyle(element);
+        return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+      });
+      assert.equal(updatedChromeLink.fill, updatedChromeLink.color, `${theme} incrementally rescanned glyph fill`);
+      assert.ok(contrastRatio(parseColor(updatedChromeLink.fill), parseColor(updatedChromeLink.background)) >= 4.5,
+        `${theme} incrementally rescanned chrome text: ${updatedChromeLink.fill} on ${updatedChromeLink.background}`);
+      assert.equal(await page.locator('#filled-chrome-link').getAttribute('data-surface-pair-v1'), 'theme');
+      await page.locator('#filled-chrome').evaluate(element => {
+        element.style.opacity = '.5';
+        element.querySelector('#filled-chrome-copy').textContent += ' Updated during animation.';
+      });
+      await page.waitForTimeout(100);
+      await page.locator('#filled-chrome').evaluate(element => { element.style.opacity = '1'; });
+      await page.waitForTimeout(350);
+      const settledChromeCopy = await page.locator('#filled-chrome-copy').evaluate(element => {
+        const style = getComputedStyle(element);
+        return { color: style.color, fill: style.webkitTextFillColor, background: getComputedStyle(element.closest('#filled-chrome')).backgroundColor };
+      });
+      assert.equal(settledChromeCopy.fill, settledChromeCopy.color, `${theme} settled animation glyph fill`);
+      assert.ok(contrastRatio(parseColor(settledChromeCopy.fill), parseColor(settledChromeCopy.background)) >= 4.5,
+        `${theme} settled animation chrome text: ${settledChromeCopy.fill} on ${settledChromeCopy.background}`);
+      assert.equal(await page.locator('#filled-chrome-copy').getAttribute('data-surface-pair-v1'), 'theme');
       const placeholder = await page.locator('#email').evaluate(el => ({ color: getComputedStyle(el, '::placeholder').color, background: getComputedStyle(el).backgroundColor }));
       assert.ok(contrastRatio(parseColor(placeholder.color), parseColor(placeholder.background)) >= 4.5);
       const selectedBackground = await page.locator('#nested-selected').evaluate(el => getComputedStyle(el).backgroundColor);
@@ -158,7 +369,31 @@ try {
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.equal(await colorOf('#low-contrast'), 'rgb(238, 238, 238)');
+      assert.equal(await page.locator('#filled-chrome').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(17, 17, 17)');
+      assert.equal(await page.locator('#filled-chrome-copy').evaluate(el => getComputedStyle(el).webkitTextFillColor), 'rgb(255, 255, 255)');
       assert.equal(await page.locator('[data-surface-pair-v1],[style*="--surface-readable-color-v1"]').count(), 0);
+    }
+  });
+
+  await check('opaque notices keep readable text above unrelated media', async () => {
+    await set({ enabled: false });
+    await page.goto(`${fixture.url}/opaque-overlay.html`);
+    await waitStatus({ state: 'disabled' });
+    for (const theme of themeIds) {
+      await set({ enabled: true, theme });
+      await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('#notice').getAttribute('data-surface-context-v1'), 'content');
+      const pair = await page.locator('#notice-copy').evaluate(element => {
+        const notice = document.querySelector('#notice');
+        return {
+          color: getComputedStyle(element).color,
+          background: getComputedStyle(notice).backgroundColor,
+          decision: element.getAttribute('data-surface-pair-v1')
+        };
+      });
+      assert.ok(contrastRatio(parseColor(pair.color), parseColor(pair.background)) >= 4.5,
+        `${theme} opaque notice text: ${JSON.stringify(pair)}`);
+      assert.notEqual(pair.decision, 'media', `${theme} treated media behind opaque notice as its text backing`);
     }
   });
 
@@ -166,19 +401,131 @@ try {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
     await waitStatus({ state: 'disabled' });
-    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel').evaluateAll(elements => elements.map(el => {
+    const snapshot = () => page.locator('#reading,#chapter,#heading-group,#facts,#data,#mid-neutral-table,#captioned-media,#captioned-media figcaption,#visualization,#visualization-title,#visualization-summary,#input,#painted-title,#untitled-panel,#composite-shell,#composite-landing,#neutral-panel-one,#neutral-panel-two,#neutral-gradient-section,#transparent-gradient-section,#neutral-linked-card,#large-mark-card,#mixed-main,#bounded-editorial-card,#unbounded-editorial-block,.product-logo').evaluateAll(elements => elements.map(el => {
       const s = getComputedStyle(el);
       return [el.id, s.backgroundColor, s.backgroundImage, s.borderTopWidth, s.boxShadow, s.color];
     }));
     const baseline = await snapshot();
+    const baselineTableParts = await page.locator('#data thead,#data tbody,#data th,#data td,#inline-neutral-row,#inline-neutral-last-row').evaluateAll(elements =>
+      elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color]));
     const baselineButtons = await page.locator('button').count();
     const originalIcon = await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage);
-    for (const theme of ['browser-archeology', 'liquid-dream', 'terminal-vision']) {
+    for (const theme of themeIds) {
+      await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '.5'; });
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
-      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading' })) {
+      for (const [id, purpose] of Object.entries({ reading: 'reading', chapter: 'section', facts: 'panel', 'untitled-panel': 'panel', data: 'data', input: 'field', 'heading-group': 'section-heading', 'composite-landing': 'panel', 'neutral-panel-one': 'panel', 'neutral-panel-two': 'panel' })) {
         assert.equal(await page.locator(`#${id}`).getAttribute('data-surface-purpose-v1'), purpose);
       }
+      assert.notEqual(await page.locator('#facts-logo-cell').getAttribute('data-surface-context-v1'), 'brand',
+        `${theme} protected descriptive copy with its neighboring logo`);
+      assert.equal(await page.locator('#facts-logo-image').getAttribute('data-surface-context-v1'), 'brand',
+        `${theme} must retain the image mark while freeing its caption`);
+      const logoCaptionPair = await page.locator('#facts-media-caption').evaluate(element => ({
+        color: getComputedStyle(element).color,
+        background: getComputedStyle(element.closest('#facts')).backgroundColor
+      }));
+      assert.ok(contrastRatio(parseColor(logoCaptionPair.color), parseColor(logoCaptionPair.background)) >= 4.5,
+        `${theme} logo-adjacent caption must contrast with its panel: ${JSON.stringify(logoCaptionPair)}`);
+      const tableColors = {
+        'terminal-vision': { body: 'rgb(9, 26, 17)', header: 'rgb(16, 45, 29)' },
+        'browser-archeology': { body: 'rgb(255, 255, 255)', header: 'rgb(212, 208, 200)' },
+        'liquid-dream': { body: 'rgb(33, 25, 54)', header: 'rgb(59, 43, 85)' },
+        'monochrome-signal': { body: 'rgb(16, 19, 19)', header: 'rgb(41, 45, 45)' }
+      }[theme];
+      for (const selector of ['#data thead', '#data th']) {
+        assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'header');
+        assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), tableColors.header);
+      }
+      assert.notEqual(await page.locator('#data th').first().evaluate(element => getComputedStyle(element).backgroundImage), 'none',
+        'compact sortable-header imagery must survive neutral backing treatment');
+      for (const selector of ['#data tbody', '#data td:not(.encoded-cell)']) {
+        assert.equal(await page.locator(selector).first().getAttribute('data-surface-table-part-v1'), 'body');
+        assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).backgroundColor), tableColors.body);
+      }
+      assert.equal(await page.locator('#data .encoded-cell').getAttribute('data-surface-table-part-v1'), null,
+        'chromatic data cells must stay outside neutral table-paint ownership');
+      assert.equal(await page.locator('#data .encoded-cell').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(161, 38, 54)');
+      for (const selector of ['#data th', '#data td:not(.encoded-cell)']) {
+        const pair = await page.locator(selector).first().evaluate(element => [getComputedStyle(element).color, getComputedStyle(element).backgroundColor]);
+        assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `${theme} ${selector}: ${pair.join(' on ')}`);
+      }
+      assert.equal(await page.locator('#mid-neutral-table tr').first().getAttribute('data-surface-table-part-v1'), 'header',
+        `${theme} medium neutral table row should transfer paint`);
+      assert.equal(await page.locator('#mid-neutral-table tr').first().evaluate(el => getComputedStyle(el).backgroundColor), tableColors.header);
+      for (const selector of ['#inline-neutral-row', '#inline-neutral-last-row']) {
+        assert.equal(await page.locator(selector).getAttribute('data-surface-table-part-v1'), 'body');
+        assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundColor), tableColors.body);
+      }
+      await page.locator('#inline-neutral-row').evaluate(el => el.classList.toggle('updated'));
+      await page.waitForFunction(expected => {
+        const row = document.querySelector('#inline-neutral-row');
+        return row?.getAttribute('data-surface-table-part-v1') === 'body' && getComputedStyle(row).backgroundColor === expected;
+      }, tableColors.body);
+      await page.locator('#inline-neutral-last-row').evaluate(el => el.removeAttribute('data-surface-table-part-v1'));
+      await page.waitForFunction(expected => {
+        const row = document.querySelector('#inline-neutral-last-row');
+        return row?.getAttribute('data-surface-table-part-v1') === 'body' && getComputedStyle(row).backgroundColor === expected;
+      }, tableColors.body);
+      const inlineRowPair = await page.locator('#inline-neutral-last-row td').last().evaluate(el =>
+        [getComputedStyle(el).color, getComputedStyle(el.parentElement).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(inlineRowPair[0]), parseColor(inlineRowPair[1])) >= 4.5,
+        `${theme} rescanned row ink must remain readable: ${inlineRowPair.join(' on ')}`);
+      assert.equal(await page.locator('#captioned-media').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#captioned-media figcaption').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#captioned-media figcaption').evaluate(el => getComputedStyle(el).backgroundColor), tableColors.body);
+      const captionPair = await page.locator('#captioned-media figcaption').evaluate(el => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(captionPair[0]), parseColor(captionPair[1])) >= 4.5,
+        `${theme} caption text must read against its themed backing`);
+      assert.ok((await page.locator('#captioned-media img').getAttribute('src')).startsWith('data:image/svg+xml,'),
+        'captioned media pixels should retain their authored source');
+      await page.evaluate(() => {
+        const preview = document.createElement('div');
+        preview.id = 'floating-preview';
+        preview.style.opacity = '0';
+        preview.innerHTML = '<div id="floating-preview-inner"><img alt="Map preview" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'320\' height=\'120\'%3E%3Crect width=\'320\' height=\'120\' fill=\'%2394b8d8\'/%3E%3C/svg%3E"><a href="#chapter"><p>A preview of related editorial content with enough prose to establish a separate card surface.</p></a></div>';
+        document.body.append(preview);
+      });
+      await page.waitForFunction(() => document.querySelector('#floating-preview-inner')?.getAttribute('data-surface-context-v1') === 'content');
+      await page.mouse.move(1, 1);
+      await page.locator('#floating-preview').evaluate(el => { el.style.opacity = '.5'; });
+      assert.equal(await page.locator('#floating-preview').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#floating-preview').evaluate(el => getComputedStyle(el).opacity), '0.5',
+        `${theme} preview opacity should remain authored during its reveal`);
+      assert.equal(await page.locator('#floating-preview a').getAttribute('data-surface-content-fade-v1'), 'after');
+      assert.equal(await page.locator('#floating-preview a').evaluate(el => getComputedStyle(el, '::after').display), 'none');
+      const previewPair = await page.locator('#floating-preview p').evaluate(el => [getComputedStyle(el).color, getComputedStyle(el.parentElement.parentElement).backgroundColor]);
+      assert.ok(contrastRatio(parseColor(previewPair[0]), parseColor(previewPair[1])) >= 4.5,
+        `${theme} preview text must read against its themed backing: ${previewPair.join(' on ')}`);
+      await page.locator('#floating-preview').evaluate(el => el.remove());
+      assert.equal(await page.locator('#composite-shell').getAttribute('data-surface-context-v1'), 'shell');
+      for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
+        assert.equal(await page.locator(selector).getAttribute('data-surface-context-v1'), 'content');
+        assert.equal(await page.locator(selector).getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
+      }
+      assert.equal(await page.locator('#neutral-gradient-section').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#neutral-gradient-section').getAttribute('data-surface-purpose-v1'), 'section');
+      assert.equal(await page.locator('#transparent-gradient-section').getAttribute('data-surface-context-v1'), null,
+        'an all-translucent gradient must not become a theme-owned surface');
+      assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#neutral-linked-card').getAttribute('data-surface-evidence-v1'), 'neutral-heading-card');
+      assert.equal(await page.locator('#brand-module-button').evaluate(el => getComputedStyle(el).appearance), 'none',
+        `${theme} native button face must use the themed foreground/background pair`);
+      assert.equal(await page.locator('#mixed-main').getAttribute('data-surface-context-v1'), null,
+        'mixed application landmark should not become one content surface');
+      assert.equal(await page.locator('#bounded-editorial-card').getAttribute('data-surface-purpose-v1'), 'panel',
+        'a visually bounded editorial card should be recognized inside a mixed landmark');
+      assert.equal(await page.locator('#unbounded-editorial-block').getAttribute('data-surface-context-v1'), null,
+        'pale paint without a boundary should not establish a panel');
+      assert.equal(await page.locator('#large-mark-card').getAttribute('data-surface-context-v1'), null, 'a large labelled card containing a logo-like icon must not become a brand');
+      assert.equal(await page.locator('.product-logo').getAttribute('data-surface-context-v1'), 'brand');
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), null, 'an active opacity effect stays authored');
+      await page.locator('#settling-neutral-panel p').evaluate(element => { element.textContent += ' Updated while revealing.'; });
+      await page.waitForTimeout(50);
+      await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '1'; });
+      await page.waitForTimeout(350);
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), 'content');
+      assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-context-v1'), 'visualization');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-purpose-v1'), 'visualization');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-evidence-v1'), 'labelled-data-graphic');
@@ -196,9 +543,9 @@ try {
         for (const selector of ['#shell > header', '#heading-group', '#facts']) {
           assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
         }
-        // All light rainbow stops must support theme ink, including links.
-        for (const stop of ['#ffc6e2','#ffe5a3','#fff2a6','#a3ecda','#b8d9ff','#dfc5ff']) {
-          for (const ink of ['#201928', '#274bb5']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
+        // Every static glass and hierarchy stop must support text and links.
+        for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
+          for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
         }
       } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
@@ -210,6 +557,9 @@ try {
         assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `unified nested control label: ${pair.join(' on ')}`);
       }
       assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell');
+      assert.equal(await page.locator('#utility-fade').getAttribute('data-surface-navigation-fade-v1'), 'after');
+      assert.equal(await page.locator('#utility-fade').evaluate(el => getComputedStyle(el, '::after').display), 'none',
+        `${theme} decorative sticky fade should leave no scrolling seam`);
       for (const role of ['menu', 'language', 'search', 'more', 'home', 'history', 'settings', 'download']) {
         assert.equal(await page.locator(`#${role}-icon`).getAttribute('data-surface-glyph-v1'), role);
         assert.equal(await page.locator(`#${role}-icon`).evaluate(el => getComputedStyle(el).maskImage), 'none');
@@ -229,6 +579,7 @@ try {
         assert.equal(await page.locator('h1').getAttribute('data-surface-window-title-v1'), 'reading');
         assert.equal(await page.locator('#facts th').first().getAttribute('data-surface-window-title-v1'), 'panel');
         assert.match(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundImage), /data:image\/svg\+xml/);
+        assert.equal(await page.locator('h1').evaluate(el => getComputedStyle(el).backgroundPosition.split(', ')[1]), 'calc(100% - 2px) 2px', 'window controls stay at the top of a tall title region');
         assert.equal(await page.locator('#untitled-panel').evaluate(el => getComputedStyle(el).paddingTop), '25px');
         assert.equal(await page.locator('button').count(), baselineButtons, 'window decoration must not create fake controls');
         await page.setViewportSize({ width: 320, height: 640 });
@@ -241,10 +592,21 @@ try {
         assert.ok(contrastRatio(parseColor(titlePair.color),parseColor('#091a11')) >= 4.5);
         assert.equal(await page.locator('#shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
         assert.equal(await page.locator('#reading').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        assert.equal(await page.locator('#composite-shell').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(6, 17, 11)');
+        for (const selector of ['#neutral-panel-one', '#neutral-panel-two']) {
+          assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(9, 26, 17)');
+        }
+        await page.locator('#composite-landing').evaluate(element => element.classList.add('stateful-composite'));
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('#composite-landing').getAttribute('data-surface-purpose-v1'), 'panel', 'class-driven rescans must ignore Surface-owned background paint');
         assert.deepEqual(await page.locator('#activity-grid [data-level]').evaluateAll(elements => elements.map(el => getComputedStyle(el).backgroundColor)), ['rgb(16, 45, 29)','rgb(23, 98, 68)','rgb(47, 158, 85)','rgb(126, 234, 148)','rgb(215, 255, 78)']);
         assert.equal(await page.locator('#activity-summary').getAttribute('data-surface-context-v1'), 'control');
         const pair = await page.locator('#activity-summary').evaluate(el => [getComputedStyle(el.querySelector('span')).color, getComputedStyle(el).backgroundColor]);
         assert.ok(contrastRatio(parseColor(pair[0]), parseColor(pair[1])) >= 4.5, `unified activity summary: ${pair.join(' on ')}`);
+        await page.locator('body').evaluate(el => el.classList.add('authored-canvas'));
+        await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'preserve');
+        await page.locator('body').evaluate(el => el.classList.remove('authored-canvas'));
+        await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
       }
       await page.locator('#menu').click();
       assert.equal(await page.locator('#menu').getAttribute('aria-expanded'), 'true');
@@ -257,11 +619,89 @@ try {
       assert.equal(await page.locator('#late-section').getAttribute('data-surface-purpose-v1'), 'section');
       assert.equal(await page.locator('#late-action').getAttribute('data-surface-context-v1'), 'control');
       await page.locator('#dynamic').evaluate(el => el.replaceChildren());
+      const ownershipSnapshot = await page.evaluate(() => {
+        const shell = document.querySelector('#shell');
+        const rail = document.querySelector('#utility-rail');
+        return {
+          theme: document.documentElement.getAttribute('data-surface-theme-v2'),
+          userStyles: document.documentElement.hasAttribute('data-surface-user-styles-v2'),
+          rootContext: document.documentElement.getAttribute('data-surface-context-v1'),
+          bodyContext: document.body.getAttribute('data-surface-context-v1'),
+          shellContext: shell.getAttribute('data-surface-context-v1'),
+          railPurpose: rail.getAttribute('data-surface-purpose-v1'),
+          rootBackground: getComputedStyle(document.documentElement).backgroundColor,
+          shellBackground: getComputedStyle(shell).backgroundColor,
+          railBackground: getComputedStyle(rail).backgroundColor
+        };
+      });
+      await page.evaluate(() => {
+        document.documentElement.removeAttribute('data-surface-theme-v2');
+        document.documentElement.removeAttribute('data-surface-user-styles-v2');
+        document.documentElement.removeAttribute('data-surface-context-v1');
+        document.body.removeAttribute('data-surface-context-v1');
+        document.querySelector('#shell').removeAttribute('data-surface-context-v1');
+        document.querySelector('#utility-rail').removeAttribute('data-surface-purpose-v1');
+      });
+      await page.waitForFunction(theme =>
+        document.documentElement.getAttribute('data-surface-theme-v2') === theme &&
+        document.documentElement.hasAttribute('data-surface-user-styles-v2') &&
+        document.documentElement.getAttribute('data-surface-context-v1') === 'page' &&
+        document.body.getAttribute('data-surface-context-v1') === 'page' &&
+        document.querySelector('#shell')?.getAttribute('data-surface-context-v1') === 'shell' &&
+        document.querySelector('#utility-rail')?.getAttribute('data-surface-purpose-v1') === 'navigation', theme);
+      assert.deepEqual(await page.evaluate(() => {
+        const shell = document.querySelector('#shell');
+        const rail = document.querySelector('#utility-rail');
+        return {
+          theme: document.documentElement.getAttribute('data-surface-theme-v2'),
+          userStyles: document.documentElement.hasAttribute('data-surface-user-styles-v2'),
+          rootContext: document.documentElement.getAttribute('data-surface-context-v1'),
+          bodyContext: document.body.getAttribute('data-surface-context-v1'),
+          shellContext: shell.getAttribute('data-surface-context-v1'),
+          railPurpose: rail.getAttribute('data-surface-purpose-v1'),
+          rootBackground: getComputedStyle(document.documentElement).backgroundColor,
+          shellBackground: getComputedStyle(shell).backgroundColor,
+          railBackground: getComputedStyle(rail).backgroundColor
+        };
+      }), ownershipSnapshot, `${theme} must repair stripped outer paint ownership before the next frame`);
+      await page.evaluate(() => document.body.removeAttribute('data-surface-context-v1'));
+      await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
+      assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), ownershipSnapshot.rootBackground,
+        `${theme} must not treat surviving theme canvas paint as an authored body background`);
+      await page.evaluate(() => {
+        const block = document.createElement('section');
+        block.id = 'large-hydration-block';
+        block.innerHTML = Array.from({ length: 100 }, (_, index) => `<p>Hydrated paragraph ${index} with enough content to represent a substantial route addition.</p>`).join('');
+        document.body.classList.add('hydrated-large');
+        document.querySelector('#dynamic').append(block);
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'page',
+        `${theme} a combined class change and large addition must retain body paint ownership`);
+      assert.equal(await page.locator('#shell').getAttribute('data-surface-context-v1'), 'shell',
+        `${theme} a large addition must retain established shell paint`);
+      assert.equal(await page.locator('#data').getAttribute('data-surface-purpose-v1'), 'data',
+        `${theme} a large addition must retain existing table recognition`);
+      await page.evaluate(() => {
+        document.body.classList.replace('hydrated-large', 'authored-canvas');
+        document.querySelector('#large-hydration-block').remove();
+        const block = document.createElement('section');
+        block.id = 'large-hydration-block';
+        block.innerHTML = Array.from({ length: 100 }, (_, index) => `<p>Replacement paragraph ${index} with a substantial amount of content.</p>`).join('');
+        document.querySelector('#dynamic').append(block);
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('body').getAttribute('data-surface-context-v1'), 'preserve',
+        `${theme} a real authored body image must be preserved during large hydration`);
+      await page.evaluate(() => { document.body.classList.remove('authored-canvas'); document.querySelector('#large-hydration-block').remove(); });
+      await page.waitForFunction(() => document.body.getAttribute('data-surface-context-v1') === 'page');
       await page.screenshot({ path: join(out, `hierarchy-${theme}.png`) });
       await set({ enabled: false });
       await waitStatus({ state: 'disabled' });
       assert.deepEqual(await snapshot(), baseline);
-      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1]').count(), 0);
+      assert.deepEqual(await page.locator('#data thead,#data tbody,#data th,#data td,#inline-neutral-row,#inline-neutral-last-row').evaluateAll(elements =>
+        elements.map(element => [element.tagName, element.textContent.trim(), getComputedStyle(element).backgroundColor, getComputedStyle(element).color])), baselineTableParts);
+      assert.equal(await page.locator('[data-surface-purpose-v1],[data-surface-evidence-v1],[data-surface-heading-glyph-v1],[data-surface-window-v1],[data-surface-window-title-v1],[data-surface-navigation-fade-v1],[data-surface-content-fade-v1],[data-surface-table-part-v1]').count(), 0);
       assert.equal(await page.locator('#menu-icon').getAttribute('data-surface-glyph-v1'), 'authored');
       assert.equal(await page.locator('#menu-icon').evaluate(el => getComputedStyle(el).maskImage), originalIcon);
       assert.equal(await page.locator('[data-surface-glyph-v1]').count(), 1);
@@ -309,8 +749,8 @@ try {
     assert.equal(await page.locator('#selected').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(215, 255, 78)');
     assert.equal(await page.locator('#later-shadow-host article').count(), 1);
   });
-  await check('one role correction works across all three themes', async () => {
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+  await check('one role correction works across all themes', async () => {
+    for (const theme of themeIds) {
       await set({ theme });
       await waitStatus({ state: 'active', theme });
       assert.equal(await page.locator('.fixture-error').evaluate(el => getComputedStyle(el).borderTopStyle), 'double');
@@ -336,12 +776,12 @@ try {
     const picker = page.locator('#surface-theme-picker-v1');
     await picker.locator('.toggle').click();
     assert.equal(await picker.locator('.panel').isVisible(), true);
-    assert.equal(await picker.locator('.option').count(), 3);
+    assert.equal(await picker.locator('.option').count(), themeIds.length);
     const swatchBox = await picker.locator('.swatch').first().boundingBox();
     assert.equal(Math.round(swatchBox?.width || 0), 32);
     assert.equal(Math.round(swatchBox?.height || 0), 32);
 
-    for (const theme of ['terminal-vision', 'browser-archeology', 'liquid-dream']) {
+    for (const theme of themeIds) {
         await set({ enabled: true, theme });
         await waitStatus({ state: 'active', theme });
         const pairs = await picker.evaluate(host => {
@@ -405,7 +845,7 @@ try {
     const baseline = await appearance();
     const styleCount = await page.locator('style,link[rel="stylesheet"]').count();
     for (let i = 0; i < 20; i++) {
-      const theme = ['terminal-vision', 'browser-archeology', 'liquid-dream'][i % 3];
+      const theme = themeIds[i % themeIds.length];
       await set({ enabled: true, theme });
       await waitStatus({ state: 'active', theme });
     }

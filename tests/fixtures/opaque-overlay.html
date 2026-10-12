@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Opaque notice over media</title>
+<style>
+  body { margin: 0; background: #fff; color: #202122; font: 16px/1.5 Arial, sans-serif; }
+  #hero { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #notice { position: fixed; z-index: 1; left: 24px; bottom: 24px; width: 540px; padding: 18px;
+    background: #fff; border: 1px solid #bbb; }
+  #notice p { margin: 0; color: #202122; }
+</style>
+<img id="hero" src="landscape.svg" alt="Landscape behind the notice">
+<div id="notice" role="dialog" aria-label="Site notice">
+  <p id="notice-copy">This opaque notice covers the photograph. Its text should follow the notice surface, even while the image occupies the same screen coordinates.</p>
+</div>
+</html>

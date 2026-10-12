@@ -1,24 +1,46 @@
 import { THEMES } from './themes.js';
-import { isEnabled } from './settings.js';
+import { isEnabled, normalizeSettings } from './settings.js';
 import { getCorrections } from './corrections.js';
 import { buildStyles } from './styles.js';
 import { createThemePicker } from './theme-picker.js';
+import * as unifiedRenderer from './contextual.js';
 
 // executeScript can reconnect a tab opened before installation; initialization is idempotent.
 if (!globalThis.__surfaceUnifiedV2) {
   globalThis.__surfaceUnifiedV2 = true;
+  const READY_ATTRIBUTE = 'data-surface-ready-v2';
+  const SWITCHING_ATTRIBUTE = 'data-surface-switching-v2';
   let currentCSS = '';
-  let renderer;
+  const renderer = unifiedRenderer;
+  const registeredTheme = window === top && document.documentElement
+    ? getComputedStyle(document.documentElement).getPropertyValue('--surface-startup-theme').trim()
+    : '';
+  let bootstrapTheme = THEMES[registeredTheme] ? registeredTheme : '';
+  let bootstrapStart = bootstrapTheme
+    ? renderer.start(THEMES[bootstrapTheme], getCorrections(location.hostname.toLowerCase()))
+    : null;
+  let bootstrapTreatment;
   let pending = false;
   let applying = false;
   let lastSignature = '';
   let status = { state: 'starting', theme: null, error: null, corrections: [], applyCount: 0, applyMs: 0 };
   const sendMessage = chrome.runtime.sendMessage.bind(chrome.runtime);
+  const elapsed = started => Math.round((performance.now() - started) * 100) / 100;
 
   async function request(message) {
     const result = await sendMessage(message);
     if (!result?.ok) throw new Error(result?.error || 'Extension service worker unavailable');
     return result;
+  }
+  async function settingsContext() {
+    // The top document can read extension storage directly. Avoid waking the
+    // service worker just to rediscover its own host and selected theme during
+    // the first-paint critical path. Cross-origin frames still ask the worker
+    // for the top-level host so exact-site exceptions propagate correctly.
+    const settings = normalizeSettings((await chrome.storage.local.get('settings')).settings);
+    const frameHost = location.hostname.toLowerCase();
+    if (window === top) return { settings, topHost: frameHost, frameHost };
+    return request({ type: 'settings:get' });
   }
   const themePicker = createThemePicker({
     selectTheme: async theme => (await request({ type: 'theme:select', theme })).settings,
@@ -29,6 +51,48 @@ if (!globalThis.__surfaceUnifiedV2) {
     await request({ type: 'styles:replace', previous: currentCSS, next });
     currentCSS = next;
   }
+  async function revealDocument() {
+    if (!document.documentElement) {
+      await new Promise(resolve => {
+        const observer = new MutationObserver(() => {
+          if (!document.documentElement) return;
+          observer.disconnect();
+          resolve();
+        });
+        observer.observe(document, { childList: true });
+      });
+    }
+    document.documentElement.setAttribute(READY_ATTRIBUTE, '');
+  }
+  async function handoffTheme(theme, update) {
+    const root = document.documentElement;
+    // The top snapshot already contains the rendered pixels of embedded
+    // frames. Independent frame transitions are redundant and can outlive the
+    // top-level handoff when a viewport changes immediately afterward.
+    if (!root || window !== top || typeof document.startViewTransition !== 'function') return update();
+    const original = root.hasAttribute(SWITCHING_ATTRIBUTE) ? root.getAttribute(SWITCHING_ATTRIBUTE) : null;
+    root.setAttribute(SWITCHING_ATTRIBUTE, theme.id);
+    let result;
+    try {
+      // Chromium keeps the current themed pixels visible while update rebuilds
+      // the live document. Skip the default cross-fade as soon as that update
+      // is ready, producing one direct old-to-new handoff.
+      const transition = document.startViewTransition(async () => { result = await update(); });
+      // Visual readiness can reject when Chromium aborts a transition for a
+      // viewport change. Attach handlers immediately so that visual-only abort
+      // never becomes an unhandled page error; updateCallbackDone remains the
+      // authoritative product-operation result.
+      const visualReady = transition.ready.catch(() => {});
+      const visualFinished = transition.finished.catch(() => {});
+      await transition.updateCallbackDone;
+      transition.skipTransition();
+      await Promise.all([visualReady, visualFinished]);
+      return result;
+    } finally {
+      if (original === null) root.removeAttribute(SWITCHING_ATTRIBUTE);
+      else root.setAttribute(SWITCHING_ATTRIBUTE, original);
+    }
+  }
   async function reconcile() {
     pending = true;
     if (applying) return;
@@ -36,34 +100,76 @@ if (!globalThis.__surfaceUnifiedV2) {
     while (pending) {
       pending = false;
       try {
-        const { settings, topHost, frameHost } = await request({ type: 'settings:get' });
+        const started = performance.now();
+        const timings = { reconcileAtMs: Math.round(started * 100) / 100 };
+        const { settings, topHost, frameHost } = await settingsContext();
+        timings.settingsMs = elapsed(started);
         const enabled = isEnabled(settings, topHost || frameHost);
         // Keep the picker available so a paused extension can be resumed in place.
         themePicker.render(settings, Boolean(topHost || frameHost));
         const signature = JSON.stringify([enabled, settings.theme, frameHost]);
         if (signature === lastSignature) continue;
-        const started = performance.now();
-        status = { ...status, state: 'applying', error: null, theme: settings.theme, topHost, frameHost };
-        await renderer?.stop();
+        const theme = THEMES[settings.theme];
+        const switchingTheme = Boolean(enabled && theme && status.state === 'active' && status.theme !== settings.theme);
+        status = { ...status, state: 'applying', error: null, theme: settings.theme, topHost, frameHost, timings };
+        const reuseBootstrap = Boolean(bootstrapStart && enabled && settings.theme === bootstrapTheme && window === top);
         if (!enabled) {
+          if (!reuseBootstrap) {
+            bootstrapStart = null;
+            bootstrapTheme = '';
+            await renderer.stop();
+          }
           await replaceCSS('');
           status = { ...status, state: 'disabled', corrections: [] };
         } else {
-          const theme = THEMES[settings.theme];
           const corrections = getCorrections(frameHost);
-          // Classification inspects the author's treatment before expressive CSS.
-          await replaceCSS('');
-          renderer ||= await import(chrome.runtime.getURL('contextual.js'));
-          renderer.start(theme, corrections);
-          await replaceCSS(buildStyles(theme, { corrections }));
+          const prepareTheme = async () => {
+            if (!reuseBootstrap) {
+              bootstrapStart = null;
+              bootstrapTheme = '';
+              await renderer.stop();
+            }
+            // Classification inspects the author's treatment before expressive CSS.
+            await replaceCSS('');
+            const startedRenderer = reuseBootstrap
+              ? await bootstrapStart
+              : await renderer.start(theme, corrections);
+            timings.rendererStartedMs = elapsed(started);
+            // The selected first-paint treatment is already parsed in the
+            // persisted document_start sheet. Install the full USER-origin sheet
+            // in parallel with recognition instead of serializing the first
+            // visible frame behind a worker round trip.
+            await Promise.all([
+              replaceCSS(buildStyles(theme, { corrections })).then(() => {
+                renderer.confirmUserStyles();
+                timings.userStylesReadyMs = elapsed(started);
+              }),
+              (reuseBootstrap ? bootstrapTreatment : renderer.prepareReveal({ immediate: switchingTheme })).then(() => { timings.recognitionReadyMs = elapsed(started); })
+            ]);
+            await revealDocument();
+            bootstrapStart = null;
+            bootstrapTheme = '';
+            bootstrapTreatment = null;
+            // Wrap the later full-document promise so this async preparation
+            // step does not adopt it and hold the visual handoff open.
+            return { completion: startedRenderer.completion };
+          };
+          const { completion } = switchingTheme
+            ? await handoffTheme(theme, prepareTheme)
+            : await prepareTheme();
+          timings.revealedMs = elapsed(started);
+          await completion;
+          timings.completeMs = elapsed(started);
           status = { ...status, state: 'active', corrections: corrections.ids };
         }
-        status.applyMs = Math.round((performance.now() - started) * 100) / 100;
+        if (!enabled) await revealDocument();
+        status.applyMs = elapsed(started);
         status.applyCount++;
         lastSignature = signature;
       } catch (error) {
-        await renderer?.stop();
+        await renderer.stop();
         await replaceCSS('').catch(() => {});
+        await revealDocument().catch(() => {});
         lastSignature = '';
         status = { ...status, state: 'error', error: error.message };
       }
@@ -76,12 +182,19 @@ if (!globalThis.__surfaceUnifiedV2) {
   });
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'status:get') {
-      sendResponse({ ...status, renderer: renderer?.diagnostics() || null, stylesheetBytes: currentCSS.length });
+      sendResponse({ ...status, renderer: renderer.diagnostics(), stylesheetBytes: currentCSS.length });
     } else if (message?.type === 'retry') {
       lastSignature = '';
       void reconcile();
       sendResponse({ retrying: true });
     }
   });
+  if (bootstrapStart) {
+    const expectedTheme = bootstrapTheme;
+    bootstrapTreatment = bootstrapStart.then(async () => {
+      await renderer.prepareReveal();
+      if (bootstrapTheme === expectedTheme) await revealDocument();
+    });
+  }
   void reconcile();
 }

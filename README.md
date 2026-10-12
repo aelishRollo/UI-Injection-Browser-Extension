@@ -1,6 +1,6 @@
 # Surface — website themes
 
-Surface is a local Chromium MV3 extension that applies expressive, readable themes to ordinary websites. It has one rendering approach and three visual identities: Browser Archeology, Liquid Dream, and Terminal Vision.
+Surface is a local Chromium MV3 extension that applies expressive, readable themes to ordinary websites. It has one rendering approach and four visual identities: Browser Archeology, Liquid Dream, Monochrome Signal, and Terminal Vision.
 
 Surface recognizes page purpose before decorating it. Reading regions, sections, panels, navigation, tables, labelled visualizations, controls, headings, and fields receive coordinated treatments. Text and its effective solid background are resolved as a pair; uncertain media, effects, brand marks, and authored visualizations are preserved rather than guessed.
 
@@ -28,25 +28,31 @@ npm run build
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:navigation
 npm run test:live
 npm run test:performance
 npm run fixtures
 ```
 
-The isolated fixture uses ports 4173 and 4174. Browser and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
+The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, navigation, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
 
-`npm run test:live` captures the three themes on six public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
+`npm run test:live` captures the four themes on seven public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
 
 ## Rendering model
 
 - A single purpose-aware renderer handles every theme.
-- Structural and semantic evidence establish paint ownership before visual decoration is applied.
+- Theme identity is authored as a validated declarative treatment package over the renderer's stable contexts, purposes, states, icons, responsive rules, and optional packaged assets. Adding a theme does not add a renderer path.
+- Structural and semantic evidence establish paint ownership before visual decoration is applied, including substantial neutral, heading-led panels on composite landing pages.
+- A mixed main landmark can expose individually bounded neutral editorial cards without turning the whole control-heavy region into one surface. Recognized native buttons use CSS paint so their visible face matches the paired theme ink.
 - Solid and translucent sRGB layers are composited to resolve readable text; authored pairs that already pass are retained.
+- Recognized tables map only neutral structural header/body paint to theme surfaces; chromatic and scalar cells stay authored, while compact sort indicators remain intact.
 - Brand marks, media relationships, background images, complex effects, and labelled chart units use conservative preservation paths.
-- New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Detached themed nodes are restored and released.
+- New subtrees and relevant class, state, label, and text mutations are batched and reclassified. Late-populated neutral owners receive a bounded ancestor recheck, and page runtimes that strip paint-critical ownership markers are repaired in the same mutation microtask. Large SPA reading routes keep direct semantic child paint continuous while offscreen foreground work remains deferred; detached themed nodes are restored and released.
+- Recognized pointer-transparent sticky navigation fades are removed; their generated gradients otherwise leave horizontal bands when a rail scrolls across a different canvas.
+- On full navigation, a compact selected-theme first-paint sheet and the unified renderer are already resident at `document_start`. It contains the real theme's surfaces, typography, hierarchy, and primary motifs; interaction and secondary state rules arrive in the full USER-origin sheet. The renderer follows parser mutations before paint, and a short guard releases after the first parser-time treatment. USER-origin handoff and the final document pass do not control first visibility.
 - Expressive CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints were removed after measured frame stalls.
 - Verified role corrections apply automatically only where general semantics are unavailable.
-- Disable and theme switching restore the author's prior attributes, inline properties, and computed appearance without a reload.
+- Disable and theme switching restore the author's prior attributes, inline properties, and computed appearance without a reload. During an enabled theme-to-theme change, the current themed pixels remain rendered while the destination stylesheet and bounded recognition prepare; Chromium then swaps directly to the completed theme without an empty canvas or cross-fade.
 
 The worker inserts generated CSS with USER origin and removes the exact prior sheet by document ID. Theme rules use `!important`, so recognition remains deliberately conservative. The renderer does not reparent content or replace site layout systems.
 

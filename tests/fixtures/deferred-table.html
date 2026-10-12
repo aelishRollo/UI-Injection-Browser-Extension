@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Surface deferred table workload</title>
+  <style>
+    body { margin: 0; background: #f4f4f2; color: #202124; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 900px; margin: 0 auto; }
+    #lead { height: 2600px; padding: 24px; }
+    #article { padding: 24px; background: #fff; }
+    table { width: 100%; border-collapse: collapse; background: #f8f9fa; }
+    th, td { border: 1px solid #a2a9b1; padding: 8px; }
+    th { background: #eaecf0; }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="lead"><h1>Long article</h1><p>Opening content.</p><p>Background and history.</p><p>More article context.</p></section>
+    <section id="article">
+      <h2>Aircraft</h2>
+      <p>A data table within a long article.</p>
+      <table id="aircraft">
+        <thead><tr><th>Aircraft</th><th>Role</th><th>Count</th></tr></thead>
+        <tbody id="aircraft-body"></tbody>
+      </table>
+    </section>
+  </main>
+  <script>
+    const body = document.querySelector('#aircraft-body');
+    body.innerHTML = Array.from({ length: 40 }, (_, index) =>
+      `<tr${index >= 38 ? ' style="background:#efefef"' : ''}><td>Aircraft ${index + 1}</td><td>Transport and reconnaissance</td><td>${index + 1}</td></tr>`).join('');
+  </script>
+</body>
+</html>

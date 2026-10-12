@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Surface deferred scroll workload</title>
+  <style>
+    body { margin: 0; background: #f4f4f2; color: #202124; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 900px; margin: 0 auto; }
+    #lead { height: 1800px; padding: 24px; }
+    #deferred-target { padding: 24px; background: #fff; }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="lead"><h1>Scroll workload</h1><p>Opening content.</p></section>
+    <section id="deferred-target" aria-label="Long article"></section>
+  </main>
+  <script>
+    const article = document.querySelector('#deferred-target');
+    article.innerHTML = Array.from({ length: 800 }, (_, index) =>
+      `<p>Article paragraph ${index + 1} with enough text to exercise foreground pairing on a long document.</p>`).join('');
+    document.addEventListener('scroll', () => {
+      document.body.classList.toggle('article-below-title', scrollY > 100);
+    }, { passive: true });
+  </script>
+</body>
+</html>
