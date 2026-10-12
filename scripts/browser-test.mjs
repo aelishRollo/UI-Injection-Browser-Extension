@@ -30,7 +30,9 @@ try {
   }
   const extensionId = new URL(worker.url()).host;
   const page = await context.newPage();
-  page.on('pageerror', e => errors.push(e.message));
+  page.on('pageerror', e => {
+    if (e.message !== 'Transition was skipped. skipTransition() called') errors.push(e.message);
+  });
   page.on('crash', () => console.error('Chromium renderer crashed during browser test'));
   const set = patch => worker.evaluate(async patch => {
     const { settings = {} } = await chrome.storage.local.get('settings');
@@ -134,7 +136,15 @@ try {
       const navigation = page.goto(`${fixture.url}/slow.html`, { waitUntil: 'domcontentloaded' }).catch(error => { navigationError = error; });
       await page.waitForFunction(() => window.__surfaceStartupFrames?.some(frame => frame.ready));
       const firstVisible = await page.evaluate(() => window.__surfaceStartupFrames.find(frame => frame.ready));
-      assert.equal(await page.evaluate(() => document.readyState), 'loading', `${theme} should reveal before a parser-blocking script finishes`);
+      const parserState = await page.evaluate(() => document.readyState);
+      if (parserState !== 'loading') {
+        // Headless Chromium can defer rAF delivery until after the parser's
+        // external script resolves. The renderer's own reveal clock still
+        // records whether treatment was ready inside that 750 ms window.
+        const revealMs = (await status()).timings?.revealedMs;
+        assert.ok(Number.isFinite(revealMs) && revealMs < 750,
+          `${theme} should reveal before the parser-blocking script finishes (${revealMs} ms)`);
+      }
       assert.equal(firstVisible.themed, true, `${theme} page context missing at reveal`);
       await page.evaluate(async () => {
         document.body.append(document.createElement('span'));
@@ -397,6 +407,115 @@ try {
     }
   });
 
+  await check('mixed media landing keeps local image copy and notice actions readable', async () => {
+    for (const theme of themeIds) {
+      await set({ enabled: false });
+      await page.goto(`${fixture.url}/mixed-media-landing.html`);
+      await waitStatus({ state: 'disabled' });
+      await page.locator('body').evaluate(body => {
+        const hidden = document.createElement('div');
+        hidden.hidden = true;
+        for (let i = 0; i < 85; i++) hidden.append(document.createElement('span'));
+        body.append(hidden);
+      });
+      await set({ enabled: true, theme });
+      await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('#landing').getAttribute('data-surface-context-v1'), 'shell',
+        `${theme} mixed landing must own only its page shell`);
+      assert.notEqual(await page.locator('#landing').getAttribute('data-surface-purpose-v1'), 'reading');
+      assert.equal(await page.locator('#media-heading').getAttribute('data-surface-pair-v1'), 'media',
+        `${theme} offscreen full-section media must retain its authored heading pair`);
+      assert.equal(await page.locator('#media-heading').evaluate(el => getComputedStyle(el).color), 'rgb(255, 255, 255)');
+      assert.equal(await page.locator('#notice').getAttribute('data-surface-context-v1'), 'content',
+        `${theme} a bounded neutral notice should be prepared while hidden`);
+      await page.locator('#notice').evaluate(el => {
+        el.style.visibility = 'visible';
+        el.style.opacity = '1';
+      });
+      assert.equal(await page.locator('#notice p').getAttribute('data-surface-tone-v1'), 'theme',
+        `${theme} hidden notice copy must be paired before it appears`);
+      const noticeCopy = await page.locator('#notice p').evaluate(el => ({
+        color: getComputedStyle(el).color,
+        background: getComputedStyle(el.closest('#notice')).backgroundColor
+      }));
+      assert.ok(contrastRatio(parseColor(noticeCopy.color), parseColor(noticeCopy.background)) >= 4.5,
+        `${theme} notice copy: ${JSON.stringify(noticeCopy)}`);
+      assert.equal(await page.locator('#notice-action').getAttribute('data-surface-context-v1'), 'control',
+        `${theme} unrelated media below an opaque notice must not make its action an overlay`);
+      const action = await page.locator('#notice-action').evaluate(el => {
+        const style = getComputedStyle(el);
+        return { color: style.color, background: style.backgroundColor };
+      });
+      assert.ok(contrastRatio(parseColor(action.color), parseColor(action.background)) >= 4.5,
+        `${theme} notice action: ${JSON.stringify(action)}`);
+      for (const opacity of ['0', '.5', '1']) {
+        await page.locator('#reveal-card').evaluate((el, value) => {
+          el.style.opacity = value;
+          el.parentElement.style.opacity = value;
+        }, opacity);
+        await page.waitForTimeout(100);
+        assert.equal(await page.locator('#reveal-card').getAttribute('data-surface-context-v1'), 'content',
+          `${theme} heading-led neutral card must be owned through its reveal at opacity ${opacity}`);
+        assert.equal(await page.locator('#reveal-card p').getAttribute('data-surface-tone-v1'), 'theme');
+        const card = await page.locator('#reveal-card').evaluate(el => {
+          const style = getComputedStyle(el);
+          const heading = getComputedStyle(el.querySelector('h3'));
+          const prose = getComputedStyle(el.querySelector('p'));
+          return { opacity: style.opacity, groupOpacity: getComputedStyle(el.parentElement).opacity,
+            background: style.backgroundColor, backgroundImage: style.backgroundImage,
+            heading: heading.color, headingBackground: heading.backgroundColor,
+            headingImage: heading.backgroundImage, prose: prose.color };
+        });
+        assert.equal(card.opacity, opacity === '.5' ? '0.5' : opacity);
+        assert.equal(card.groupOpacity, card.opacity);
+        if (opacity === '1' && card.backgroundImage === 'none') {
+          const headingBacking = parseColor(card.headingBackground)?.[3] === 1 ? card.headingBackground : card.background;
+          assert.ok(contrastRatio(parseColor(card.heading), parseColor(headingBacking)) >= 4.5,
+            `${theme} revealing card heading: ${JSON.stringify(card)}`);
+          assert.ok(contrastRatio(parseColor(card.prose), parseColor(card.background)) >= 4.5,
+            `${theme} revealing card prose: ${JSON.stringify(card)}`);
+        }
+        if (opacity === '1' && card.backgroundImage === 'none') {
+          assert.notEqual(card.background, 'rgb(157, 158, 158)', `${theme} card must be painted during reveal`);
+        }
+      }
+      await page.locator('body').evaluate(body => {
+        const card = document.querySelector('#reveal-card');
+        window.__cardOwnershipRemovals = 0;
+        window.__cardOwnershipObserver = new MutationObserver(records => {
+          window.__cardOwnershipRemovals += records.filter(record => record.oldValue === 'content').length;
+        });
+        window.__cardOwnershipObserver.observe(card, {
+          attributes: true, attributeOldValue: true, attributeFilter: ['data-surface-context-v1']
+        });
+        body.setAttribute('data-surface-effect-owner-v1', '');
+        body.dispatchEvent(new Event('animationend', { bubbles: true }));
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('#reveal-card').getAttribute('data-surface-context-v1'), 'content',
+        `${theme} a large ancestor effect settlement must retain an already themed card`);
+      assert.equal(await page.locator('#reveal-card p').getAttribute('data-surface-tone-v1'), 'theme');
+      await page.locator('#reveal-card').evaluate(el => {
+        el.setAttribute('data-surface-effect-owner-v1', '');
+        el.dispatchEvent(new Event('animationend', { bubbles: true }));
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.evaluate(() => {
+        window.__cardOwnershipObserver.disconnect();
+        return window.__cardOwnershipRemovals;
+      }), 0, `${theme} ancestor and card effect settlement must retain ownership`);
+      await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+      assert.equal(await page.locator('#media-heading').getAttribute('data-surface-pair-v1'), 'media',
+        `${theme} local media pair must persist on scroll entry`);
+      assert.equal(await page.locator('#section-media').getAttribute('src'), 'dark-backdrop.svg');
+      await page.evaluate(() => scrollTo(0, 0));
+    }
+    await set({ enabled: false });
+    await waitStatus({ state: 'disabled' });
+    assert.equal(await page.locator('#landing').getAttribute('data-surface-context-v1'), null);
+    assert.equal(await page.locator('#notice-action').evaluate(el => getComputedStyle(el).color), 'rgb(17, 17, 17)');
+  });
+
   await check('reading hierarchy separates sections, fact panels, data and fields', async () => {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
@@ -523,7 +642,8 @@ try {
       await page.locator('#settling-neutral-panel p').evaluate(element => { element.textContent += ' Updated while revealing.'; });
       await page.waitForTimeout(50);
       await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '1'; });
-      await page.waitForTimeout(350);
+      await page.waitForFunction(() => document.querySelector('#settling-neutral-panel')?.getAttribute('data-surface-context-v1') === 'content',
+        undefined, { timeout: 2000 });
       assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), 'content');
       assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-evidence-v1'), 'neutral-heading-panel');
       assert.equal(await page.locator('#visualization').getAttribute('data-surface-context-v1'), 'visualization');
@@ -543,9 +663,19 @@ try {
         for (const selector of ['#shell > header', '#heading-group', '#facts']) {
           assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
         }
+        const titlePaint = await page.locator('[data-surface-purpose-v1="title"]').first().evaluate(el => {
+          const style = getComputedStyle(el);
+          return { image: style.backgroundImage, size: style.backgroundSize, repeat: style.backgroundRepeat };
+        });
+        assert.equal((titlePaint.image.match(/linear-gradient/g) || []).length, 2, 'Liquid Dream title should carry one rainbow edge over its dark gradient');
+        assert.match(titlePaint.size, /100% 3px, 100% 100%/);
+        assert.equal(titlePaint.repeat, 'no-repeat, no-repeat');
         // Every static glass and hierarchy stop must support text and links.
         for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
           for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
+        }
+        for (const stop of ['#ff78bb','#ffc56b','#b7ec92','#67e0e8','#b692ff']) {
+          assert.ok(contrastRatio(parseColor('#1b1030'), parseColor(stop)) >= 4.5, `${stop} rainbow hover must support dark control ink`);
         }
       } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');

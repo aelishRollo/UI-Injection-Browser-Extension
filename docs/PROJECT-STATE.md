@@ -2,7 +2,7 @@
 
 > **Authoritative architecture record.** Read this before changing Surface. If an older experiment, finding, screenshot note, or next-step recommendation conflicts with this file, this file wins.
 
-Last confirmed October 11, 2026. Surface is version 0.2.0 and has one product rendering path.
+Last confirmed October 12, 2026. Surface is version 0.2.0 and has one product rendering path.
 
 ## Current architecture
 
@@ -13,6 +13,8 @@ Last confirmed October 11, 2026. Surface is version 0.2.0 and has one product re
 - A media mark with substantial sibling copy receives brand protection only on the media; the neighboring copy remains available for normal contrast pairing.
 - Opaque themed owners above unrelated page media retain their own text pairing; media inside the owner remains relevant to overlay preservation.
 - Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.
+- A wide main landmark with multiple substantial sections and prominent media owns a mixed landing shell, so its independently meaningful sections are not flattened into one reading surface. A substantial neutral heading-led linked card within known content can own paint through an opacity-only reveal.
+- Copy above an explicit positioned image covering its local section stays paired with that media even when the section starts offscreen. Bounded neutral positioned notices can receive surface, text, and control paint while hidden before an opacity-only reveal; unrelated media below an opaque owner does not override its pairing.
 - Recognized data and fact-panel tables transfer only opaque near-white structural header/body paint to theme table roles; chromatic, scalar, gradient, and effect-backed cells remain authored, and compact sortable-header imagery is preserved.
 - Short pointer-transparent bottom fades attached to recognized sticky navigation rails are suppressed because their gradient can leave a horizontal band against the page canvas after scrolling.
 - Substantial neutral editorial cards with a visible border or shadow inside a mixed semantic main region can own paint even when that control-heavy main region cannot. Large labelled graphics remain reserved for visualization preservation. Recognized native buttons use their CSS face so visible paint matches paired theme ink.
@@ -23,10 +25,12 @@ Last confirmed October 11, 2026. Surface is version 0.2.0 and has one product re
 - When a restored large section reenters the viewport, the bounded semantic walker restores table purpose before classifying visible neutral table parts; offscreen descendants remain deferred.
 - Incremental page-canvas recognition retains an already owned root/body when its computed background image is the theme's own canvas treatment. Unowned background imagery remains authored evidence, and full scans restore authored state before recognition.
 - A large insertion batched with an existing ancestor's class change retains established descendant paint while the viewport-bounded walker classifies new content. Page roots are reconsidered individually so a real authored canvas change still enters preservation without clearing offscreen theme ownership.
+- A class-only change on a large established ancestor rechecks visible content while retaining offscreen paint and spanning reading/shell ownership. Attribute and inline-property writes are skipped when the value is unchanged; late page hydration still uses the existing bounded insertion path.
+- A large ancestor effect settlement also keeps established descendant paint during the bounded recheck. Settlement of an already-owned neutral linked card keeps its paint, while an unowned effect surface still restores and enters the existing bounded recognition path when the effect clears.
 - Full-document navigations keep a compact selected-theme first-paint sheet and the unified renderer resident at `document_start`. The sheet uses the normal theme selectors for core surfaces, typography, hierarchy, and primary motifs while leaving secondary interaction/icon/state rules to the full USER-origin sheet. Top documents bootstrap from the registered theme token and classify parser additions before paint. A short guard lasts only through the first parser-time treatment; USER-origin handoff and the complete document pass do not control first visibility.
 - Enabled theme-to-theme changes keep the current themed pixels rendered in a top-document snapshot while the renderer restores authored state and prepares the destination stylesheet plus bounded recognition underneath. The default cross-fade is skipped and the completed destination replaces the snapshot directly; the later full-document pass does not control the visible handoff.
 - Expressive theme CSS is static. Continuous animation, fixed full-page gradients, and repeated expensive radial paints are not part of the current system.
-- Liquid Dream is a dark violet/iridescent package with cyan links and pink interaction accents. Its title and section-heading paint excludes recognized visualization units so authored chart labels stay paired with their chart backing.
+- Liquid Dream is a dark violet/iridescent package with a solid reading plane, cyan links, a static rainbow title edge and control-hover gradient, and pink interaction accents. Section headings and navigation use single dark gradients. Its title and section-heading paint excludes recognized visualization units so authored chart labels stay paired with their chart backing.
 - Verified host role corrections are automatic and narrowly scoped. There is no user-facing correction mode.
 - The settings schema contains only the global enabled state, selected theme, and exact-host exceptions.
 - Disable and theme switching restore the author's prior attributes and inline properties without reloading the page.
@@ -109,6 +113,8 @@ The owner subsequently confirmed those issues fixed except for the final two lig
 [Iteration 32](EXPERIMENT-32.md) makes Monochrome Signal a dark MDMI-inspired package through the existing theme contract and narrows shared brand protection when a logo image has substantial neighboring copy. The Wikipedia Chromium infobox caption now pairs with the dark fact panel in Monochrome Signal and Terminal Vision, while its image remains protected. Live Federal Police and María Sabina captures retain dark table and caption treatment. The build, 12 unit checks, 15 browser checks, navigation checks, and five-repeat workload pass with 2,500 frame callbacks and no stalls.
 
 [Iteration 33](EXPERIMENT-33.md) fixes a shared large-hydration lifecycle gap exposed by the owner's Monochrome Signal review. A combined root class change and large insertion previously restored the entire themed subtree, then ran a viewport-bounded classifier that could leave the page canvas and offscreen table ownership absent. The shared path now retains established descendant paint and reconsiders only the page root's own authored canvas. A four-theme fixture failed before and passes after; an isolated María Sabina trace changed from exposed `rgb(248, 249, 250)` body paint before scrolling to stable dark page paint through repeated scroll positions in both dark themes. The build, 12 unit checks, 15 browser checks, navigation checks, and five-repeat workload pass with 2,500 callbacks and zero stalls. The exact owner-browser strip pixels still need review.
+
+[Iteration 34](EXPERIMENT-34.md) addresses the owner's MDMI report through shared composite-landing recognition, local offscreen image pairing, structurally clear neutral card and hidden notice prepaint, and paint retention during large/effect rescans. The new four-theme mixed-landing fixture and all 17 isolated browser checks pass; a final MDMI capture applied all four themes. An earlier five-repeat workload was valid with no stalls, while the exact final-state workload was invalid even in the unthemed control and navigation frame timings varied. Review the iteration record before making an exact-state performance claim.
 
 ## Documentation precedence
 
