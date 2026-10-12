@@ -231,7 +231,7 @@ h1 {
   margin-top: 4px;
 }
 .liquid {
-  background: linear-gradient(135deg, #5b247d, #423a8c 52%, #176579);
+  background: linear-gradient(90deg,#ff78bb,#ffc56b 24%,#b7ec92 48%,#67e0e8 72%,#b692ff) bottom / 100% 4px no-repeat, linear-gradient(135deg, #5b247d, #423a8c 52%, #176579);
   color: #f9f4ff;
   border: 1px solid #83e8f1;
   border-radius: 16px 22px 14px 20px;

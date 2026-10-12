@@ -35,6 +35,7 @@ const pendingEffectOwners = new Map();
 let scanScheduled = false;
 let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
+let queuedClassRoots = new Set();
 let queuedAddedElements = 0;
 const deferredMutationRoots = new Set();
 let deferredLargeMutationRoots = new WeakSet();
@@ -66,12 +67,14 @@ function record(element) {
 }
 
 function setAttribute(element, name, value) {
+  if (element.getAttribute(name) === value) return;
   const state = record(element);
   if (!state.attrs.has(name)) state.attrs.set(name, element.hasAttribute(name) ? element.getAttribute(name) : null);
   element.setAttribute(name, value);
 }
 
 function setProperty(element, name, value) {
+  if (element.style.getPropertyValue(name) === value && !element.style.getPropertyPriority(name)) return;
   const state = record(element);
   if (!state.properties.has(name)) state.properties.set(name, { value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) });
   element.style.setProperty(name, value);
@@ -1271,6 +1274,36 @@ function scanLargeAddition(root, media) {
   for (const child of root.children) scanLargeAddition(child, media);
 }
 
+function scanLargeClassChange(root, media) {
+  // A late framework/capability class on a document-sized owner can change
+  // descendant CSS, but restoring every already-themed offscreen descendant
+  // blocks scrolling and can expose authored paint as the user moves. Recheck
+  // the visible portion through the same recognizers and retain established
+  // paint elsewhere until a later concrete mutation affects it.
+  scanViewportBottom = innerHeight + Math.min(240, innerHeight * .25);
+  scanViewportMembership = new WeakMap();
+  try {
+    const visible = collect(root, '*');
+    const deferredReading = visible.filter(element => element.hasAttribute(ATTR_DEFERRED_READING));
+    for (const element of visible) {
+      // A reading or shell owner can span far beyond this viewport. Its
+      // landmark evidence may sit above the current scroll position, so a
+      // bounded pass cannot safely reconstruct it after removal.
+      if (element !== root && (element.getAttribute(ATTR_PURPOSE) === 'reading' ||
+          element.getAttribute(ATTR_CONTEXT) === 'shell')) continue;
+      restoreElement(element);
+    }
+    if (root === document.documentElement || root === document.body) markTheme();
+    scan(root, media);
+    for (const element of deferredReading) if (element.getAttribute(ATTR_PURPOSE) === 'reading') {
+      setAttribute(element, ATTR_DEFERRED_READING, '');
+    }
+  } finally {
+    scanViewportBottom = 0;
+    scanViewportMembership = undefined;
+  }
+}
+
 function scheduleScans(records) {
   for (const record of records) {
     if (record.type === 'childList') {
@@ -1281,7 +1314,10 @@ function scheduleScans(records) {
       for (const node of record.removedNodes) if (node instanceof Element) queuedRemovedRoots.add(node);
     } else {
       const target = record.target.nodeType === Node.TEXT_NODE ? record.target.parentElement : record.target;
-      if (target instanceof Element) queuedRoots.add(target);
+      if (target instanceof Element) {
+        queuedRoots.add(target);
+        if (record.attributeName === 'class') queuedClassRoots.add(target);
+      }
       if (record.type === 'deferred-large-mutation') queuedAddedElements += LARGE_ADDITION_LIMIT;
     }
   }
@@ -1292,6 +1328,7 @@ function scheduleScans(records) {
     if (!running) {
       queuedRoots.clear();
       queuedRemovedRoots.clear();
+      queuedClassRoots.clear();
       queuedAddedElements = 0;
       return;
     }
@@ -1312,6 +1349,8 @@ function scheduleScans(records) {
       // group rather than turning every mutation into a document rescan.
       root.parentElement?.closest(`[${ATTR_TONE}],[${ATTR_CONTEXT}="control"]`) || root);
     queuedRoots.clear();
+    const classRoots = [...queuedClassRoots];
+    queuedClassRoots.clear();
     const addedElements = queuedAddedElements;
     queuedAddedElements = 0;
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
@@ -1320,6 +1359,8 @@ function scheduleScans(records) {
       (addedElements > 0 && outermost.some(root => root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT));
     const media = mediaRects();
     for (const root of outermost) {
+      const largeClassChange = !largeAddition && classRoots.some(changed => root === changed || root.contains(changed)) &&
+        root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT;
       // Small SPA class/state/text updates recompute the affected subtree from
       // authored state without rescanning the document.
       // A large batch can include a class mutation on an established ancestor
@@ -1331,8 +1372,9 @@ function scheduleScans(records) {
         restoreElement(root);
         markTheme();
         markPage();
-      } else if (!largeAddition) restoreSubtree(root);
+      } else if (!largeAddition && !largeClassChange) restoreSubtree(root);
       if (largeAddition) scanLargeAddition(root, media);
+      else if (largeClassChange) scanLargeClassChange(root, media);
       else scan(root, media);
     }
     if (document.documentElement.hasAttribute(ATTR_STARTING)) parserScanCompleted = true;
@@ -1579,6 +1621,7 @@ export function stop() {
   purposeTreatments = {};
   queuedRoots.clear();
   queuedRemovedRoots.clear();
+  queuedClassRoots.clear();
   queuedAddedElements = 0;
   scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);

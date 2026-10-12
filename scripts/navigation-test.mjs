@@ -47,6 +47,29 @@ try {
   await page.waitForFunction(() => document.querySelector('#deferred-target p:last-child')?.hasAttribute('data-surface-tone-v1'));
   const finalParagraph = page.locator('#deferred-target p:last-child');
   const toneBeforeScroll = await finalParagraph.getAttribute('data-surface-tone-v1');
+  const classMutation = await page.evaluate(async () => {
+    const article = document.querySelector('#deferred-target');
+    let paintWrites = 0;
+    const observer = new MutationObserver(records => {
+      paintWrites += records.filter(record => record.attributeName?.startsWith('data-surface-')).length;
+    });
+    observer.observe(article, { subtree: true, attributes: true });
+    scrollTo(0, 120);
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    paintWrites = 0;
+    document.documentElement.classList.add('script-ready');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const duringScroll = paintWrites;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    observer.disconnect();
+    return { duringScroll, settledWrites: paintWrites, tone: article.querySelector('p:last-child').getAttribute('data-surface-tone-v1') };
+  });
+  assert.ok(classMutation.duringScroll < 100,
+    `a late class on a large ancestor repainted ${classMutation.duringScroll} article markers while scrolling`);
+  assert.ok(classMutation.settledWrites < 100,
+    `a bounded class rescan repainted ${classMutation.settledWrites} offscreen article markers`);
+  assert.equal(classMutation.tone, toneBeforeScroll, 'offscreen article paint should remain established during a bounded class rescan');
+  console.log(`PASS late ancestor class wrote ${classMutation.duringScroll} article markers before the next frame and ${classMutation.settledWrites} after settling`);
   const scrollFrameMs = await page.evaluate(() => new Promise(resolve => {
     const started = performance.now();
     scrollTo(0, document.scrollingElement.scrollHeight);

@@ -543,9 +543,19 @@ try {
         for (const selector of ['#shell > header', '#heading-group', '#facts']) {
           assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
         }
+        const titlePaint = await page.locator('[data-surface-purpose-v1="title"]').first().evaluate(el => {
+          const style = getComputedStyle(el);
+          return { image: style.backgroundImage, size: style.backgroundSize, repeat: style.backgroundRepeat };
+        });
+        assert.equal((titlePaint.image.match(/linear-gradient/g) || []).length, 2, 'Liquid Dream title should carry one rainbow edge over its dark gradient');
+        assert.match(titlePaint.size, /100% 3px, 100% 100%/);
+        assert.equal(titlePaint.repeat, 'no-repeat, no-repeat');
         // Every static glass and hierarchy stop must support text and links.
         for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
           for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
+        }
+        for (const stop of ['#ff78bb','#ffc56b','#b7ec92','#67e0e8','#b692ff']) {
+          assert.ok(contrastRatio(parseColor('#1b1030'), parseColor(stop)) >= 4.5, `${stop} rainbow hover must support dark control ink`);
         }
       } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
