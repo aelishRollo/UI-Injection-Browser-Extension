@@ -48,6 +48,21 @@ let scanViewportMembership;
 let initialViewportScanMs = 0;
 let parserScanCompleted = false;
 let initialStageMs = {};
+const freshIncrementalMetrics = () => ({
+  batches: 0,
+  largeAdditions: 0,
+  largeAncestorChanges: 0,
+  positionalRootShortcuts: 0,
+  lastBatchMs: 0,
+  maxBatchMs: 0,
+  lastLargeAdditionMs: 0,
+  maxLargeAdditionMs: 0,
+  lastLargeAncestorMs: 0,
+  maxLargeAncestorMs: 0,
+  lastPositionalRootMs: 0,
+  maxPositionalRootMs: 0
+});
+let incrementalMetrics = freshIncrementalMetrics();
 let palette;
 let purposeTreatments = {};
 let activeCorrections = { roles: {}, preserve: [] };
@@ -387,18 +402,41 @@ function isCompositeLanding(element) {
     color && themeColor && color.every((channel, index) => Math.abs(channel - themeColor[index]) < .01);
   if (style.display === 'contents' || style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
       (color?.[3] > .02 && !isNeutralSolidSurface(style) && !ownedShellPaint)) return false;
+  // Prove the structural shape and presence of relevant media before asking
+  // layout for section geometry. Large editorial routes can contain hundreds
+  // of direct sections but no media; measuring every one would defeat the
+  // viewport-bounded large-addition path before it can yield a frame.
+  const sections = [...element.children].filter(child =>
+    child.matches('section,article,[role="region"]'));
+  if (sections.length < 4) return false;
+  const sectionSet = new Set(sections);
+  const media = [...element.querySelectorAll('img,video,svg,canvas')].map(candidate => {
+    let section = candidate.parentElement;
+    while (section && section.parentElement !== element) section = section.parentElement;
+    return sectionSet.has(section) ? { candidate, section } : null;
+  }).filter(Boolean);
+  if (!media.length) return false;
   const bounds = element.getBoundingClientRect();
   if (bounds.width < innerWidth * .6) return false;
-  const sections = [...element.children].filter(child => {
-    if (!child.matches('section,article,[role="region"]')) return false;
-    const rect = child.getBoundingClientRect();
+  const sectionRects = new Map();
+  const substantial = section => {
+    let rect = sectionRects.get(section);
+    if (!rect) {
+      rect = section.getBoundingClientRect();
+      sectionRects.set(section, rect);
+    }
     return rect.width >= bounds.width * .6 && rect.height >= 200;
-  });
-  if (sections.length < 4) return false;
-  return sections.some(section => [...section.querySelectorAll('img,video,svg,canvas')].some(media => {
-    const rect = media.getBoundingClientRect();
+  };
+  let substantialSections = 0;
+  for (const child of sections) {
+    if (substantial(child) && ++substantialSections >= 4) break;
+  }
+  if (substantialSections < 4) return false;
+  return media.some(({ candidate, section }) => {
+    if (!substantial(section)) return false;
+    const rect = candidate.getBoundingClientRect();
     return rect.width >= bounds.width * .5 && rect.height >= 160;
-  }));
+  });
 }
 
 function markSurface(element, context) {
@@ -1427,6 +1465,7 @@ function scheduleScans(records) {
   if ((!queuedRoots.size && !queuedRemovedRoots.size) || scanScheduled) return;
   scanScheduled = true;
   queueMicrotask(() => {
+    const batchStarted = performance.now();
     scanScheduled = false;
     if (!running) {
       queuedRoots.clear();
@@ -1460,13 +1499,21 @@ function scheduleScans(records) {
     const addedElements = queuedAddedElements;
     queuedAddedElements = 0;
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
-    if (!outermost.length) return;
+    if (!outermost.length) {
+      const batchMs = Math.round((performance.now() - batchStarted) * 100) / 100;
+      incrementalMetrics.batches++;
+      incrementalMetrics.lastBatchMs = batchMs;
+      incrementalMetrics.maxBatchMs = Math.max(incrementalMetrics.maxBatchMs, batchMs);
+      return;
+    }
     const largeAddition = addedElements >= LARGE_ADDITION_LIMIT ||
       (addedElements > 0 && outermost.some(root => root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT));
     const media = mediaRects();
+    let largeAncestorChanges = 0;
     for (const root of outermost) {
       const largeAncestorChange = !largeAddition && ancestorRoots.some(changed => root === changed || root.contains(changed)) &&
         root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT;
+      if (largeAncestorChange) largeAncestorChanges++;
       const settledCardEffect = settledEffectRoots.some(changed =>
         (root === changed || root.contains(changed)) &&
         (changed.getAttribute('data-surface-evidence-v1') === 'neutral-heading-card' ||
@@ -1497,6 +1544,20 @@ function scheduleScans(records) {
     // viewport canvas. Refresh this bounded evidence in the same pre-paint
     // mutation batch while startup treatment is active.
     if (document.documentElement.hasAttribute(ATTR_STARTING)) markInitialCanvas();
+    const batchMs = Math.round((performance.now() - batchStarted) * 100) / 100;
+    incrementalMetrics.batches++;
+    incrementalMetrics.lastBatchMs = batchMs;
+    incrementalMetrics.maxBatchMs = Math.max(incrementalMetrics.maxBatchMs, batchMs);
+    if (largeAddition) {
+      incrementalMetrics.largeAdditions++;
+      incrementalMetrics.lastLargeAdditionMs = batchMs;
+      incrementalMetrics.maxLargeAdditionMs = Math.max(incrementalMetrics.maxLargeAdditionMs, batchMs);
+    }
+    if (largeAncestorChanges) {
+      incrementalMetrics.largeAncestorChanges += largeAncestorChanges;
+      incrementalMetrics.lastLargeAncestorMs = batchMs;
+      incrementalMetrics.maxLargeAncestorMs = Math.max(incrementalMetrics.maxLargeAncestorMs, batchMs);
+    }
   });
 }
 
@@ -1536,13 +1597,21 @@ function observe() {
       if (record.attributeName === 'class' &&
           isRootClass && changedRootClasses.length > 0 &&
           changedRootClasses.every(token => /(?:^|[-_])(scroll|sticky|affix|below|above|pinned)(?:$|[-_])/.test(token))) {
+        const shortcutStarted = performance.now();
         restoreElement(record.target);
         if (record.target === document.documentElement) markTheme();
         const paint = getComputedStyle(record.target);
         // Authored root imagery or effects change the effective text backing.
         // Those changes still need the complete conservative pairing pass.
-        if (paint.backgroundImage !== 'none' || hasUncertainPaint(paint)) ordinary.push(record);
-        else markPage();
+        if (paint.backgroundImage !== 'none' || hasUncertainPaint(paint)) {
+          ordinary.push(record);
+        } else {
+          markPage();
+          const shortcutMs = Math.round((performance.now() - shortcutStarted) * 100) / 100;
+          incrementalMetrics.positionalRootShortcuts++;
+          incrementalMetrics.lastPositionalRootMs = shortcutMs;
+          incrementalMetrics.maxPositionalRootMs = Math.max(incrementalMetrics.maxPositionalRootMs, shortcutMs);
+        }
         continue;
       }
       if (!MANAGED_PAINT_ATTRIBUTES.has(record.attributeName)) {
@@ -1694,6 +1763,7 @@ export async function start(theme, corrections) {
   initialViewportScanMs = 0;
   parserScanCompleted = false;
   initialStageMs = {};
+  incrementalMetrics = freshIncrementalMetrics();
   brandPaint = new WeakMap();
   refreshBrandPaint = false;
   if (!document.body) {
@@ -1765,6 +1835,7 @@ export function diagnostics() {
     contrastModel: 'sRGB base colors; decorative theme paint excluded',
     initialViewportScanMs,
     initialStageMs: { ...initialStageMs },
+    incremental: { ...incrementalMetrics },
     uncertainty: { ...uncertainty }
   };
 }

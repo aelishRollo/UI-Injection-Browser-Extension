@@ -12,7 +12,7 @@ export function createTerminalVisionTheme() {
     prelude: [
       { target: 'page', declarations: { 'background-image': 'repeating-linear-gradient(0deg,transparent 0 3px,rgba(157,255,176,.035) 3px 4px)' } },
       { target: 'themedHeading', declarations: { 'text-shadow': '0 0 12px rgba(157,255,176,.5)' } },
-      { target: 'surface', declarations: { 'background-image': 'repeating-linear-gradient(90deg,transparent 0 12px,rgba(157,255,176,.055) 12px 13px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28),0 0 18px rgba(157,255,176,.1)' } },
+      { target: 'surface', declarations: { 'background-image': 'repeating-linear-gradient(0deg,transparent 0 12px,rgba(157,255,176,.04) 12px 13px)', 'box-shadow': 'inset 0 0 26px rgba(0,0,0,.28)' } },
       { target: 'controlAndLinkHover', declarations: { 'text-shadow': '0 0 9px rgba(215,255,78,.75)', 'box-shadow': '0 0 12px rgba(215,255,78,.18)' } }
     ],
     motifs: [],

@@ -36,6 +36,8 @@ npm run fixtures
 
 The isolated fixture uses ports 4173 and 4174. Browser, navigation, and performance commands create temporary profiles and never use the normal browser profile. Do not run fixture, browser, navigation, or performance commands concurrently because they share ports. Screenshots and machine-readable results go to ignored `test-results/`.
 
+The navigation suite alternates themed and unthemed controls, waits for the registered startup stylesheet and complete renderer state, and keeps absolute route/scroll frame budgets alongside renderer-specific work limits. The performance suite rotates every mode across five runs by default, reports every invalid sample, and exits unsuccessfully when a mode lacks the valid majority required for a median. These foreground headless measurements are regression controls, not field-performance estimates.
+
 `npm run test:live` captures the four themes on seven public websites for review. `SURFACE_SITES=github` and `SURFACE_OUTPUT=test-results/live-retry` select a targeted run. Public pages can change, so a successful capture is not automatically a quality pass.
 
 ## Rendering model
