@@ -19,7 +19,14 @@ const percentile = (values, p) => [...values].sort((a, b) => a - b)[Math.min(val
 try {
   context = await chromium.launchPersistentContext(profileDir, {
     executablePath: await chromiumPath(), headless: true, viewport: { width: 1280, height: 960 },
-    args: [`--disable-extensions-except=${resolve('dist')}`, `--load-extension=${resolve('dist')}`, '--no-first-run']
+    args: [
+      `--disable-extensions-except=${resolve('dist')}`,
+      `--load-extension=${resolve('dist')}`,
+      '--no-first-run',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding'
+    ]
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   for (let i = 0; i < 100; i++) {
@@ -28,7 +35,15 @@ try {
     if (i === 99) throw new Error('Extension installation did not initialize settings');
     await new Promise(resolve => setTimeout(resolve, 25));
   }
-  const page = await context.newPage();
+  const page = context.pages()[0] || await context.newPage();
+  const waitStartupStyle = async (theme = null) => {
+    for (let i = 0; i < 100; i++) {
+      const registered = await worker.evaluate(async () => chrome.scripting.getRegisteredContentScripts({ ids: ['surface-theme-startup-v1'] }));
+      if ((!theme && registered.length === 0) || (theme && registered[0]?.css?.includes(`startup-${theme}.css`))) return;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    throw new Error(`Startup style did not synchronize for ${theme || 'disabled state'}`);
+  };
   await page.exposeFunction('__surfaceTrustedClick', selector => page.locator(selector).click({ force: true, timeout: 2000 }));
   const cdp = await context.newCDPSession(page);
   await cdp.send('Performance.enable');
@@ -42,6 +57,8 @@ try {
       await worker.evaluate(async mode => {
         await chrome.storage.local.set({ settings: { version: 2, enabled: mode.enabled, theme: mode.theme || 'terminal-vision', disabledHosts: [] } });
       }, mode);
+      await waitStartupStyle(mode.enabled ? mode.theme : null);
+      await page.bringToFront();
       const loadStarted = Date.now();
       console.log(`Starting ${repeat + 1}/${repeatCount} ${mode.theme || 'original'}`);
       await page.goto(fixture.url, { waitUntil: 'load' });
@@ -113,6 +130,24 @@ try {
     }
   }
   await writeFile(join(out, 'results.json'), JSON.stringify({ recordedAt: new Date().toISOString(), browser: context.browser()?.version(), configuration: { repeatCount, modes }, samples, limitations: ['Local fixture and headless browser; no product performance pass implied.', 'Playwright dispatches trusted click input, but click-to-two-rAF remains a laboratory rendering-opportunity measure rather than field INP.', 'CPU sampling covers page content engines, not extension worker CPU or all native rendering work.', 'Frame intervals and task duration include theme effects. Theme cost is not isolated by subtracting sampled engine values.', 'Navigations are warm-cache after the first run; loadToApplied includes automation and scheduling.', 'A verified equivalent-output frozen-style control, paint/composite traces, foreground runs, and real-site traces remain necessary for complete attribution.'] }, null, 2));
+  const invalidSamples = samples.filter(sample => !sample.frameMeasurementValid);
+  const completedFrames = samples.reduce((sum, sample) => sum + sample.completedFrames, 0);
+  const stalledFrames = samples.reduce((sum, sample) => sum + sample.stalledFrames, 0);
+  const longTasks = samples.reduce((sum, sample) => sum + sample.longTasks.length, 0);
+  console.log(`Completed ${samples.length} samples, ${completedFrames} frame callbacks, ${stalledFrames} stalls, and ${longTasks} long tasks.`);
+  const minimumValidSamples = Math.floor(repeatCount / 2) + 1;
+  const validity = modes.map(mode => {
+    const matching = samples.filter(sample => sample.enabled === mode.enabled && sample.theme === mode.theme);
+    return { mode: mode.theme || 'original', valid: matching.filter(sample => sample.frameMeasurementValid).length };
+  });
+  console.log(`Valid samples by mode: ${validity.map(result => `${result.mode} ${result.valid}/${repeatCount}`).join(', ')}.`);
+  if (invalidSamples.length) {
+    console.warn(`VARIABILITY ${invalidSamples.length}/${samples.length} samples were invalid; see ${join(out, 'results.json')}`);
+  }
+  const invalidModes = validity.filter(result => result.valid < minimumValidSamples);
+  if (invalidModes.length) {
+    throw new Error(`Performance medians are invalid for ${invalidModes.map(result => result.mode).join(', ')}; at least ${minimumValidSamples}/${repeatCount} valid samples are required`);
+  }
 } finally {
   await context?.close(); await fixture.close(); await rm(profileDir, { recursive: true, force: true });
 }
