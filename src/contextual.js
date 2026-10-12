@@ -35,7 +35,8 @@ const pendingEffectOwners = new Map();
 let scanScheduled = false;
 let queuedRoots = new Set();
 let queuedRemovedRoots = new Set();
-let queuedClassRoots = new Set();
+let queuedLargeAncestorRoots = new Set();
+let queuedSettledEffectRoots = new Set();
 let queuedAddedElements = 0;
 const deferredMutationRoots = new Set();
 let deferredLargeMutationRoots = new WeakSet();
@@ -107,6 +108,14 @@ function restoreSubtree(root) {
   for (const element of root.querySelectorAll('*')) restoreElement(element);
 }
 
+function restoreAroundRecognizedCards(root) {
+  if (!(root instanceof Element)) return;
+  const card = '[data-surface-evidence-v1="neutral-heading-card"]';
+  for (const element of [root, ...root.querySelectorAll('*')]) {
+    if (!element.closest(card)) restoreElement(element);
+  }
+}
+
 function restoreAll() {
   for (const element of [...touched.keys()]) restoreElement(element);
   touched.clear();
@@ -134,7 +143,7 @@ function descendantCount(element, selector) {
 }
 
 function scopedTextLength(element, threshold) {
-  if (!scanViewportBottom) return (element.innerText || '').trim().length;
+  if (!scanViewportBottom) return (element.innerText || element.textContent || '').trim().length;
   let length = 0;
   for (const candidate of [element, ...collect(element, '*')]) {
     for (const node of candidate.childNodes) {
@@ -171,6 +180,32 @@ function isNeutralOpacitySurface(style) {
   return Boolean(color && color[3] === 1 && Math.min(...color.slice(0, 3)) >= 230 &&
     Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
     style.backgroundImage === 'none' && !hasUncertainPaintExceptOpacity(style));
+}
+
+function isNeutralHeadingCard(style) {
+  const color = parseColor(style.backgroundColor);
+  return Boolean(color && color[3] === 1 &&
+    Math.min(...color.slice(0, 3)) >= 140 &&
+    Math.max(...color.slice(0, 3)) - Math.min(...color.slice(0, 3)) <= 25 &&
+    style.backgroundImage === 'none' && !hasUncertainPaintExceptOpacity(style));
+}
+
+function isRecognizedReveal(element) {
+  const evidence = element.getAttribute('data-surface-evidence-v1');
+  if (!['neutral-heading-card', 'bounded-neutral-overlay'].includes(evidence)) return false;
+  const style = getComputedStyle(element);
+  if (style.display === 'none' || (style.visibility === 'hidden' && evidence !== 'bounded-neutral-overlay') ||
+      hasUncertainPaintExceptOpacity(style)) return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function isPrepaintableDescendant(element) {
+  if (!element.closest('[data-surface-evidence-v1="bounded-neutral-overlay"]')) return false;
+  const style = getComputedStyle(element);
+  if (style.display === 'none') return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
 }
 
 function isNeutralTablePartSurface(element) {
@@ -242,6 +277,9 @@ function overlapsMedia(element, media, rect, opaqueSurface) {
     // consent notice does over a hero image. Media below that panel cannot
     // affect its text; media inside the panel still can.
     if (opaqueSurface && !opaqueSurface.contains(item.element)) {
+      // A recognized hidden overlay has a real opaque box but is deliberately
+      // absent from hit testing until reveal. Pair its content in advance.
+      if (getComputedStyle(opaqueSurface).visibility === 'hidden' && isRecognizedReveal(opaqueSurface)) return false;
       const surfaceIndex = stack.findIndex(hit => hit === opaqueSurface || opaqueSurface.contains(hit));
       const mediaIndex = stack.findIndex(hit => hit === item.element || item.element.contains(hit));
       if (surfaceIndex !== -1 && mediaIndex > surfaceIndex) return false;
@@ -249,6 +287,16 @@ function overlapsMedia(element, media, rect, opaqueSurface) {
     let common = element.parentElement;
     while (common && !common.contains(item.element)) common = common.parentElement;
     const locallyRelated = common && common !== document.body && common !== document.documentElement;
+    // Hit testing cannot inspect an offscreen point. A positioned image that
+    // covers nearly its whole local section is explicit background media for
+    // the section's copy, even before that section scrolls into view.
+    const offscreen = x < 0 || x >= innerWidth || y < 0 || y >= innerHeight;
+    if (offscreen && locallyRelated && item.element.parentElement === common &&
+        ['absolute', 'fixed'].includes(getComputedStyle(item.element).position)) {
+      const bounds = common.getBoundingClientRect();
+      if (bounds.width > 0 && bounds.height > 0 && item.rect.width >= bounds.width * .8 &&
+          item.rect.height >= bounds.height * .8) return true;
+    }
     const mediaX = item.rect.left + item.rect.width / 2;
     const mediaY = item.rect.top + item.rect.height / 2;
     const mediaIsPainted = document.elementsFromPoint(mediaX, mediaY).some(hit => hit === item.element || item.element.contains(hit));
@@ -329,6 +377,30 @@ function canOwnSurface(element) {
     controlCount <= 6 && scopedTextLength(element, 40) >= 40;
 }
 
+function isCompositeLanding(element) {
+  if (!element.matches('main,[role="main"]') || isProtected(element)) return false;
+  const style = getComputedStyle(element);
+  const color = parseColor(style.backgroundColor);
+  const themeColor = parseColor(palette.background);
+  const ownedShellPaint = element.getAttribute(ATTR_CONTEXT) === 'shell' &&
+    element.getAttribute('data-surface-evidence-v1') === 'mixed-media-landing' &&
+    color && themeColor && color.every((channel, index) => Math.abs(channel - themeColor[index]) < .01);
+  if (style.display === 'contents' || style.backgroundImage !== 'none' || hasUncertainPaint(style) ||
+      (color?.[3] > .02 && !isNeutralSolidSurface(style) && !ownedShellPaint)) return false;
+  const bounds = element.getBoundingClientRect();
+  if (bounds.width < innerWidth * .6) return false;
+  const sections = [...element.children].filter(child => {
+    if (!child.matches('section,article,[role="region"]')) return false;
+    const rect = child.getBoundingClientRect();
+    return rect.width >= bounds.width * .6 && rect.height >= 200;
+  });
+  if (sections.length < 4) return false;
+  return sections.some(section => [...section.querySelectorAll('img,video,svg,canvas')].some(media => {
+    const rect = media.getBoundingClientRect();
+    return rect.width >= bounds.width * .5 && rect.height >= 160;
+  }));
+}
+
 function markSurface(element, context) {
   if (!canOwnSurface(element)) return false;
   const existingOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"],[${ATTR_CONTEXT}="chrome"]`);
@@ -343,6 +415,12 @@ function markSurface(element, context) {
 }
 
 function markSurfaces(root) {
+  for (const element of collect(root, 'main,[role="main"]')) {
+    if (!isCompositeLanding(element)) continue;
+    setAttribute(element, ATTR_CONTEXT, 'shell');
+    setAttribute(element, ATTR_CONFIDENCE, 'medium');
+    setAttribute(element, 'data-surface-evidence-v1', 'mixed-media-landing');
+  }
   const corrected = selectorList(activeCorrections.roles.surface);
   const primary = `article,aside,dialog,fieldset,[role="dialog"],[role="menu"],[role="listbox"],[role="region"]${corrected ? `,${corrected}` : ''}`;
   for (const element of collect(root, primary)) markSurface(element, 'content');
@@ -350,7 +428,8 @@ function markSurfaces(root) {
     if (!element.querySelector(`[${ATTR_CONTEXT}="content"]`) && element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]')) markSurface(element, 'content');
   }
   for (const element of collect(root, 'main,[role="main"]')) {
-    if (!element.querySelector(`[${ATTR_CONTEXT}="content"]`)) markSurface(element, 'content');
+    if (element.getAttribute(ATTR_CONTEXT) !== 'shell' &&
+        !element.querySelector(`[${ATTR_CONTEXT}="content"]`)) markSurface(element, 'content');
   }
   // Composite landing pages often use a semantic content region around several
   // substantial, pale, heading-led panels instead of article/aside elements.
@@ -359,15 +438,17 @@ function markSurfaces(root) {
     if (element.hasAttribute(ATTR_CONTEXT)) return false;
     const contentOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`);
     const landmark = contentOwner ? null : element.parentElement?.closest('main,[role="main"],article');
-    if ((!contentOwner && !landmark) || !isVisible(element) || isProtected(element) ||
+    if ((!contentOwner && !landmark) || isProtected(element) ||
         element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
     const style = getComputedStyle(element);
+    const headingCard = Boolean(contentOwner && element.matches('a[href]') && isNeutralHeadingCard(style));
+    if (!isVisible(element) && !headingCard) return false;
     // A mixed main region may have too many controls to become one coherent
     // surface. Its individually bounded editorial cards are still paintable:
     // use a real visual edge plus a semantic landmark, never a pale div alone.
     if (!contentOwner && !(['Top', 'Right', 'Bottom', 'Left'].some(side => parseFloat(style[`border${side}Width`]) >= 1 &&
       style[`border${side}Style`] !== 'none') || style.boxShadow !== 'none')) return false;
-    if (!isNeutralSolidSurface(style) && !isNeutralLinearGradient(style)) return false;
+    if (!isNeutralSolidSurface(style) && !isNeutralLinearGradient(style) && !headingCard) return false;
     const rect = element.getBoundingClientRect();
     if (rect.width < 180 || rect.height < 80) return false;
     const heading = element.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]');
@@ -421,7 +502,7 @@ function markSurfaces(root) {
     const style = getComputedStyle(element);
     // A preview may enter at opacity zero and reveal without another DOM
     // mutation. Recognize its paint before that first visible animation frame.
-    if (style.display === 'none' || style.visibility === 'hidden' ||
+    if (style.display === 'none' ||
         !['absolute', 'fixed'].includes(style.position) || !isNeutralOpacitySurface(style) ||
         scopedTextLength(element, 40) < 40 || descendantCount(element, 'button,input,select,textarea,[role="button"]') > 6) continue;
     const rect = element.getBoundingClientRect();
@@ -449,7 +530,7 @@ function markSurfaces(root) {
 // Every theme consumes the same recognized hierarchy.
 function markPurposes(root) {
   const reading = `[${ATTR_PURPOSE}="reading"]`;
-  const safe = element => isVisible(element) && !isProtected(element) &&
+  const safe = element => (isVisible(element) || isRecognizedReveal(element)) && !isProtected(element) &&
     !element.closest(`[${ATTR_CONTEXT}="brand"]`) &&
     (getComputedStyle(element).backgroundImage === 'none' ||
       ['page', 'shell', 'content', 'chrome', 'control'].includes(element.getAttribute(ATTR_CONTEXT)));
@@ -469,6 +550,7 @@ function markPurposes(root) {
     ? [...element.children].filter(child => child.matches('div,section,article') && child.querySelector('h1,h2,[role="heading"]'))
     : [element]);
   for (const element of candidates) {
+    if (element.getAttribute(ATTR_CONTEXT) === 'shell') continue;
     const paragraphs = descendantCount(element, 'p');
     const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
     if (paragraphs >= 3 && controls <= Math.max(6, paragraphs * 2) &&
@@ -757,7 +839,7 @@ function markContentFades(root) {
 // title decoration add no DOM, actions or accessibility semantics.
 function markWindows(root) {
   for (const owner of collect(root, `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="navigation"]`)) {
-    if (!isVisible(owner) || isProtected(owner)) continue;
+    if ((!isVisible(owner) && !isRecognizedReveal(owner)) || isProtected(owner)) continue;
     const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
     const ownerEvidence = owner.getAttribute('data-surface-evidence-v1') || '';
     if (ownerPurpose === 'navigation' && !ownerEvidence.startsWith('neutral-')) {
@@ -887,7 +969,8 @@ function markControls(root, media) {
   const correctedOverlay = selectorList(activeCorrections.roles['overlay-control']);
   const selector = `button,summary,a[href],[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
   for (const element of collect(root, selector)) {
-    if (!isVisible(element) || isProtected(element) || element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
+    if ((!isVisible(element) && !isPrepaintableDescendant(element)) || isProtected(element) ||
+        element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     // A substantial heading-led linked card is an editorial surface, not one
     // oversized button. Surface recognition runs first and owns that decision.
     if (element.getAttribute(ATTR_CONTEXT) === 'content') continue;
@@ -899,11 +982,17 @@ function markControls(root, media) {
     }
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
-    const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE);
+    // Surface recognition precedes purpose assignment. A newly recognized
+    // owner may already show its theme image during this pass; that image is
+    // not evidence that a child control floats over authored media.
+    const authoredImage = backing?.image && !backing.element.hasAttribute(ATTR_PURPOSE) &&
+      !['page', 'shell', 'content', 'chrome', 'control'].includes(backing.element.getAttribute(ATTR_CONTEXT));
+    const opaqueThemeOwner = backing?.element?.hasAttribute(ATTR_CONTEXT) && isOpaque(backing.color)
+      ? backing.element : null;
     const style = getComputedStyle(element);
     const ownBackground = parseColor(style.backgroundColor);
     const ownsSolidPaint = ownBackground?.[3] > .9 && style.backgroundImage === 'none' && !hasUncertainPaint(style);
-    if (forcedOverlay || authoredImage || (!ownsSolidPaint && overlapsMedia(element, media))) {
+    if (forcedOverlay || authoredImage || (!ownsSolidPaint && overlapsMedia(element, media, null, opaqueThemeOwner))) {
       setAttribute(element, ATTR_CONTEXT, 'overlay');
       setAttribute(element, ATTR_CONFIDENCE, 'low');
       setProperty(element, ORIGINAL_COLOR, getComputedStyle(element).color);
@@ -970,8 +1059,9 @@ function backgroundForText(element) {
     // authored opacity and force every text pair down the preservation path.
     const guardedElement = (current === document.documentElement || current === document.body) &&
       !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
-    const ownedOpacityReveal = current.getAttribute('data-surface-evidence-v1') === 'bounded-neutral-overlay' &&
-      !hasUncertainPaintExceptOpacity(style);
+    const ownedOpacityReveal = Number(style.opacity) < 1 && !hasUncertainPaintExceptOpacity(style) &&
+      (['bounded-neutral-overlay', 'neutral-heading-card'].includes(current.getAttribute('data-surface-evidence-v1')) ||
+        (opaque && themed));
     if (!guardedElement && hasUncertainPaint(style) && !ownedOpacityReveal) return { reason: 'effects', owner: current };
     if (opaque) continue;
     const context = current.getAttribute(ATTR_CONTEXT);
@@ -1026,7 +1116,7 @@ function backgroundForText(element) {
 
 function textCandidates(root) {
   return collect(root, '*').filter(element =>
-    element instanceof HTMLElement && isVisible(element) && directText(element) &&
+    element instanceof HTMLElement && (isVisible(element) || isPrepaintableDescendant(element)) && directText(element) &&
     !element.matches('script,style,noscript,option') && !isProtected(element) &&
     !element.closest(`[${ATTR_CONTEXT}="brand"]`));
 }
@@ -1043,6 +1133,23 @@ function snapshotForegrounds(root) {
     }];
   }));
   return { candidates, originals };
+}
+
+function includePrepaintableForegrounds(root, snapshot) {
+  // The authored snapshot precedes surface recognition. A hidden, fixed
+  // notice becomes a known overlay during that recognition, so add only its
+  // text before the foreground pass rather than waiting for a style mutation
+  // that an opacity-driven reveal may never emit.
+  for (const element of collect(root, '[data-surface-evidence-v1="bounded-neutral-overlay"] *')) {
+    if (!(element instanceof HTMLElement) || snapshot.originals.has(element) || !directText(element) ||
+        !isPrepaintableDescendant(element) || isProtected(element)) continue;
+    const style = getComputedStyle(element);
+    snapshot.candidates.push(element);
+    snapshot.originals.set(element, {
+      color: style.color, fill: style.webkitTextFillColor,
+      fontSize: style.fontSize, fontWeight: style.fontWeight
+    });
+  }
 }
 
 function scheduleEffectSettlement(owner) {
@@ -1160,6 +1267,7 @@ function scan(root = document, media = mediaRects()) {
   }
   run('brands', () => markBrands(root));
   run('surfaces', () => markSurfaces(root));
+  run('prepaint', () => includePrepaintableForegrounds(root, foregroundSnapshot));
   run('controls', () => markControls(root, media));
   run('purposes', () => markPurposes(root));
   run('visualizations', () => markVisualizations(root));
@@ -1217,6 +1325,12 @@ function hasTextContent(element, threshold) {
 
 function classifyLargeSemanticRoot(root) {
   if (!isVisible(root) || isProtected(root) || root.closest(`[${ATTR_CONTEXT}="brand"]`)) return;
+  if (isCompositeLanding(root)) {
+    setAttribute(root, ATTR_CONTEXT, 'shell');
+    setAttribute(root, ATTR_CONFIDENCE, 'medium');
+    setAttribute(root, 'data-surface-evidence-v1', 'mixed-media-landing');
+    return;
+  }
   if (root.matches('table')) {
     markTableOwner(root);
     return;
@@ -1274,30 +1388,18 @@ function scanLargeAddition(root, media) {
   for (const child of root.children) scanLargeAddition(child, media);
 }
 
-function scanLargeClassChange(root, media) {
-  // A late framework/capability class on a document-sized owner can change
-  // descendant CSS, but restoring every already-themed offscreen descendant
-  // blocks scrolling and can expose authored paint as the user moves. Recheck
-  // the visible portion through the same recognizers and retain established
-  // paint elsewhere until a later concrete mutation affects it.
+function scanLargeAncestorChange(root, media) {
+  // A late framework class or settled visual effect on a document-sized
+  // owner can change descendant CSS. Recheck the visible portion without
+  // tearing down its established ownership: animated backgrounds may transition through an
+  // unrecognizable midpoint after restoration, exposing the authored page.
+  // Direct mutations on a descendant still use the normal scoped restore.
   scanViewportBottom = innerHeight + Math.min(240, innerHeight * .25);
   scanViewportMembership = new WeakMap();
   try {
-    const visible = collect(root, '*');
-    const deferredReading = visible.filter(element => element.hasAttribute(ATTR_DEFERRED_READING));
-    for (const element of visible) {
-      // A reading or shell owner can span far beyond this viewport. Its
-      // landmark evidence may sit above the current scroll position, so a
-      // bounded pass cannot safely reconstruct it after removal.
-      if (element !== root && (element.getAttribute(ATTR_PURPOSE) === 'reading' ||
-          element.getAttribute(ATTR_CONTEXT) === 'shell')) continue;
-      restoreElement(element);
-    }
+    restoreElement(root);
     if (root === document.documentElement || root === document.body) markTheme();
     scan(root, media);
-    for (const element of deferredReading) if (element.getAttribute(ATTR_PURPOSE) === 'reading') {
-      setAttribute(element, ATTR_DEFERRED_READING, '');
-    }
   } finally {
     scanViewportBottom = 0;
     scanViewportMembership = undefined;
@@ -1316,7 +1418,8 @@ function scheduleScans(records) {
       const target = record.target.nodeType === Node.TEXT_NODE ? record.target.parentElement : record.target;
       if (target instanceof Element) {
         queuedRoots.add(target);
-        if (record.attributeName === 'class') queuedClassRoots.add(target);
+        if (record.attributeName === 'class' || record.type === 'visual-effect') queuedLargeAncestorRoots.add(target);
+        if (record.type === 'visual-effect') queuedSettledEffectRoots.add(target);
       }
       if (record.type === 'deferred-large-mutation') queuedAddedElements += LARGE_ADDITION_LIMIT;
     }
@@ -1328,7 +1431,8 @@ function scheduleScans(records) {
     if (!running) {
       queuedRoots.clear();
       queuedRemovedRoots.clear();
-      queuedClassRoots.clear();
+      queuedLargeAncestorRoots.clear();
+      queuedSettledEffectRoots.clear();
       queuedAddedElements = 0;
       return;
     }
@@ -1349,8 +1453,10 @@ function scheduleScans(records) {
       // group rather than turning every mutation into a document rescan.
       root.parentElement?.closest(`[${ATTR_TONE}],[${ATTR_CONTEXT}="control"]`) || root);
     queuedRoots.clear();
-    const classRoots = [...queuedClassRoots];
-    queuedClassRoots.clear();
+    const ancestorRoots = [...queuedLargeAncestorRoots];
+    queuedLargeAncestorRoots.clear();
+    const settledEffectRoots = [...queuedSettledEffectRoots];
+    queuedSettledEffectRoots.clear();
     const addedElements = queuedAddedElements;
     queuedAddedElements = 0;
     const outermost = roots.filter(root => !roots.some(other => other !== root && other.contains(root)));
@@ -1359,10 +1465,16 @@ function scheduleScans(records) {
       (addedElements > 0 && outermost.some(root => root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT));
     const media = mediaRects();
     for (const root of outermost) {
-      const largeClassChange = !largeAddition && classRoots.some(changed => root === changed || root.contains(changed)) &&
+      const largeAncestorChange = !largeAddition && ancestorRoots.some(changed => root === changed || root.contains(changed)) &&
         root.querySelectorAll('*').length >= LARGE_ADDITION_LIMIT;
+      const settledCardEffect = settledEffectRoots.some(changed =>
+        (root === changed || root.contains(changed)) &&
+        (changed.getAttribute('data-surface-evidence-v1') === 'neutral-heading-card' ||
+          changed.querySelector('[data-surface-evidence-v1="neutral-heading-card"]')));
       // Small SPA class/state/text updates recompute the affected subtree from
-      // authored state without rescanning the document.
+      // authored state. An already-owned card keeps its paint through opacity
+      // settlement; surrounding effect paint and unowned panels still restore
+      // and re-enter recognition once the effect clears.
       // A large batch can include a class mutation on an established ancestor
       // and a newly inserted route below it. Restoring that whole ancestor
       // discards paint from offscreen descendants, while the large-addition
@@ -1372,9 +1484,12 @@ function scheduleScans(records) {
         restoreElement(root);
         markTheme();
         markPage();
-      } else if (!largeAddition && !largeClassChange) restoreSubtree(root);
+      } else if (!largeAddition && !largeAncestorChange) {
+        if (settledCardEffect) restoreAroundRecognizedCards(root);
+        else restoreSubtree(root);
+      }
       if (largeAddition) scanLargeAddition(root, media);
-      else if (largeClassChange) scanLargeClassChange(root, media);
+      else if (largeAncestorChange) scanLargeAncestorChange(root, media);
       else scan(root, media);
     }
     if (document.documentElement.hasAttribute(ATTR_STARTING)) parserScanCompleted = true;
@@ -1621,7 +1736,8 @@ export function stop() {
   purposeTreatments = {};
   queuedRoots.clear();
   queuedRemovedRoots.clear();
-  queuedClassRoots.clear();
+  queuedLargeAncestorRoots.clear();
+  queuedSettledEffectRoots.clear();
   queuedAddedElements = 0;
   scanScheduled = false;
   if (readinessListener) document.removeEventListener('DOMContentLoaded', readinessListener);

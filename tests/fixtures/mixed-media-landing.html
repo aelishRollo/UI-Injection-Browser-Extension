@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Mixed media landing</title>
+<style>
+body{margin:0;background:#fff;color:#222;font:16px/1.5 Arial,sans-serif}
+#hero-media{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+main{position:relative;background:transparent}
+main>section{position:relative;min-height:260px;padding:24px;box-sizing:border-box}
+main>section:nth-child(odd){background:#f3f3f3}
+main>section p{max-width:680px}
+#media-section{height:420px;color:#fff;background:transparent}
+#media-section img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#media-section .copy{position:relative;z-index:1;max-width:560px;padding:30px}
+#notice{position:fixed;z-index:5;right:20px;bottom:20px;width:340px;padding:16px;background:#fff;border:1px solid #aaa;visibility:hidden;opacity:0}
+#notice button{padding:4px 8px;border:0;background:transparent;color:#111;font:inherit}
+#reveal-card{display:block;width:360px;min-height:130px;box-sizing:border-box;padding:16px;background:#9d9e9e;color:#833635;text-decoration:none;opacity:0}
+#card-group{opacity:0}
+#reveal-card h3{margin:0 0 8px}
+</style>
+<img id="hero-media" src="landscape.svg" alt="Background scenery">
+<main id="landing">
+  <section><h1>Project overview</h1><p>This opening section has its own purpose and enough ordinary words to describe a product to a visitor without becoming an entire article.</p></section>
+  <section><h2>Services</h2><p>A second large section offers a separate group of services and supporting details. Its visual boundary is independent of the other sections.</p><div id="card-group"><a id="reveal-card" href="#approach"><h3>Expertise</h3><p>This linked service card has enough explanatory text to identify its editorial role before its authored opacity transition brings it into view.</p></a></div></section>
+  <section id="approach"><h2>Approach</h2><p>A third substantial section explains the approach and adds prose that would otherwise make a simplistic paragraph count misclassify the entire landing page.</p></section>
+  <section id="media-section"><img id="section-media" src="dark-backdrop.svg" alt=""><div class="copy"><h5 id="media-heading">A statement over full-width image media</h5><p id="media-copy">The light authored copy belongs with the dark image. It must remain paired even when classification happens while this section is below the viewport.</p></div></section>
+</main>
+<div id="notice" role="dialog" aria-label="Site notice"><p>A fixed, opaque notice sits above unrelated page media and contains an action.</p><button id="notice-action">Continue</button></div>
+</html>
