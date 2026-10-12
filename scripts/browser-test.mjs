@@ -665,11 +665,23 @@ try {
         }
         const titlePaint = await page.locator('[data-surface-purpose-v1="title"]').first().evaluate(el => {
           const style = getComputedStyle(el);
-          return { image: style.backgroundImage, size: style.backgroundSize, repeat: style.backgroundRepeat };
+          return { image: style.backgroundImage, size: style.backgroundSize, position: style.backgroundPosition, repeat: style.backgroundRepeat };
         });
         assert.equal((titlePaint.image.match(/linear-gradient/g) || []).length, 2, 'Liquid Dream title should carry one rainbow edge over its dark gradient');
-        assert.match(titlePaint.size, /100% 3px, 100% 100%/);
+        assert.match(titlePaint.size, /100% 6px, 100% 100%/);
+        assert.equal(titlePaint.position, '50% 0%, 50% 50%');
         assert.equal(titlePaint.repeat, 'no-repeat, no-repeat');
+        for (const [selector, edge, position] of [['#heading-group', '4px', '50% 100%'], ['#shell > header', '4px', '50% 100%'], ['#neutral-panel-one', '4px', '50% 0%']]) {
+          const paint = await page.locator(selector).evaluate(el => {
+            const style = getComputedStyle(el);
+            return { image: style.backgroundImage, size: style.backgroundSize, position: style.backgroundPosition, repeat: style.backgroundRepeat };
+          });
+          assert.equal((paint.image.match(/linear-gradient/g) || []).length, 2,
+            `${selector} should retain one narrow rainbow edge over its dark gradient`);
+          assert.match(paint.size, new RegExp(`100% ${edge}, 100% 100%`));
+          assert.equal(paint.position, `${position}, 50% 50%`);
+          assert.equal(paint.repeat, 'no-repeat, no-repeat');
+        }
         // Every static glass and hierarchy stop must support text and links.
         for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
           for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);

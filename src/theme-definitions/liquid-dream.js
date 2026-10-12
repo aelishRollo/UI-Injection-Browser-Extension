@@ -32,13 +32,13 @@ export function createLiquidDreamTheme() {
     purposes: {
       reading: { 'background-color': theme.colors.surface, 'background-image': 'none', border: '1px solid #8f73ae', 'border-radius': '18px', 'box-shadow': 'none' },
       section: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '0', 'background-color': 'transparent', border: '0' },
-      panel: { 'background-color': theme.colors.surface, 'background-image': LIQUID_PANEL, border: '1px solid #a779c6', 'box-shadow': 'none', 'border-radius': '18px' },
+      panel: { 'background-color': theme.colors.surface, 'background-image': `${LIQUID_RAINBOW},${LIQUID_PANEL}`, 'background-size': '100% 4px,100% 100%', 'background-position': 'top,center', 'background-repeat': 'no-repeat', border: '1px solid #a779c6', 'box-shadow': 'none', 'border-radius': '18px' },
       data: { 'background-image': 'none', 'box-shadow': 'none', 'border-radius': '8px', 'background-color': theme.colors.surface, border: `1px solid ${theme.colors.line}` },
       'table-body': { 'background-color': theme.colors.surface, 'border-color': theme.colors.line },
       'table-header': { 'background-color': theme.colors.raised, 'border-color': theme.colors.line },
-      titleAndSectionHeading: { ...ink(theme.colors.text), 'background-color': theme.colors.surface, 'background-image': `${LIQUID_RAINBOW},${LIQUID_HEADING}`, 'background-size': '100% 3px,100% 100%', 'background-position': 'bottom,center', 'background-repeat': 'no-repeat', 'border-bottom': '0', 'border-radius': '9px', 'letter-spacing': '-0.025em' },
-      'section-heading': { 'background-image': LIQUID_HEADING, 'background-size': 'auto', 'background-position': '0% 0%', 'background-repeat': 'repeat', 'border-bottom': '2px solid #83e8f1' },
-      navigation: { 'background-color': theme.colors.surface, 'background-image': LIQUID_NAV, 'box-shadow': 'inset 0 -2px 0 rgba(131,232,241,.48)' },
+      titleAndSectionHeading: { ...ink(theme.colors.text), 'background-color': theme.colors.surface, 'background-image': `${LIQUID_RAINBOW},${LIQUID_HEADING}`, 'background-size': '100% 6px,100% 100%', 'background-position': 'top,center', 'background-repeat': 'no-repeat', 'border-bottom': '0', 'border-radius': '9px', 'letter-spacing': '-0.025em' },
+      'section-heading': { 'background-size': '100% 4px,100% 100%', 'background-position': 'bottom,center', 'border-bottom': '0' },
+      navigation: { 'background-color': theme.colors.surface, 'background-image': `${LIQUID_RAINBOW},${LIQUID_NAV}`, 'background-size': '100% 4px,100% 100%', 'background-position': 'bottom,center', 'background-repeat': 'no-repeat', 'box-shadow': 'none' },
       field: { ...ink(theme.colors.text), '--surface-control-ink-v1': theme.colors.text, 'background-color': '#18122d', 'background-image': 'none', 'border-color': theme.colors.line, 'box-shadow': 'inset 0 2px 5px rgba(0,0,0,.26)' }
     },
     postlude: [
