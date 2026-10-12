@@ -124,7 +124,7 @@ try {
     const expected = {
       'terminal-vision': { canvas: 'rgb(6, 17, 11)', rail: 'rgb(9, 26, 17)' },
       'browser-archeology': { canvas: 'rgb(0, 128, 128)', rail: 'rgb(255, 255, 255)', title: 'rgb(0, 0, 128)' },
-      'liquid-dream': { canvas: 'rgb(248, 241, 231)', rail: 'rgb(255, 249, 241)', liquidTitle: true },
+      'liquid-dream': { canvas: 'rgb(16, 12, 34)', rail: 'rgb(33, 25, 54)', liquidTitle: true },
       'monochrome-signal': { canvas: 'rgb(5, 5, 5)', rail: 'rgb(5, 5, 5)' }
     };
     for (const [theme, colors] of Object.entries(expected)) {
@@ -208,7 +208,7 @@ try {
         await page.waitForTimeout(100);
         assert.equal(await page.locator('.wordmark').evaluate(el => getComputedStyle(el).backgroundColor), originalBrandBacking,
           `${theme} brand backing must survive an incremental rescan`);
-        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(255, 106, 183)', 'monochrome-signal': 'rgb(240, 61, 61)' }[theme];
+        const expected = { 'terminal-vision': 'rgb(215, 255, 78)', 'browser-archeology': 'rgb(0, 0, 128)', 'liquid-dream': 'rgb(238, 139, 255)', 'monochrome-signal': 'rgb(240, 61, 61)' }[theme];
         assert.equal(themed['#selected'].backgroundColor, expected);
         await page.screenshot({ path: join(out, `${theme}.png`) });
         results.push({ name: 'apply timing (includes worker/import wait)', theme, milliseconds: active.applyMs });
@@ -375,6 +375,28 @@ try {
     }
   });
 
+  await check('opaque notices keep readable text above unrelated media', async () => {
+    await set({ enabled: false });
+    await page.goto(`${fixture.url}/opaque-overlay.html`);
+    await waitStatus({ state: 'disabled' });
+    for (const theme of themeIds) {
+      await set({ enabled: true, theme });
+      await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('#notice').getAttribute('data-surface-context-v1'), 'content');
+      const pair = await page.locator('#notice-copy').evaluate(element => {
+        const notice = document.querySelector('#notice');
+        return {
+          color: getComputedStyle(element).color,
+          background: getComputedStyle(notice).backgroundColor,
+          decision: element.getAttribute('data-surface-pair-v1')
+        };
+      });
+      assert.ok(contrastRatio(parseColor(pair.color), parseColor(pair.background)) >= 4.5,
+        `${theme} opaque notice text: ${JSON.stringify(pair)}`);
+      assert.notEqual(pair.decision, 'media', `${theme} treated media behind opaque notice as its text backing`);
+    }
+  });
+
   await check('reading hierarchy separates sections, fact panels, data and fields', async () => {
     await set({ enabled: false });
     await page.goto(`${fixture.url}/roles.html`);
@@ -408,7 +430,7 @@ try {
       const tableColors = {
         'terminal-vision': { body: 'rgb(9, 26, 17)', header: 'rgb(16, 45, 29)' },
         'browser-archeology': { body: 'rgb(255, 255, 255)', header: 'rgb(212, 208, 200)' },
-        'liquid-dream': { body: 'rgb(255, 249, 241)', header: 'rgb(217, 245, 239)' },
+        'liquid-dream': { body: 'rgb(33, 25, 54)', header: 'rgb(59, 43, 85)' },
         'monochrome-signal': { body: 'rgb(16, 19, 19)', header: 'rgb(41, 45, 45)' }
       }[theme];
       for (const selector of ['#data thead', '#data th']) {
@@ -521,9 +543,9 @@ try {
         for (const selector of ['#shell > header', '#heading-group', '#facts']) {
           assert.match(await page.locator(selector).evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
         }
-        // All light rainbow stops must support theme ink, including links.
-        for (const stop of ['#ffc6e2','#ffe5a3','#fff2a6','#a3ecda','#b8d9ff','#dfc5ff']) {
-          for (const ink of ['#201928', '#274bb5']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
+        // Every static glass and hierarchy stop must support text and links.
+        for (const stop of ['#2c1c45','#211936','#1a2948','#35204f','#22284d','#5b247d','#423a8c','#176579','#3a2058','#242550','#173b51']) {
+          for (const ink of ['#f9f4ff', '#83e8f1']) assert.ok(contrastRatio(parseColor(ink), parseColor(stop)) >= 4.5);
         }
       } else if (theme === 'browser-archeology') {
         assert.equal(await page.locator('#input').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');

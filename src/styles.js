@@ -107,7 +107,7 @@ export function buildStyles(theme, { corrections = { roles: {}, preserve: [] }, 
     title: purpose('title'),
     titleContents: `${purpose('title')} :where(span,strong,em,small)`,
     'section-heading': purpose('section-heading'),
-    titleAndSectionHeading: `${purpose('title')},${purpose('section-heading')}`,
+    titleAndSectionHeading: `${purpose('title')}:not(:where([data-surface-context-v1="visualization"] *)),${purpose('section-heading')}:not(:where([data-surface-context-v1="visualization"] *))`,
     navigation: purpose('navigation'),
     field: purpose('field'),
     fieldFocus: `${purpose('field')}:focus-visible`

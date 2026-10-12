@@ -219,7 +219,7 @@ function mediaRects() {
     .map(element => ({ element, rect: element.getBoundingClientRect() }));
 }
 
-function overlapsMedia(element, media, rect) {
+function overlapsMedia(element, media, rect, opaqueSurface) {
   // A separately owned caption is below the image in the figure layout; its
   // explicit neutral backing is the text surface, not the image pixels.
   if (element.closest(`figcaption[${ATTR_CONTEXT}="content"]`)) return false;
@@ -235,6 +235,14 @@ function overlapsMedia(element, media, rect) {
   if (!candidates.length) return false;
   const stack = document.elementsFromPoint(x, y);
   return candidates.some(item => {
+    // A themed opaque panel can sit over unrelated page media, as a fixed
+    // consent notice does over a hero image. Media below that panel cannot
+    // affect its text; media inside the panel still can.
+    if (opaqueSurface && !opaqueSurface.contains(item.element)) {
+      const surfaceIndex = stack.findIndex(hit => hit === opaqueSurface || opaqueSurface.contains(hit));
+      const mediaIndex = stack.findIndex(hit => hit === item.element || item.element.contains(hit));
+      if (surfaceIndex !== -1 && mediaIndex > surfaceIndex) return false;
+    }
     let common = element.parentElement;
     while (common && !common.contains(item.element)) common = common.parentElement;
     const locallyRelated = common && common !== document.body && common !== document.documentElement;
@@ -967,7 +975,9 @@ function backgroundForText(element) {
     if (context === 'overlay' || context === 'preserve') return { reason: 'media' };
     const purpose = current.getAttribute(ATTR_PURPOSE);
     const tablePart = current.getAttribute(ATTR_TABLE_PART);
-    const headingPaint = (activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) || (activeTheme === 'browser-archeology' && purpose === 'title');
+    const headingPaint = !current.closest(`[${ATTR_CONTEXT}="visualization"]`) &&
+      ((activeTheme === 'liquid-dream' && ['title', 'section-heading'].includes(purpose)) ||
+      (activeTheme === 'browser-archeology' && purpose === 'title'));
     const windowTitlePaint = activeTheme === 'browser-archeology' && current.hasAttribute(ATTR_WINDOW_TITLE);
     const ownsTheme = Boolean(tablePart) || headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
@@ -1076,7 +1086,8 @@ function markText(root, media, snapshot) {
       ? { reason: 'effects' } : backgroundForText(element);
     // An already-uncertain backing wins the preservation decision. Avoid the
     // more expensive hit-testing path when it cannot change the result.
-    const mediaBacked = !backing.reason && overlapsMedia(element, media, textRects?.get(element));
+    const mediaBacked = !backing.reason && overlapsMedia(element, media, textRects?.get(element),
+      backing.themed ? backing.owner : null);
     const control = element.closest(`[${ATTR_CONTEXT}="control"]`);
     // Native controls already own their foreground. Nested labels share it,
     // including interactive states, unless they have their own painted surface.
