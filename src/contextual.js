@@ -141,14 +141,32 @@ function collect(root, selector) {
   if (root instanceof Element && root.matches(selector)) result.push(root);
   result.push(...root.querySelectorAll(selector));
   if (!scanViewportBottom) return result;
+
+  const localCache = new Map();
+  const unknowns = [];
+  for (const element of result) {
+    if (element === document.documentElement || element === document.body) continue;
+    if (scanViewportMembership?.has(element)) {
+      localCache.set(element, scanViewportMembership.get(element));
+    } else {
+      unknowns.push(element);
+    }
+  }
+
+  if (unknowns.length) {
+    const rects = unknowns.map(element => element.getBoundingClientRect());
+    for (let i = 0; i < unknowns.length; i++) {
+      const rect = rects[i];
+      const included = rect.width > 0 && rect.height > 0 && rect.bottom >= -64 && rect.top <= scanViewportBottom &&
+        rect.right >= -64 && rect.left <= innerWidth + 64;
+      localCache.set(unknowns[i], included);
+      scanViewportMembership?.set(unknowns[i], included);
+    }
+  }
+
   return result.filter(element => {
     if (element === document.documentElement || element === document.body) return true;
-    if (scanViewportMembership?.has(element)) return scanViewportMembership.get(element);
-    const rect = element.getBoundingClientRect();
-    const included = rect.width > 0 && rect.height > 0 && rect.bottom >= -64 && rect.top <= scanViewportBottom &&
-      rect.right >= -64 && rect.left <= innerWidth + 64;
-    scanViewportMembership?.set(element, included);
-    return included;
+    return localCache.get(element);
   });
 }
 
