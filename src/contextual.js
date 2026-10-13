@@ -789,11 +789,13 @@ function initialViewportHasTheme() {
     const rect = element.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 && rect.bottom >= 0 && rect.top <= innerHeight;
   };
-  const landmarks = [...document.querySelectorAll('main,[role="main"],article')].filter(inViewport);
-  if (landmarks.some(element => !element.hasAttribute(ATTR_CONTEXT) && !element.hasAttribute(ATTR_PURPOSE))) return false;
-  const titles = [...document.querySelectorAll('h1,[role="heading"][aria-level="1"]')].filter(inViewport);
-  return titles.every(element => element.hasAttribute(ATTR_PURPOSE) &&
-    (element.hasAttribute(ATTR_TONE) || element.querySelector(`[${ATTR_TONE}]`)));
+  for (const element of document.querySelectorAll('main,[role="main"],article')) {
+    if (!element.hasAttribute(ATTR_CONTEXT) && !element.hasAttribute(ATTR_PURPOSE) && inViewport(element)) return false;
+  }
+  for (const element of document.querySelectorAll('h1,[role="heading"][aria-level="1"]')) {
+    if ((!element.hasAttribute(ATTR_PURPOSE) || (!element.hasAttribute(ATTR_TONE) && !element.querySelector(`[${ATTR_TONE}]`))) && inViewport(element)) return false;
+  }
+  return true;
 }
 
 function markUtilityPanels(root) {
