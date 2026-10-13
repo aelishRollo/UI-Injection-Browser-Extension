@@ -160,12 +160,28 @@ function descendantCount(element, selector) {
 function scopedTextLength(element, threshold) {
   if (!scanViewportBottom) return (element.innerText || element.textContent || '').trim().length;
   let length = 0;
-  for (const candidate of [element, ...collect(element, '*')]) {
-    for (const node of candidate.childNodes) {
-      if (node.nodeType !== Node.TEXT_NODE) continue;
-      length += node.textContent.trim().length;
-      if (length >= threshold) return length;
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    const parent = node.parentElement;
+    if (parent) {
+      let included = false;
+      if (parent === document.documentElement || parent === document.body) {
+        included = true;
+      } else if (scanViewportMembership?.has(parent)) {
+        included = scanViewportMembership.get(parent);
+      } else {
+        const rect = parent.getBoundingClientRect();
+        included = rect.width > 0 && rect.height > 0 && rect.bottom >= -64 && rect.top <= scanViewportBottom &&
+          rect.right >= -64 && rect.left <= innerWidth + 64;
+        scanViewportMembership?.set(parent, included);
+      }
+      if (included) {
+        length += node.textContent.trim().length;
+        if (length >= threshold) return length;
+      }
     }
+    node = walker.nextNode();
   }
   return length;
 }
