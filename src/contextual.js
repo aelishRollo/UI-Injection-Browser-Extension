@@ -623,8 +623,15 @@ function markPurposes(root) {
     : [element]);
   for (const element of candidates) {
     if (element.getAttribute(ATTR_CONTEXT) === 'shell') continue;
-    const paragraphs = descendantCount(element, 'p');
-    const controls = descendantCount(element, 'button,input,select,textarea,[role="button"]');
+    let paragraphs = 0;
+    let controls = 0;
+    const descendants = !scanViewportBottom ? element.querySelectorAll('p,button,input,select,textarea,[role="button"]') :
+      collect(element, 'p,button,input,select,textarea,[role="button"]');
+    for (const candidate of descendants) {
+      if (candidate === element) continue;
+      if (candidate.matches('p')) paragraphs++;
+      else controls++;
+    }
     if (paragraphs >= 3 && controls <= Math.max(6, paragraphs * 2) &&
         scopedTextLength(element, 300) >= 300 && !element.parentElement?.closest(reading)) {
       assign(element, 'reading', 'content', landmarks.includes(element) ? 'prose-landmark' : 'boxless-landmark-prose');
