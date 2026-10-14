@@ -23,6 +23,12 @@ test('the contract rejects remote assets and unknown treatment targets', () => {
   assert.match(errors, /unknown target arbitrarySelector/);
 });
 
+test('buildStyles throws an error on unknown treatment targets', () => {
+  const theme = structuredClone(THEMES['terminal-vision']);
+  theme.treatments.motifs.push({ target: 'arbitrarySelector', declarations: { color: '#fff' } });
+  assert.throws(() => buildStyles(theme), /Unknown theme treatment target: arbitrarySelector/);
+});
+
 test('theme base pairs meet normal-text contrast', () => {
   for (const theme of Object.values(THEMES)) {
     for (const [foreground, background] of [
