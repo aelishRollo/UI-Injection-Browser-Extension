@@ -11,6 +11,8 @@ const ATTR_PURPOSE = 'data-surface-purpose-v1';
 const ATTR_PAIR = 'data-surface-pair-v1';
 const ATTR_WINDOW = 'data-surface-window-v1';
 const ATTR_WINDOW_TITLE = 'data-surface-window-title-v1';
+const ATTR_COMPONENT = 'data-surface-component-v1';
+const ATTR_WINDOW_CLOSE = 'data-surface-window-close-v1';
 const ATTR_STARTING = 'data-surface-starting-v2';
 const ATTR_THEME = 'data-surface-theme-v2';
 const ATTR_USER_STYLES = 'data-surface-user-styles-v2';
@@ -19,6 +21,8 @@ const ATTR_EFFECT_OWNER = 'data-surface-effect-owner-v1';
 const ATTR_DEFERRED_READING = 'data-surface-deferred-reading-v1';
 const ATTR_TABLE_PART = 'data-surface-table-part-v1';
 const ATTR_CONTENT_FADE = 'data-surface-content-fade-v1';
+const REVEAL_EVIDENCE = ['neutral-heading-card', 'neutral-heading-panel', 'neutral-panel-lining', 'bounded-neutral-overlay', 'carousel-card', 'neutral-solid-action'];
+const REVEAL_SELECTOR = REVEAL_EVIDENCE.map(value => `[data-surface-evidence-v1="${value}"]`).join(',');
 const RESOLVED_COLOR = '--surface-readable-color-v1';
 const ORIGINAL_COLOR = '--surface-original-color-v1';
 const ORIGINAL_BACKGROUND = '--surface-original-background-v1';
@@ -207,16 +211,16 @@ function isNeutralHeadingCard(style) {
 
 function isRecognizedReveal(element) {
   const evidence = element.getAttribute('data-surface-evidence-v1');
-  if (!['neutral-heading-card', 'bounded-neutral-overlay'].includes(evidence)) return false;
+  if (!REVEAL_EVIDENCE.includes(evidence)) return false;
   const style = getComputedStyle(element);
-  if (style.display === 'none' || (style.visibility === 'hidden' && evidence !== 'bounded-neutral-overlay') ||
+  if (style.display === 'none' ||
       hasUncertainPaintExceptOpacity(style)) return false;
   const rect = element.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
 }
 
 function isPrepaintableDescendant(element) {
-  if (!element.closest('[data-surface-evidence-v1="bounded-neutral-overlay"]')) return false;
+  if (!element.closest(REVEAL_SELECTOR)) return false;
   const style = getComputedStyle(element);
   if (style.display === 'none') return false;
   const rect = element.getBoundingClientRect();
@@ -440,7 +444,7 @@ function isCompositeLanding(element) {
 }
 
 function markSurface(element, context) {
-  if (!canOwnSurface(element)) return false;
+  if (element.closest('[aria-roledescription="carousel"]') || !canOwnSurface(element)) return false;
   const existingOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"],[${ATTR_CONTEXT}="chrome"]`);
   // A restrained near-white gradient is explicit authored paint, so it can
   // own a nested section even when an earlier parser pass already recognized
@@ -472,14 +476,16 @@ function markSurfaces(root) {
   // Composite landing pages often use a semantic content region around several
   // substantial, pale, heading-led panels instead of article/aside elements.
   // Recognize those authored panel boundaries without painting arbitrary cards.
+  const neutralPanelGeometry = new Map();
   const neutralPanels = collect(root, 'div,a[href]').filter(element => {
-    if (element.hasAttribute(ATTR_CONTEXT)) return false;
+    if (element.hasAttribute(ATTR_CONTEXT) || element.matches('[aria-roledescription="carousel"]') ||
+        element.closest('[aria-roledescription="carousel"]')) return false;
     const contentOwner = element.parentElement?.closest(`[${ATTR_CONTEXT}="content"]`);
     const landmark = contentOwner ? null : element.parentElement?.closest('main,[role="main"],article');
     if ((!contentOwner && !landmark) || isProtected(element) ||
         element.closest(`[${ATTR_CONTEXT}="brand"]`)) return false;
     const style = getComputedStyle(element);
-    const headingCard = Boolean(contentOwner && element.matches('a[href]') && isNeutralHeadingCard(style));
+    const headingCard = Boolean(contentOwner && (element.matches('a[href]') ? isNeutralHeadingCard(style) : isNeutralOpacitySurface(style)));
     if (!isVisible(element) && !headingCard) return false;
     // A mixed main region may have too many controls to become one coherent
     // surface. Its individually bounded editorial cards are still paintable:
@@ -500,12 +506,34 @@ function markSurfaces(root) {
       const graphicRect = graphic.getBoundingClientRect();
       if (graphicRect.width >= 160 && graphicRect.height >= 80) return false;
     }
+    neutralPanelGeometry.set(element, { rect, parentRect: element.parentElement === contentOwner
+      ? contentOwner.getBoundingClientRect() : null });
     return true;
   });
   for (const element of neutralPanels.filter(candidate => !neutralPanels.some(other => other !== candidate && other.contains(candidate)))) {
     setAttribute(element, ATTR_CONTEXT, 'content');
     setAttribute(element, ATTR_CONFIDENCE, 'medium');
-    setAttribute(element, 'data-surface-evidence-v1', element.matches('a[href]') ? 'neutral-heading-card' : 'neutral-heading-panel');
+    const { rect, parentRect } = neutralPanelGeometry.get(element);
+    const lining = element.matches('div') && parentRect &&
+      rect.width >= parentRect.width * .8 && rect.height >= parentRect.height * .65;
+    setAttribute(element, 'data-surface-evidence-v1', lining ? 'neutral-panel-lining' : element.matches('a[href]') ? 'neutral-heading-card' : 'neutral-heading-panel');
+  }
+  // Explicit carousel/slide semantics distinguish the moving layout machinery
+  // from the neutral, heading-led card inside each slide.
+  const slides = collect(root, '[aria-roledescription="slide"]');
+  const enclosingSlide = root instanceof Element && root.closest('[aria-roledescription="slide"]');
+  if (enclosingSlide && !slides.includes(enclosingSlide)) slides.push(enclosingSlide);
+  for (const slide of slides) {
+    if (!slide.closest('[aria-roledescription="carousel"]')) continue;
+    const cards = [...slide.children].filter(child => child.matches('div,article') &&
+      child.querySelector('h1,h2,h3,h4,h5,h6') && scopedTextLength(child, 100) >= 100 &&
+      isNeutralOpacitySurface(getComputedStyle(child)));
+    if (cards.length !== 1 || isProtected(cards[0])) continue;
+    const card = cards[0], rect = card.getBoundingClientRect();
+    if (rect.width < 180 || rect.height < 80) continue;
+    setAttribute(card, ATTR_CONTEXT, 'content');
+    setAttribute(card, ATTR_CONFIDENCE, 'medium');
+    setAttribute(card, 'data-surface-evidence-v1', 'carousel-card');
   }
   // A captioned image is media inside a paintable editorial card. Own only
   // its neutral frame and caption; the image pixels retain authored color.
@@ -558,7 +586,6 @@ function markSurfaces(root) {
   }
   for (const element of collect(root, 'header,footer,nav,[role="banner"],[role="navigation"],[role="contentinfo"]')) {
     if (!isVisible(element) || isProtected(element) || getComputedStyle(element).backgroundImage !== 'none') continue;
-    if (element.closest(`[${ATTR_CONTEXT}="chrome"]`)) continue;
     setAttribute(element, ATTR_CONTEXT, 'chrome');
     setAttribute(element, ATTR_CONFIDENCE, 'high');
   }
@@ -602,7 +629,7 @@ function markPurposes(root) {
     if (element.matches(reading)) continue;
     const inReading = element.parentElement?.closest(reading);
     const panel = element.matches('aside,dialog,fieldset,[role="dialog"],[role="menu"],[role="listbox"]');
-    assign(element, inReading && !panel ? 'section' : 'panel', 'content', panel ? 'semantic-panel' : 'content-hierarchy');
+    assign(element, (inReading && !panel) || element.getAttribute('data-surface-evidence-v1') === 'neutral-panel-lining' ? 'section' : 'panel', 'content', panel ? 'semantic-panel' : 'content-hierarchy');
   }
   for (const element of collect(root, 'table')) {
     if (!markTableOwner(element)) continue;
@@ -880,22 +907,57 @@ function markWindows(root) {
     if ((!isVisible(owner) && !isRecognizedReveal(owner)) || isProtected(owner)) continue;
     const ownerPurpose = owner.getAttribute(ATTR_PURPOSE);
     const ownerEvidence = owner.getAttribute('data-surface-evidence-v1') || '';
+    // Repeated linked panels inside one window are inset content items.
+    // Keep a single isolated editorial card eligible for its own title.
+    if (owner.matches('a[href]') && owner.parentElement?.closest(`[${ATTR_PURPOSE}="panel"]`) &&
+        [...owner.parentElement.children].filter(child => child.matches('a[href]') && child.querySelector('h1,h2,h3,h4,h5,h6')).length >= 2) {
+      setAttribute(owner, ATTR_COMPONENT, 'inset');
+      continue;
+    }
     if (ownerPurpose === 'navigation' && !ownerEvidence.startsWith('neutral-')) {
       const rect = owner.getBoundingClientRect();
       const neutralSelector = `[${ATTR_PURPOSE}="navigation"][data-surface-evidence-v1^="neutral-"]`;
       const neutralRelative = owner.parentElement?.closest(neutralSelector) || owner.querySelector(neutralSelector);
-      if (neutralRelative || rect.width < 100 || rect.width > 400 || rect.height < 100 || owner.querySelectorAll('a[href]').length < 4) continue;
+      const wideLandmark = owner.matches('header,footer,[role="banner"],[role="contentinfo"]') &&
+        rect.width >= innerWidth * .6 && rect.height >= 80;
+      if (neutralRelative || rect.width < 100 || (!wideLandmark && (rect.width > 400 || rect.height < 100)) || owner.querySelectorAll('a[href]').length < (wideLandmark ? 3 : 4)) continue;
+      if (owner.parentElement?.closest(`[${ATTR_WINDOW}]`)) continue;
     }
     let title = owner.querySelector(`[${ATTR_PURPOSE}="title"]`);
     if (!title && owner.matches('table')) {
       title = owner.querySelector(':scope > caption,:scope > thead > tr:first-child > th:only-child,:scope > tbody > tr:first-child > th:only-child,:scope > tr:first-child > th:only-child');
     }
-    if (!title) title = owner.querySelector('legend,h1,h2,h3,[role="heading"]');
+    if (!title) title = owner.querySelector('legend,h1,h2,h3,h4,h5,h6,[role="heading"]');
     if (title) {
       const closestOwner = title.closest(ownerPurpose === 'navigation'
         ? `[${ATTR_PURPOSE}="navigation"]`
         : `[${ATTR_PURPOSE}="reading"],[${ATTR_PURPOSE}="panel"]`);
       if (closestOwner !== owner) title = null;
+    }
+    if (ownerEvidence === 'carousel-card') title = null;
+    // A full-cover positioned image is the window's content, not an inset
+    // heading's backing. Paint chrome above it using an unused pseudo slot.
+    const image = [...owner.children].find(child => child.matches('img,video') &&
+      getComputedStyle(child).position === 'absolute');
+    const rect = image && owner.getBoundingClientRect();
+    const imageRect = image?.getBoundingClientRect();
+    const pseudo = image && getComputedStyle(owner, '::after');
+    if (image && imageRect.width >= rect.width * .8 && imageRect.height >= rect.height * .8 &&
+        getComputedStyle(owner).position !== 'static' &&
+        (owner.getAttribute(ATTR_WINDOW) === 'media' || ['none', 'normal'].includes(pseudo.content))) {
+      setAttribute(owner, ATTR_WINDOW, 'media');
+      continue;
+    }
+    // Reuse the site's accessible close action. Its handler and focus identity
+    // stay intact; only an untitled positioned window has a safe shared slot.
+    if (!title && ['fixed', 'absolute', 'relative'].includes(getComputedStyle(owner).position)) {
+      const close = [...owner.querySelectorAll('button[aria-label]')].filter(button =>
+        /^(close|dismiss)(\s|$)/i.test(button.getAttribute('aria-label')) &&
+        button.closest(`[${ATTR_PURPOSE}="panel"],[${ATTR_PURPOSE}="reading"]`) === owner);
+      if (close.length === 1) {
+        setAttribute(owner, ATTR_WINDOW_CLOSE, 'owner');
+        setAttribute(close[0], ATTR_WINDOW_CLOSE, 'button');
+      }
     }
     // Untitled, already-recognized panels still receive a thin inactive strip;
     // no label or interactive control is invented for them.
@@ -1002,12 +1064,22 @@ export function confirmUserStyles() {
   markTheme();
 }
 
+function isSolidLinkedAction(element, style) {
+  return element.matches('a[href]') && isOpaque(style.backgroundColor) && style.backgroundImage === 'none' &&
+    !hasUncertainPaintExceptOpacity(style) && element.textContent.trim().length <= 100 &&
+    !element.querySelector('h1,h2,h3,h4,h5,h6,img,video,canvas,input') &&
+    parseFloat(style.paddingLeft) >= 4 && parseFloat(style.paddingRight) >= 4 &&
+    ['block', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display);
+}
+
 function markControls(root, media) {
   const correctedButton = selectorList(activeCorrections.roles.button);
   const correctedOverlay = selectorList(activeCorrections.roles['overlay-control']);
   const selector = `button,summary,a[href],[role="button"],input:not([type="hidden"]),textarea,select${correctedButton ? `,${correctedButton}` : ''}${correctedOverlay ? `,${correctedOverlay}` : ''}`;
   for (const element of collect(root, selector)) {
-    if ((!isVisible(element) && !isPrepaintableDescendant(element)) || isProtected(element) ||
+    const solidAction = isSolidLinkedAction(element, getComputedStyle(element));
+    const actionRect = solidAction && element.getBoundingClientRect();
+    if ((!isVisible(element) && !isPrepaintableDescendant(element) && !(solidAction && actionRect.width > 0 && actionRect.height > 0)) || isProtected(element) ||
         element.closest(`[${ATTR_CONTEXT}="brand"]`)) continue;
     // A substantial heading-led linked card is an editorial surface, not one
     // oversized button. Surface recognition runs first and owns that decision.
@@ -1016,8 +1088,9 @@ function markControls(root, media) {
       const style = getComputedStyle(element);
       const bordered = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'].some(property => parseFloat(style[property]) >= 1);
       const padded = parseFloat(style.paddingLeft) >= 4 && parseFloat(style.paddingRight) >= 4;
-      if (!bordered || !padded || !['block', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) continue;
+      if ((!bordered && !solidAction) || !padded || !['block', 'inline-block', 'flex', 'inline-flex', 'grid', 'inline-grid'].includes(style.display)) continue;
     }
+    if (solidAction) setAttribute(element, 'data-surface-evidence-v1', 'neutral-solid-action');
     const forcedOverlay = Boolean(correctedOverlay && element.matches(correctedOverlay));
     const backing = backingFor(element);
     // Surface recognition precedes purpose assignment. A newly recognized
@@ -1098,7 +1171,7 @@ function backgroundForText(element) {
     const guardedElement = (current === document.documentElement || current === document.body) &&
       !document.documentElement.hasAttribute('data-surface-ready-v2') && Number(style.opacity) === 0;
     const ownedOpacityReveal = Number(style.opacity) < 1 && !hasUncertainPaintExceptOpacity(style) &&
-      (['bounded-neutral-overlay', 'neutral-heading-card'].includes(current.getAttribute('data-surface-evidence-v1')) ||
+      (isRecognizedReveal(current) ||
         (opaque && themed));
     if (!guardedElement && hasUncertainPaint(style) && !ownedOpacityReveal) return { reason: 'effects', owner: current };
     if (opaque) continue;
@@ -1113,6 +1186,7 @@ function backgroundForText(element) {
     const ownsTheme = Boolean(tablePart) || headingPaint || windowTitlePaint || ['page', 'shell', 'content', 'chrome', 'control'].includes(context);
     for (const pseudo of ['::before', '::after']) {
       if (pseudo === '::before' && current.hasAttribute('data-surface-heading-glyph-v1')) continue;
+      if (pseudo === '::after' && current.getAttribute(ATTR_WINDOW) === 'media') continue;
       const paint = getComputedStyle(current, pseudo);
       if (!['none', 'normal'].includes(paint.content) && paint.display !== 'none' &&
           (paint.backgroundImage !== 'none' || (parseColor(paint.backgroundColor)?.[3] || 0) > 0) &&
@@ -1174,11 +1248,10 @@ function snapshotForegrounds(root) {
 }
 
 function includePrepaintableForegrounds(root, snapshot) {
-  // The authored snapshot precedes surface recognition. A hidden, fixed
-  // notice becomes a known overlay during that recognition, so add only its
-  // text before the foreground pass rather than waiting for a style mutation
-  // that an opacity-driven reveal may never emit.
-  for (const element of collect(root, '[data-surface-evidence-v1="bounded-neutral-overlay"] *')) {
+  // Surface/control recognition establishes hidden reveal owners after the
+  // authored snapshot. Include their text before pairing, without waiting for
+  // a style-only visibility transition that may emit no observed mutation.
+  for (const element of collect(root, `:is(${REVEAL_SELECTOR}),:is(${REVEAL_SELECTOR}) *`)) {
     if (!(element instanceof HTMLElement) || snapshot.originals.has(element) || !directText(element) ||
         !isPrepaintableDescendant(element) || isProtected(element)) continue;
     const style = getComputedStyle(element);
@@ -1305,8 +1378,8 @@ function scan(root = document, media = mediaRects()) {
   }
   run('brands', () => markBrands(root));
   run('surfaces', () => markSurfaces(root));
-  run('prepaint', () => includePrepaintableForegrounds(root, foregroundSnapshot));
   run('controls', () => markControls(root, media));
+  run('prepaint', () => includePrepaintableForegrounds(root, foregroundSnapshot));
   run('purposes', () => markPurposes(root));
   run('visualizations', () => markVisualizations(root));
   run('shells', () => markShells(root));
@@ -1362,6 +1435,8 @@ function hasTextContent(element, threshold) {
 }
 
 function classifyLargeSemanticRoot(root) {
+  // A large carousel insertion still delegates paint to its individual cards.
+  if (root.matches('[aria-roledescription="carousel"]')) return;
   if (!isVisible(root) || isProtected(root) || root.closest(`[${ATTR_CONTEXT}="brand"]`)) return;
   if (isCompositeLanding(root)) {
     setAttribute(root, ATTR_CONTEXT, 'shell');
@@ -1447,6 +1522,12 @@ function scanLargeAncestorChange(root, media) {
 function scheduleScans(records) {
   for (const record of records) {
     if (record.type === 'childList') {
+      // textContent replaces text nodes rather than emitting characterData.
+      // Recheck that small text owner too, including after reveal polling ends.
+      if (record.target instanceof Element && !record.target.matches('script,style,noscript') &&
+          [...record.addedNodes, ...record.removedNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())) {
+        queuedRoots.add(record.target);
+      }
       for (const node of record.addedNodes) if (node instanceof Element) {
         queuedRoots.add(node);
         queuedAddedElements++;

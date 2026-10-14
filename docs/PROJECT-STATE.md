@@ -2,7 +2,7 @@
 
 > **Authoritative architecture record.** Read this before changing Surface. If an older experiment, finding, screenshot note, or next-step recommendation conflicts with this file, this file wins.
 
-Last confirmed October 12, 2026. Surface is version 0.2.0 and has one product rendering path.
+Last confirmed October 13, 2026. Surface is version 0.2.0 and has one product rendering path.
 
 ## Current architecture
 
@@ -11,6 +11,8 @@ Last confirmed October 12, 2026. Surface is version 0.2.0 and has one product re
 - The renderer recognizes semantic and structural purpose, establishes paint ownership, resolves foreground/background pairs, and preserves uncertain media, brands, visualizations, and effects.
 - Browser Archeology separates warm-gray window panels from white reading/data/field surfaces. Reading and panel window titles use compact, wrapping 18–24 px type and a navy-to-blue gradient with normal-text contrast; navigation titles keep their authored size, and untitled furniture inherits its purpose background. This is static treatment CSS over the shared renderer.
 - Monochrome Signal is a dark package with near-black reading surfaces, light typography, charcoal depth, and red signals. Its recognition uses the same renderer as Terminal Vision and the other themes.
+- Hidden visibility/opacity reveals can prepare recognized neutral cards, structural panel linings, explicit carousel cards, and solid linked actions before they become visible. Text-node replacement queues the local text owner and can re-arm existing bounded effect settlement after its initial reads expire.
+- Nested semantic navigation shares theme paint. Browser Archeology frames substantial header/footer landmarks, treats repeated sibling linked cards as inset content in their parent window, and frames individual semantic carousel cards rather than tracks. Full-cover positioned media receives outer pointer-transparent chrome in an unused pseudo slot. An unambiguous existing close button in an untitled positioned panel occupies its actual close slot without replacing the site's handler or accessible control.
 - A media mark with substantial sibling copy receives brand protection only on the media; the neighboring copy remains available for normal contrast pairing.
 - Opaque themed owners above unrelated page media retain their own text pairing; media inside the owner remains relevant to overlay preservation.
 - Substantial neutral, heading-led panels inside known content regions can own paint as composite landing-page panels; sufficiently large neutral ancestors can own the page shell.

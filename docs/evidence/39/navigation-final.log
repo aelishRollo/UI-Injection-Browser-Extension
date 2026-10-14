@@ -1,0 +1,13 @@
+
+> surface-website-themes@0.2.0 test:navigation
+> node scripts/navigation-test.mjs
+
+PASS large route frame median 78.8 ms versus 44.0 ms control
+PASS large route renderer batches 70.1/68.4/65.5 ms (80.8/78.8/75.9 themed frames; 94.8/44.0/42.3 control) and deferred paint remained coherent
+PASS bounded ancestor class used one 12.0 ms scan with zero article marker rewrites
+PASS long-scroll frame median 12.2 ms versus 100.3 ms control
+PASS long-scroll used 2.4/2.7/2.5 ms positional-root shortcuts with zero Surface marker writes (8.4/12.2/12.9 themed frames; 100.3/212.2/94.5 control)
+PASS browser-archeology deferred table and inline-gray row retained purpose and paint through growth and scroll entry
+PASS liquid-dream deferred table and inline-gray row retained purpose and paint through growth and scroll entry
+PASS monochrome-signal deferred table and inline-gray row retained purpose and paint through growth and scroll entry
+PASS terminal-vision deferred table and inline-gray row retained purpose and paint through growth and scroll entry

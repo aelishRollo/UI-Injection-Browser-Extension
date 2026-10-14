@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Window hierarchy and hidden reveals</title>
+<style>
+body{margin:0;background:white;color:#222;font:16px/1.5 Arial}header,footer{min-height:110px;padding:12px;background:#111;color:white}header a,footer a{color:white;margin-right:30px}main{padding:24px}section{margin:20px 0;padding:20px;background:#f2f2f2}h2{margin:0}a.item{display:block;padding:20px;background:#eee;color:#111;width:320px;min-height:160px;box-sizing:border-box}.grid{display:flex;gap:20px}.reveal{visibility:hidden;opacity:0}#cta{display:flex;background:#000;color:#fff;padding:24px;justify-content:space-between}#lining{background:#eee;padding:20px;min-height:180px}#lined{padding:0;min-height:220px}#photo{position:relative;height:330px;overflow:hidden;display:flex;align-items:end}#photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#photo .copy{position:relative;z-index:1;color:white;width:65%}#carousel{background:transparent;overflow:hidden}#track{display:flex;gap:20px}#track article{background:white;padding:40px;width:450px;flex-shrink:0}#track h5{width:max-content;margin:24px auto}#notice{position:fixed;bottom:20px;right:20px;width:340px;padding:24px;background:white;z-index:5}#close{position:absolute;right:12px;top:12px}#close svg{width:40px;height:40px}#notice p{padding-right:30px}#spacer{height:1000px}
+</style>
+<header id="top"><nav style="background:#000;padding:10px"><a href="#one">One</a><a href="#two">Two</a><a href="#three">Three</a></nav></header>
+<main>
+<div class="reveal" id="action-wrap"><a id="cta" href="#services"><span>Our services</span><span>View expertise →</span></a></div>
+<section id="services"><h2>Services</h2><p>Explore the services in this independently meaningful section, with individual linked items below.</p><div class="grid reveal" id="cards">
+<a class="item" id="one" href="#details"><h4>First service</h4><p>A linked item with explanatory content belongs inside this shared parent window. Its solid background and heading identify its local paint boundary.</p></a>
+<a class="item" id="two" href="#details"><h4>Second service</h4><p>Another substantial linked item uses the same parent window while preserving its individual action and the readable supporting service description.</p></a></div></section>
+<section id="photo"><img src="dark-backdrop.svg" alt=""><div class="copy"><h2>A caption over a photograph</h2><p>The photo remains authored, with a single strip along the outer window edge.</p></div></section>
+<section id="lined"><div class="reveal" id="lining"><h2>Industries</h2><p>A neutral inner wrapper covers most of its semantic region. Its reveal must carry the same theme as its parent rather than cover it with authored pale paint.</p></div></section>
+<div role="region" aria-roledescription="carousel" class="reveal" id="carousel"><div id="track">
+<div role="group" aria-roledescription="slide"><article id="quote"><h5>Clients</h5><blockquote>A substantial testimonial with a real heading belongs to the individual card. The moving track and its slide wrapper are structural rather than independent windows.</blockquote></article></div>
+<div role="group" aria-roledescription="slide"><article><h5>Clients</h5><blockquote>A second substantial testimonial keeps its own stable frame through changes in carousel state. The track remains transparent and keeps the original scrolling behavior.</blockquote></article></div>
+</div></div>
+<div id="spacer"></div></main>
+<footer id="bottom"><a href="#one">One</a><a href="#two">Two</a><a href="#three">Three</a></footer>
+<div id="notice" class="reveal"><p>A positioned cookie notice has one existing accessible close action which must remain the action behind its themed close icon.</p><button id="close" aria-label="Close notice" onclick="window.closedCount=(window.closedCount||0)+1;this.parentElement.hidden=true"><svg viewBox="0 0 40 40"><path d="M10 10L30 30M30 10L10 30" stroke="red"/></svg></button><button>Accept</button></div>
+</html>

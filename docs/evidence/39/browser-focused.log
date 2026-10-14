@@ -1,0 +1,3 @@
+PASS hidden reveals retain one window boundary and reuse the real close action
+PASS mixed media landing keeps local image copy and notice actions readable
+Completed 2 browser checks. Artifacts in test-results/.

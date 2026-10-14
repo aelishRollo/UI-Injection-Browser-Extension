@@ -1,0 +1,23 @@
+
+> surface-website-themes@0.2.0 test:browser
+> node scripts/browser-test.mjs
+
+PASS full navigation starts with the selected theme treatment
+PASS terminal-vision: apply, preserve media, isolate CSS, restore
+PASS browser-archeology: apply, preserve media, isolate CSS, restore
+PASS liquid-dream: apply, preserve media, isolate CSS, restore
+PASS monochrome-signal: apply, preserve media, isolate CSS, restore
+PASS in-page theme changes keep content visible and hand off directly
+PASS unified renderer pairs known surfaces and preserves uncertain regions
+PASS unified foregrounds pass contrast on retained and alpha surfaces in every theme
+PASS opaque notices keep readable text above unrelated media
+PASS hidden reveals retain one window boundary and reuse the real close action
+PASS mixed media landing keeps local image copy and notice actions readable
+PASS reading hierarchy separates sections, fact panels, data and fields
+PASS dynamic DOM, SPA navigation, keyboard focus and working controls
+PASS one role correction works across all themes
+PASS site disable propagates into HTTP frames and survives navigation
+PASS in-page theme picker stays readable, persistent and synchronized
+PASS 20 switches leave no residual style nodes and restore the current page
+PASS popup loads and changes persisted settings
+Completed 18 browser checks. Artifacts in test-results/.

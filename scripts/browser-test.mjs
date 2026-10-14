@@ -407,6 +407,75 @@ try {
     }
   });
 
+  await check('hidden reveals retain one window boundary and reuse the real close action', async () => {
+    for (const theme of themeIds) {
+      await set({ enabled: false });
+      await page.goto(`${fixture.url}/window-hierarchy.html`);
+      await waitStatus({ state: 'disabled' });
+      const controls = await page.locator('button').count();
+      await set({ enabled: true, theme });
+      await waitStatus({ state: 'active', theme });
+      assert.equal(await page.locator('#cta').getAttribute('data-surface-context-v1'), 'control', `${theme} hidden solid CTA`);
+      assert.equal(await page.locator('#one').getAttribute('data-surface-purpose-v1'), 'panel', `${theme} hidden linked panel purpose`);
+      assert.equal(await page.locator('#one').getAttribute('data-surface-component-v1'), 'inset');
+      assert.equal(await page.locator('#one').getAttribute('data-surface-window-v1'), null);
+      assert.equal(await page.locator('#services').getAttribute('data-surface-window-v1'), 'titled');
+      assert.equal(await page.locator('#lining').getAttribute('data-surface-purpose-v1'), 'section');
+      assert.equal(await page.locator('#photo').getAttribute('data-surface-window-v1'), 'media');
+      assert.equal(await page.locator('#photo h2').getAttribute('data-surface-window-title-v1'), null);
+      assert.equal(await page.locator('#quote').getAttribute('data-surface-window-v1'), 'frame');
+      assert.equal(await page.locator('#carousel [data-surface-window-v1]').count(), 2);
+      assert.equal(await page.locator('#carousel').getAttribute('data-surface-window-v1'), null);
+      assert.equal(await page.locator('#top').getAttribute('data-surface-window-v1'), 'frame');
+      assert.equal(await page.locator('#top nav').getAttribute('data-surface-context-v1'), 'chrome');
+      assert.equal(await page.locator('#top nav').getAttribute('data-surface-window-v1'), null);
+      assert.equal(await page.locator('#bottom').getAttribute('data-surface-window-v1'), 'frame');
+      assert.equal(await page.locator('#close').getAttribute('data-surface-window-close-v1'), 'button');
+      for (let i = 0; i < 3; i++) {
+        // Inline-only auto-alpha motion deliberately emits no observed class mutation.
+        await page.locator('.reveal').evaluateAll((els, opacity) => els.forEach(el => {
+          el.style.visibility = opacity ? 'visible' : 'hidden'; el.style.opacity = opacity;
+        }), i % 2);
+        await page.evaluate(y => scrollTo(0, y), i % 2 ? 600 : 0);
+        await page.waitForTimeout(80);
+        assert.equal(await page.locator('#quote').getAttribute('data-surface-window-v1'), 'frame');
+        assert.equal(await page.locator('#one').getAttribute('data-surface-component-v1'), 'inset');
+      }
+      await page.locator('.reveal').evaluateAll(els => els.forEach(el => { el.style.visibility = 'visible'; el.style.opacity = '1'; }));
+      await page.locator('#carousel').scrollIntoViewIfNeeded();
+      await page.locator('#carousel').evaluate(el => {
+        const added = document.createElement('div'); added.hidden = true;
+        for (let i = 0; i < 85; i++) added.append(document.createElement('span'));
+        el.append(added); el.classList.add('carousel-populated');
+      });
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator('#carousel').getAttribute('data-surface-context-v1'), null, `${theme} large carousel updates must not promote the track to a surface`);
+      await page.locator('#cta').scrollIntoViewIfNeeded();
+      const pair = await page.locator('#cta').evaluate(el => ({ fg: getComputedStyle(el.querySelector('span')).color, bg: getComputedStyle(el).backgroundColor }));
+      assert.ok(contrastRatio(parseColor(pair.fg), parseColor(pair.bg)) >= 4.5, `${theme} CTA contrast ${JSON.stringify(pair)}`);
+      assert.equal(await page.locator('button').count(), controls);
+      if (theme === 'browser-archeology') {
+        const chrome = await page.locator('#photo').evaluate(el => ({ content: getComputedStyle(el, '::after').content, pointer: getComputedStyle(el, '::after').pointerEvents }));
+        assert.equal(chrome.content, '""'); assert.equal(chrome.pointer, 'none');
+        assert.equal(await page.locator('#close svg').evaluate(el => getComputedStyle(el).display), 'none');
+        await page.setViewportSize({ width: 390, height: 844 });
+        const rect = await page.locator('#close').boundingBox();
+        assert.equal(rect.width, 18); assert.equal(rect.height, 18);
+        await page.locator('#close').click();
+        assert.equal(await page.evaluate(() => window.closedCount), 1);
+        await page.locator('#notice').evaluate(el => { el.hidden = false; });
+        await page.locator('#close').focus();
+        await page.keyboard.press('Enter');
+        await page.setViewportSize({ width: 1280, height: 960 });
+      } else await page.locator('#close').click();
+      assert.equal(await page.evaluate(() => window.closedCount), theme === 'browser-archeology' ? 2 : 1, `${theme} original handler must run once per activation`);
+      await set({ enabled: false });
+      await waitStatus({ state: 'disabled' });
+      assert.equal(await page.locator('[data-surface-window-v1],[data-surface-window-close-v1],[data-surface-component-v1]').count(), 0);
+      assert.notEqual(await page.locator('#close svg').evaluate(el => getComputedStyle(el).display), 'none');
+    }
+  });
+
   await check('mixed media landing keeps local image copy and notice actions readable', async () => {
     for (const theme of themeIds) {
       await set({ enabled: false });
@@ -664,6 +733,7 @@ try {
       assert.equal(await page.locator('#large-mark-card').getAttribute('data-surface-context-v1'), null, 'a large labelled card containing a logo-like icon must not become a brand');
       assert.equal(await page.locator('.product-logo').getAttribute('data-surface-context-v1'), 'brand');
       assert.equal(await page.locator('#settling-neutral-panel').getAttribute('data-surface-context-v1'), null, 'an active opacity effect stays authored');
+      await page.waitForTimeout(1700); // Exhaust the bounded reveal reads before replacing text nodes.
       await page.locator('#settling-neutral-panel p').evaluate(element => { element.textContent += ' Updated while revealing.'; });
       await page.waitForTimeout(50);
       await page.locator('#settling-neutral-panel').evaluate(element => { element.style.opacity = '1'; });

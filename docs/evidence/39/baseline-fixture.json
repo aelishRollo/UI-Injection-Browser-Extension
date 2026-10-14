@@ -1,0 +1,27 @@
+{
+  "cta": {},
+  "one": {
+    "data-surface-context-v1": "content",
+    "data-surface-confidence-v1": "medium",
+    "data-surface-evidence-v1": "neutral-heading-card"
+  },
+  "lining": {},
+  "photo": {
+    "data-surface-context-v1": "content",
+    "data-surface-confidence-v1": "high",
+    "data-surface-purpose-v1": "panel",
+    "data-surface-evidence-v1": "content-hierarchy",
+    "data-surface-window-v1": "titled"
+  },
+  "quote": {},
+  "top": {
+    "data-surface-context-v1": "chrome",
+    "data-surface-confidence-v1": "high",
+    "data-surface-purpose-v1": "navigation",
+    "data-surface-evidence-v1": "semantic-navigation"
+  },
+  "close": {
+    "data-surface-context-v1": "control",
+    "data-surface-confidence-v1": "high"
+  }
+}

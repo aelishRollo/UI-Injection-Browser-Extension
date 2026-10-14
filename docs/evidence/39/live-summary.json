@@ -1,0 +1,1124 @@
+{
+  "baselineCommit": "c93a4f35790847ef247cef0512741cb211ea661b",
+  "hashes": {
+    "content.js": "6c1c6c178fd05f099ff8263d34914ff8c632268fe96975b8d55b1dd0c44692e1",
+    "background.js": "4c32bef3dd80a7005b341c8a7dae59071a684be1b14fd1876aef1ea168a819cd"
+  },
+  "runs": [
+    {
+      "id": "browser-archeology",
+      "layout": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "closeSample": {
+        "opacity": "0.9042",
+        "visibility": "visible"
+      },
+      "samples": [
+        {
+          "tag": "HEADER",
+          "cls": "main-header",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {
+            "data-surface-evidence-v1": "neutral-solid-action",
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "action"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "SECTION",
+          "cls": "fullwidth-cta-container fw-container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-evidence-v1": "content-hierarchy",
+            "data-surface-window-v1": "media"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {}
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-panel-lining",
+            "data-surface-purpose-v1": "section"
+          }
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "main-footer",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "cookies-close-button",
+          "attributes": {
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-window-close-v1": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "liquid-dream",
+      "layout": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "closeSample": {
+        "opacity": "0.027",
+        "visibility": "visible"
+      },
+      "samples": [
+        {
+          "tag": "HEADER",
+          "cls": "main-header",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {
+            "data-surface-evidence-v1": "neutral-solid-action",
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "action"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "SECTION",
+          "cls": "fullwidth-cta-container fw-container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-evidence-v1": "content-hierarchy",
+            "data-surface-window-v1": "media"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {}
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-panel-lining",
+            "data-surface-purpose-v1": "section"
+          }
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "main-footer",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "cookies-close-button",
+          "attributes": {
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-window-close-v1": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "monochrome-signal",
+      "layout": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "closeSample": {
+        "opacity": "0.1334",
+        "visibility": "visible"
+      },
+      "samples": [
+        {
+          "tag": "HEADER",
+          "cls": "main-header",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {
+            "data-surface-evidence-v1": "neutral-solid-action",
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "action"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "SECTION",
+          "cls": "fullwidth-cta-container fw-container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-evidence-v1": "content-hierarchy",
+            "data-surface-window-v1": "media"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {}
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-panel-lining",
+            "data-surface-purpose-v1": "section"
+          }
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "main-footer",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "cookies-close-button",
+          "attributes": {
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-window-close-v1": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "terminal-vision",
+      "layout": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "closeSample": {
+        "opacity": "0.9042",
+        "visibility": "visible"
+      },
+      "samples": [
+        {
+          "tag": "HEADER",
+          "cls": "main-header",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {
+            "data-surface-evidence-v1": "neutral-solid-action",
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "action"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-component-v1": "inset"
+          }
+        },
+        {
+          "tag": "SECTION",
+          "cls": "fullwidth-cta-container fw-container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-evidence-v1": "content-hierarchy",
+            "data-surface-window-v1": "media"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {}
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-panel-lining",
+            "data-surface-purpose-v1": "section"
+          }
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "main-footer",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "cookies-close-button",
+          "attributes": {
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-window-close-v1": "button"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "layout": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "closeSample": {
+        "opacity": "0.0044",
+        "visibility": "visible"
+      },
+      "samples": [
+        {
+          "tag": "HEADER",
+          "cls": "main-header",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {
+            "data-surface-evidence-v1": "neutral-solid-action",
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "action"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "titled"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "titled"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "titled"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "card-expertise",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-heading-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "titled"
+          }
+        },
+        {
+          "tag": "SECTION",
+          "cls": "fullwidth-cta-container fw-container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-evidence-v1": "content-hierarchy",
+            "data-surface-window-v1": "media"
+          }
+        },
+        {
+          "tag": "A",
+          "cls": "cta-block",
+          "attributes": {}
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "card-testimonials",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "carousel-card",
+            "data-surface-purpose-v1": "panel",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "DIV",
+          "cls": "container",
+          "attributes": {
+            "data-surface-context-v1": "content",
+            "data-surface-confidence-v1": "high",
+            "data-surface-evidence-v1": "neutral-panel-lining",
+            "data-surface-purpose-v1": "section"
+          }
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "main-footer",
+          "attributes": {
+            "data-surface-context-v1": "chrome",
+            "data-surface-confidence-v1": "high",
+            "data-surface-purpose-v1": "navigation",
+            "data-surface-evidence-v1": "semantic-navigation",
+            "data-surface-window-v1": "frame"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "cookies-close-button",
+          "attributes": {
+            "data-surface-context-v1": "control",
+            "data-surface-confidence-v1": "high",
+            "data-surface-window-close-v1": "button"
+          }
+        }
+      ]
+    }
+  ]
+}

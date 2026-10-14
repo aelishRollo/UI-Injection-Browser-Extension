@@ -46,6 +46,11 @@ export function createBrowserArcheologyTheme() {
       { target: 'windowTitleContents', declarations: ink(theme.colors.accentText) },
       { target: 'titlePurpose', declarations: { ...ink(theme.colors.accentText), 'box-shadow': 'inset 1px 1px rgba(255,255,255,.55),inset -1px -1px rgba(0,0,0,.4)' } },
       { target: 'windowFrame', declarations: { 'padding-top': '25px', 'background-image': `${controls},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '54px 18px,calc(100% - 8px) 18px', 'background-repeat': 'no-repeat' } },
+      { target: 'insetPanel', declarations: { 'background-color': theme.colors.surface, border: '2px solid', 'border-color': '#808080 #ffffff #ffffff #808080', outline: 'none', 'box-shadow': 'inset 1px 1px #404040', 'background-image': 'none' } },
+      { target: 'mediaWindowChrome', declarations: { content: '""', position: 'absolute', top: '3px', left: '3px', right: '3px', height: '22px', 'z-index': '2', 'pointer-events': 'none', 'background-color': theme.colors.raised, 'background-image': `${controls},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 2px) 2px,0 0', 'background-size': '54px 18px,100% 100%', 'background-repeat': 'no-repeat' } },
+      { target: 'windowFrameWithClose', declarations: { 'background-image': `${windowControlsImage('pair')},linear-gradient(90deg,#808080,#a9a9a9)`, 'background-position': 'calc(100% - 22px) 4px,4px 4px', 'background-size': '36px 18px,calc(100% - 8px) 18px' } },
+      { target: 'windowClose', declarations: { position: 'absolute', top: '4px', right: '4px', bottom: 'auto', left: 'auto', width: '18px', height: '18px', 'min-width': '0', 'min-height': '0', padding: '0', margin: '0', border: '0', 'border-radius': '0', 'box-shadow': 'none', 'background-color': '#c0c0c0', 'background-image': windowControlsImage('close'), 'background-size': '18px 18px', 'background-position': 'center', 'background-repeat': 'no-repeat', 'z-index': '3', cursor: 'pointer' } },
+      { target: 'windowCloseContents', declarations: { display: 'none' } },
       { target: 'linkVisited', declarations: { ...ink('#551a8b'), 'text-decoration-color': '#551a8b' } },
       { target: 'linkHoverFocus', declarations: { ...ink('#ff0000'), 'background-color': 'transparent', 'text-decoration-color': '#ff0000', 'box-shadow': 'none' } },
       { target: 'controlDisabled', declarations: { color: '#808080', '--surface-control-ink-v1': '#808080', 'border-style': 'solid', opacity: '1', 'text-shadow': '1px 1px #ffffff' } },
@@ -54,7 +59,8 @@ export function createBrowserArcheologyTheme() {
     ],
     responsive: [{ query: '(max-width:520px)', rules: [
       { target: 'windowTitle', declarations: { 'padding-inline-end': '48px', 'background-position': '3px 2px,calc(100% - 2px) 2px,0 0', 'background-size': '16px 16px,42px 14px,100% 100%' } },
-      { target: 'windowFrame', declarations: { 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '42px 14px,calc(100% - 8px) 18px' } }
+      { target: 'windowFrame', declarations: { 'background-position': 'calc(100% - 4px) 4px,4px 4px', 'background-size': '42px 14px,calc(100% - 8px) 18px' } },
+      { target: 'windowFrameWithClose', declarations: { 'background-position': 'calc(100% - 22px) 4px,4px 4px', 'background-size': '36px 18px,calc(100% - 8px) 18px' } }
     ] }]
   } };
 }

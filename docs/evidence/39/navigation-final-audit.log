@@ -1,0 +1,21 @@
+
+> surface-website-themes@0.2.0 test:navigation
+> node scripts/navigation-test.mjs
+
+PASS large route frame median 90.5 ms versus 120.8 ms control
+PASS large route renderer batches 77.3/77.0/61.3 ms (90.5/87.4/117.9 themed frames; 120.8/32.5/764.8 control) and deferred paint remained coherent
+PASS bounded ancestor class used one 12.6 ms scan with zero article marker rewrites
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: unhealthy unthemed long-scroll control median 492.0 ms invalidated the 300 ms frame check
+    at file:///Users/alecrollison/Code/UI%20Injection/scripts/navigation-test.mjs:239:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '=='
+}
+
+Node.js v22.17.0

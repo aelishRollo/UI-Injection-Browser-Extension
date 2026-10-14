@@ -1,0 +1,441 @@
+{
+  "recordedAt": "2026-10-13T10:38:53.487Z",
+  "browser": "153.0.8010.12",
+  "configuration": {
+    "repeatCount": 5,
+    "modes": [
+      {
+        "enabled": false,
+        "theme": null
+      },
+      {
+        "enabled": true,
+        "theme": "browser-archeology"
+      },
+      {
+        "enabled": true,
+        "theme": "liquid-dream"
+      },
+      {
+        "enabled": true,
+        "theme": "monochrome-signal"
+      },
+      {
+        "enabled": true,
+        "theme": "terminal-vision"
+      }
+    ]
+  },
+  "samples": [
+    {
+      "theme": "original",
+      "repeat": 0,
+      "frameMeasurementValid": false,
+      "completedFrames": 41,
+      "stalledFrames": 27,
+      "longTasks": [
+        50
+      ],
+      "metrics": {
+        "TaskDurationMs": 181.59,
+        "ScriptDurationMs": 2.68,
+        "RecalcStyleDurationMs": 1.56,
+        "LayoutDurationMs": 1.06
+      },
+      "sampledContentEngineMs": 0,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "browser-archeology",
+      "repeat": 0,
+      "frameMeasurementValid": false,
+      "completedFrames": 51,
+      "stalledFrames": 18,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 170.92,
+        "ScriptDurationMs": 15.18,
+        "RecalcStyleDurationMs": 7.48,
+        "LayoutDurationMs": 4.21
+      },
+      "sampledContentEngineMs": 17.43,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "liquid-dream",
+      "repeat": 0,
+      "frameMeasurementValid": false,
+      "completedFrames": 61,
+      "stalledFrames": 12,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 200.31,
+        "ScriptDurationMs": 14.98,
+        "RecalcStyleDurationMs": 9.07,
+        "LayoutDurationMs": 4.95
+      },
+      "sampledContentEngineMs": 15.21,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "monochrome-signal",
+      "repeat": 0,
+      "frameMeasurementValid": false,
+      "completedFrames": 61,
+      "stalledFrames": 13,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 215.03,
+        "ScriptDurationMs": 14.64,
+        "RecalcStyleDurationMs": 8.77,
+        "LayoutDurationMs": 7.98
+      },
+      "sampledContentEngineMs": 18.78,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "terminal-vision",
+      "repeat": 0,
+      "frameMeasurementValid": false,
+      "completedFrames": 29,
+      "stalledFrames": 27,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 132.57,
+        "ScriptDurationMs": 6.31,
+        "RecalcStyleDurationMs": 2.69,
+        "LayoutDurationMs": 3.57
+      },
+      "sampledContentEngineMs": 6,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "browser-archeology",
+      "repeat": 1,
+      "frameMeasurementValid": false,
+      "completedFrames": 51,
+      "stalledFrames": 19,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 228.07,
+        "ScriptDurationMs": 12.79,
+        "RecalcStyleDurationMs": 6.36,
+        "LayoutDurationMs": 3.55
+      },
+      "sampledContentEngineMs": 17.76,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "liquid-dream",
+      "repeat": 1,
+      "frameMeasurementValid": false,
+      "completedFrames": 55,
+      "stalledFrames": 15,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 190.41,
+        "ScriptDurationMs": 14.42,
+        "RecalcStyleDurationMs": 8.75,
+        "LayoutDurationMs": 3.65
+      },
+      "sampledContentEngineMs": 14.68,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "monochrome-signal",
+      "repeat": 1,
+      "frameMeasurementValid": false,
+      "completedFrames": 66,
+      "stalledFrames": 14,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 216.86,
+        "ScriptDurationMs": 14.2,
+        "RecalcStyleDurationMs": 8.98,
+        "LayoutDurationMs": 6.88
+      },
+      "sampledContentEngineMs": 13.16,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "terminal-vision",
+      "repeat": 1,
+      "frameMeasurementValid": false,
+      "completedFrames": 31,
+      "stalledFrames": 25,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 125.96,
+        "ScriptDurationMs": 7.94,
+        "RecalcStyleDurationMs": 3.5,
+        "LayoutDurationMs": 4.22
+      },
+      "sampledContentEngineMs": 11.05,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "original",
+      "repeat": 1,
+      "frameMeasurementValid": false,
+      "completedFrames": 100,
+      "stalledFrames": 9,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 200.24,
+        "ScriptDurationMs": 3.81,
+        "RecalcStyleDurationMs": 2.6,
+        "LayoutDurationMs": 1.76
+      },
+      "sampledContentEngineMs": 0,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "liquid-dream",
+      "repeat": 2,
+      "frameMeasurementValid": false,
+      "completedFrames": 65,
+      "stalledFrames": 14,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 192.14,
+        "ScriptDurationMs": 15.56,
+        "RecalcStyleDurationMs": 8.89,
+        "LayoutDurationMs": 4.22
+      },
+      "sampledContentEngineMs": 20.03,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "monochrome-signal",
+      "repeat": 2,
+      "frameMeasurementValid": false,
+      "completedFrames": 57,
+      "stalledFrames": 17,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 187.54,
+        "ScriptDurationMs": 12.01,
+        "RecalcStyleDurationMs": 7.61,
+        "LayoutDurationMs": 5.83
+      },
+      "sampledContentEngineMs": 10.41,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "terminal-vision",
+      "repeat": 2,
+      "frameMeasurementValid": false,
+      "completedFrames": 28,
+      "stalledFrames": 26,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 99.15,
+        "ScriptDurationMs": 5.96,
+        "RecalcStyleDurationMs": 2.61,
+        "LayoutDurationMs": 3.5
+      },
+      "sampledContentEngineMs": 4.78,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "original",
+      "repeat": 2,
+      "frameMeasurementValid": false,
+      "completedFrames": 100,
+      "stalledFrames": 8,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 215.37,
+        "ScriptDurationMs": 3.38,
+        "RecalcStyleDurationMs": 2.44,
+        "LayoutDurationMs": 1.59
+      },
+      "sampledContentEngineMs": 0,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "browser-archeology",
+      "repeat": 2,
+      "frameMeasurementValid": false,
+      "completedFrames": 54,
+      "stalledFrames": 15,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 176.53,
+        "ScriptDurationMs": 12.58,
+        "RecalcStyleDurationMs": 6.49,
+        "LayoutDurationMs": 3.34
+      },
+      "sampledContentEngineMs": 12.03,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "monochrome-signal",
+      "repeat": 3,
+      "frameMeasurementValid": false,
+      "completedFrames": 64,
+      "stalledFrames": 9,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 208.4,
+        "ScriptDurationMs": 13.77,
+        "RecalcStyleDurationMs": 7.93,
+        "LayoutDurationMs": 6.75
+      },
+      "sampledContentEngineMs": 13.5,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "terminal-vision",
+      "repeat": 3,
+      "frameMeasurementValid": false,
+      "completedFrames": 30,
+      "stalledFrames": 26,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 104.33,
+        "ScriptDurationMs": 6.7,
+        "RecalcStyleDurationMs": 2.82,
+        "LayoutDurationMs": 3.66
+      },
+      "sampledContentEngineMs": 4.76,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "original",
+      "repeat": 3,
+      "frameMeasurementValid": false,
+      "completedFrames": 100,
+      "stalledFrames": 5,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 229.52,
+        "ScriptDurationMs": 3.56,
+        "RecalcStyleDurationMs": 2.48,
+        "LayoutDurationMs": 1.68
+      },
+      "sampledContentEngineMs": 0,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "browser-archeology",
+      "repeat": 3,
+      "frameMeasurementValid": false,
+      "completedFrames": 51,
+      "stalledFrames": 15,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 178.5,
+        "ScriptDurationMs": 12.33,
+        "RecalcStyleDurationMs": 6.68,
+        "LayoutDurationMs": 3.4
+      },
+      "sampledContentEngineMs": 15.96,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "liquid-dream",
+      "repeat": 3,
+      "frameMeasurementValid": false,
+      "completedFrames": 53,
+      "stalledFrames": 16,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 175.09,
+        "ScriptDurationMs": 11.62,
+        "RecalcStyleDurationMs": 6.47,
+        "LayoutDurationMs": 3.14
+      },
+      "sampledContentEngineMs": 15.49,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "terminal-vision",
+      "repeat": 4,
+      "frameMeasurementValid": false,
+      "completedFrames": 29,
+      "stalledFrames": 28,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 104.61,
+        "ScriptDurationMs": 6.62,
+        "RecalcStyleDurationMs": 2.71,
+        "LayoutDurationMs": 3.43
+      },
+      "sampledContentEngineMs": 7,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "original",
+      "repeat": 4,
+      "frameMeasurementValid": false,
+      "completedFrames": 100,
+      "stalledFrames": 5,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 224.72,
+        "ScriptDurationMs": 3.7,
+        "RecalcStyleDurationMs": 2.48,
+        "LayoutDurationMs": 1.76
+      },
+      "sampledContentEngineMs": 0,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "browser-archeology",
+      "repeat": 4,
+      "frameMeasurementValid": false,
+      "completedFrames": 52,
+      "stalledFrames": 17,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 180.91,
+        "ScriptDurationMs": 12.45,
+        "RecalcStyleDurationMs": 5.79,
+        "LayoutDurationMs": 3.55
+      },
+      "sampledContentEngineMs": 14.78,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "liquid-dream",
+      "repeat": 4,
+      "frameMeasurementValid": false,
+      "completedFrames": 56,
+      "stalledFrames": 22,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 175.58,
+        "ScriptDurationMs": 12.67,
+        "RecalcStyleDurationMs": 7.14,
+        "LayoutDurationMs": 3.53
+      },
+      "sampledContentEngineMs": 18.93,
+      "p95FrameIntervalMs": null
+    },
+    {
+      "theme": "monochrome-signal",
+      "repeat": 4,
+      "frameMeasurementValid": false,
+      "completedFrames": 68,
+      "stalledFrames": 15,
+      "longTasks": [],
+      "metrics": {
+        "TaskDurationMs": 216.21,
+        "ScriptDurationMs": 13.9,
+        "RecalcStyleDurationMs": 8.13,
+        "LayoutDurationMs": 6.54
+      },
+      "sampledContentEngineMs": 15.32,
+      "p95FrameIntervalMs": null
+    }
+  ],
+  "limitations": [
+    "Local fixture and headless browser; no product performance pass implied.",
+    "Playwright dispatches trusted click input, but click-to-two-rAF remains a laboratory rendering-opportunity measure rather than field INP.",
+    "CPU sampling covers page content engines, not extension worker CPU or all native rendering work.",
+    "Frame intervals and task duration include theme effects. Theme cost is not isolated by subtracting sampled engine values.",
+    "Navigations are warm-cache after the first run; loadToApplied includes automation and scheduling.",
+    "A verified equivalent-output frozen-style control, paint/composite traces, foreground runs, and real-site traces remain necessary for complete attribution."
+  ]
+}
