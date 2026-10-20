@@ -16,12 +16,15 @@ for (const theme of Object.values(THEMES)) {
   const [className, title, subtitle] = preview[theme.id];
   const label = document.createElement('label');
   label.className = 'theme-choice';
-  label.innerHTML = `<input type="radio" name="theme" value="${theme.id}"><span class="theme-card"><span class="preview ${className}" aria-hidden="true"><strong></strong><small></small></span><span class="theme-copy"><strong></strong><small></small></span><span class="selected-dot" aria-hidden="true"></span></span>`;
+  label.innerHTML = `<input type="radio" name="theme"><span class="theme-card"><span class="preview" aria-hidden="true"><strong></strong><small></small></span><span class="theme-copy"><strong></strong><small></small></span><span class="selected-dot" aria-hidden="true"></span></span>`;
+  const input = label.querySelector('input');
+  input.value = theme.id;
+  label.querySelector('.preview').classList.add(className);
   label.querySelector('.preview strong').textContent = title;
   label.querySelector('.preview small').textContent = subtitle;
   label.querySelector('.theme-copy strong').textContent = theme.name;
   label.querySelector('.theme-copy small').textContent = theme.description;
-  label.querySelector('input').addEventListener('change', () => update({ theme: theme.id }));
+  input.addEventListener('change', () => update({ theme: theme.id }));
   $('themes').append(label);
 }
 
