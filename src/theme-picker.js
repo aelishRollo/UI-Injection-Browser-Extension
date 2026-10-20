@@ -284,9 +284,22 @@ export function createThemePicker({ selectTheme, setEnabled }) {
     button.setAttribute('aria-pressed', 'false');
     button.style.setProperty('--swatch', theme.colors.background);
     button.style.setProperty('--surface', theme.colors.surface);
-    button.innerHTML = '<span class="swatch" aria-hidden="true"></span><span class="option-copy"><span class="option-name"></span><span class="option-description"></span></span><span class="selected" aria-hidden="true"></span>';
-    button.querySelector('.option-name').textContent = theme.name;
-    button.querySelector('.option-description').textContent = theme.description;
+    const swatchSpan = document.createElement('span');
+    swatchSpan.className = 'swatch';
+    swatchSpan.setAttribute('aria-hidden', 'true');
+    const optionCopySpan = document.createElement('span');
+    optionCopySpan.className = 'option-copy';
+    const optionNameSpan = document.createElement('span');
+    optionNameSpan.className = 'option-name';
+    optionNameSpan.textContent = theme.name;
+    const optionDescSpan = document.createElement('span');
+    optionDescSpan.className = 'option-description';
+    optionDescSpan.textContent = theme.description;
+    optionCopySpan.append(optionNameSpan, optionDescSpan);
+    const selectedSpan = document.createElement('span');
+    selectedSpan.className = 'selected';
+    selectedSpan.setAttribute('aria-hidden', 'true');
+    button.append(swatchSpan, optionCopySpan, selectedSpan);
     button.addEventListener('click', async () => {
       if (busy || currentSettings?.theme === theme.id) return;
       busy = true;
