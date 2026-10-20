@@ -1019,13 +1019,17 @@ function captureAuthoredCanvasBackground() {
   // body is still guarded and no rendering opportunity occurs in this task.
   if (!ready) root.setAttribute('data-surface-ready-v2', '');
   try {
-    for (const element of [document.body, root]) {
-      if (!(element instanceof Element)) continue;
-      const color = getComputedStyle(element).backgroundColor;
-      if (isOpaque(color)) {
-        authoredCanvasBackground = color;
-        return;
+    try {
+      for (const element of [document.body, root]) {
+        if (!(element instanceof Element)) continue;
+        const color = getComputedStyle(element).backgroundColor;
+        if (isOpaque(color)) {
+          authoredCanvasBackground = color;
+          return;
+        }
       }
+    } catch {
+      // Ignored
     }
     authoredCanvasBackground = '#ffffff';
   } finally {
@@ -1882,3 +1886,8 @@ export function diagnostics() {
     uncertainty: { ...uncertainty }
   };
 }
+
+export const _testHelpers = {
+  captureAuthoredCanvasBackground,
+  get authoredCanvasBackground() { return authoredCanvasBackground; }
+};
