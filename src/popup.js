@@ -16,12 +16,42 @@ for (const theme of Object.values(THEMES)) {
   const [className, title, subtitle] = preview[theme.id];
   const label = document.createElement('label');
   label.className = 'theme-choice';
-  label.innerHTML = `<input type="radio" name="theme" value="${theme.id}"><span class="theme-card"><span class="preview ${className}" aria-hidden="true"><strong></strong><small></small></span><span class="theme-copy"><strong></strong><small></small></span><span class="selected-dot" aria-hidden="true"></span></span>`;
-  label.querySelector('.preview strong').textContent = title;
-  label.querySelector('.preview small').textContent = subtitle;
-  label.querySelector('.theme-copy strong').textContent = theme.name;
-  label.querySelector('.theme-copy small').textContent = theme.description;
-  label.querySelector('input').addEventListener('change', () => update({ theme: theme.id }));
+
+  const input = document.createElement('input');
+  input.type = 'radio';
+  input.name = 'theme';
+  input.value = theme.id;
+  input.addEventListener('change', () => update({ theme: theme.id }));
+
+  const themeCard = document.createElement('span');
+  themeCard.className = 'theme-card';
+
+  const previewSpan = document.createElement('span');
+  previewSpan.className = `preview ${className}`;
+  previewSpan.setAttribute('aria-hidden', 'true');
+
+  const previewStrong = document.createElement('strong');
+  previewStrong.textContent = title;
+  const previewSmall = document.createElement('small');
+  previewSmall.textContent = subtitle;
+  previewSpan.append(previewStrong, previewSmall);
+
+  const themeCopy = document.createElement('span');
+  themeCopy.className = 'theme-copy';
+
+  const copyStrong = document.createElement('strong');
+  copyStrong.textContent = theme.name;
+  const copySmall = document.createElement('small');
+  copySmall.textContent = theme.description;
+  themeCopy.append(copyStrong, copySmall);
+
+  const selectedDot = document.createElement('span');
+  selectedDot.className = 'selected-dot';
+  selectedDot.setAttribute('aria-hidden', 'true');
+
+  themeCard.append(previewSpan, themeCopy, selectedDot);
+  label.append(input, themeCard);
+
   $('themes').append(label);
 }
 
